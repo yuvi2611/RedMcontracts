@@ -770,6 +770,91 @@ a {
   line-height: 1.45;
 }
 
+/* Reset password screen */
+.reset-screen {
+  background:
+    radial-gradient(circle at 20% 18%, rgba(212,0,42,.24), transparent 30%),
+    radial-gradient(circle at 82% 76%, rgba(68,98,160,.24), transparent 34%),
+    linear-gradient(135deg, #171218 0%, #332428 48%, #4b272d 100%);
+}
+
+.reset-stage {
+  width: min(520px, 100%);
+  display: grid;
+}
+
+.reset-card {
+  position: relative;
+  display: grid;
+  gap: 16px;
+  padding: 42px;
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 18% 18%, rgba(212,0,42,.13), transparent 32%),
+    linear-gradient(180deg, rgba(255,255,255,.98), rgba(255,255,255,.94));
+  color: var(--coal-900);
+  box-shadow: 0 26px 70px rgba(0,0,0,.28);
+  animation: loginPanelRise .5s cubic-bezier(.2,.8,.2,1) both;
+}
+
+.reset-card .login-logo-mark {
+  margin-bottom: 10px;
+}
+
+.reset-card .login-copy h1 {
+  color: var(--coal-900);
+}
+
+.reset-card .login-copy p,
+.reset-card .login-admin-note {
+  color: var(--coal-500);
+  text-align: left;
+}
+
+.reset-card .form-label {
+  color: var(--coal-700);
+}
+
+.reset-card .login-input {
+  border-color: var(--coal-150, #e5e5e5);
+  box-shadow: none;
+}
+
+.reset-back {
+  justify-self: start;
+  background: transparent;
+  color: var(--coal-500);
+  font-size: 12px;
+  font-weight: 700;
+  padding: 0;
+}
+
+.reset-back:hover {
+  color: var(--red-600);
+}
+
+.reset-code-note {
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(16,185,129,.08);
+  border: 1px solid rgba(16,185,129,.22);
+  color: #047857;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.reset-success-mark {
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: rgba(16,185,129,.12);
+  color: #047857;
+  font-size: 14px;
+  font-weight: 800;
+}
+
 /* ── ASSURANCE PANEL ──────────────────────── */
 
 .login-assurance-panel {

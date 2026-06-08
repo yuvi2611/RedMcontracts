@@ -4,6 +4,7 @@ const HOST = '127.0.0.1';
 const PORT = 8000;
 const ROUTES = [
   'login',
+  'reset-password',
   'dashboard',
   'contracts',
   'wizard',
@@ -13,6 +14,7 @@ const ROUTES = [
   'approvals',
   'analytics',
   'audit',
+  'create-user',
   'settings'
 ];
 

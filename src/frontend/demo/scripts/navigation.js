@@ -1,5 +1,6 @@
 const APP_ROUTES = {
   login: { title: 'Sign In', public: true },
+  'reset-password': { title: 'Reset Password', public: true },
   dashboard: { title: 'Dashboard', page: 'dashboard' },
   contracts: { title: 'Contracts', page: 'contracts' },
   wizard: { title: 'Guided Contract Studio', page: 'wizard' },
@@ -71,6 +72,11 @@ function renderRoute(routeName = getRouteFromHash()) {
     } else {
       showLogin?.();
     }
+    return;
+  }
+
+  if (routeName === 'reset-password') {
+    showResetPassword?.();
     return;
   }
 
