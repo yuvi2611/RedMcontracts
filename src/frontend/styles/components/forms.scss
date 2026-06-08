@@ -1,0 +1,314 @@
+/**
+ * Form Elements Component Styles
+ */
+
+@import '../design-tokens/colors';
+@import '../design-tokens/typography';
+@import '../design-tokens/spacing-shadows';
+
+// ============================================
+// FORM GROUP WRAPPER
+// ============================================
+.form-group {
+  margin-bottom: $spacing-lg;
+  display: flex;
+  flex-direction: column;
+
+  &.inline {
+    flex-direction: row;
+    align-items: center;
+    gap: $spacing-md;
+
+    .form-label {
+      margin: 0;
+    }
+  }
+}
+
+// ============================================
+// FORM LABEL
+// ============================================
+.form-label {
+  @include typography-label;
+  color: $coal-700;
+  margin-bottom: $spacing-sm;
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+
+  .required {
+    color: $error;
+    font-weight: $font-weight-bold;
+  }
+
+  &.optional {
+    font-weight: $font-weight-regular;
+
+    &::after {
+      content: '(Optional)';
+      color: $coal-400;
+      font-size: 11px;
+      margin-left: auto;
+    }
+  }
+}
+
+// ============================================
+// TEXT INPUT
+// ============================================
+.form-input,
+.form-textarea,
+.form-select {
+  @include typography-body;
+  padding: 10px 14px;
+  border: 1.5px solid $coal-100;
+  @include rounded('xs');
+  background: white;
+  color: $coal-900;
+  @include transition;
+
+  &::placeholder {
+    color: $coal-300;
+  }
+
+  &:hover:not(:disabled) {
+    border-color: $coal-200;
+  }
+
+  &:focus {
+    outline: none;
+    border-color: $red-500;
+    box-shadow: 0 0 0 3px rgba(212, 0, 42, 0.08);
+  }
+
+  &:disabled {
+    background: $coal-50;
+    color: $coal-400;
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+}
+
+// ============================================
+// TEXTAREA
+// ============================================
+.form-textarea {
+  min-height: 100px;
+  resize: vertical;
+  font-family: $font-primary;
+}
+
+// ============================================
+// SELECT DROPDOWN
+// ============================================
+.form-select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Cpath fill='%235a5a72' d='M8 11L3 6h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 36px;
+  cursor: pointer;
+
+  option {
+    padding: $spacing-md;
+    color: $coal-900;
+    background: white;
+  }
+}
+
+// ============================================
+// CHECKBOX & RADIO
+// ============================================
+.form-checkbox,
+.form-radio {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  accent-color: $red-500;
+
+  &:focus-visible {
+    @include focus-ring;
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+}
+
+.checkbox-group,
+.radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+
+  &.horizontal {
+    flex-direction: row;
+    gap: $spacing-lg;
+  }
+}
+
+.checkbox-item,
+.radio-item {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  cursor: pointer;
+
+  label {
+    @include typography-body;
+    cursor: pointer;
+    color: $coal-700;
+  }
+}
+
+// ============================================
+// FORM HINT & ERROR
+// ============================================
+.form-hint {
+  @include typography-small;
+  color: $coal-400;
+  margin-top: $spacing-xs;
+}
+
+.form-error {
+  @include typography-small;
+  color: $error;
+  margin-top: $spacing-xs;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+
+  &::before {
+    content: '⚠';
+    font-size: 12px;
+  }
+}
+
+.form-success {
+  @include typography-small;
+  color: $success;
+  margin-top: $spacing-xs;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+
+  &::before {
+    content: '✓';
+    font-size: 12px;
+  }
+}
+
+// ============================================
+// VALIDATION STATES
+// ============================================
+.form-input,
+.form-textarea,
+.form-select {
+  &.error,
+  &.is-invalid {
+    border-color: $error;
+    background-color: rgba($error, 0.02);
+
+    &:focus {
+      box-shadow: 0 0 0 3px rgba($error, 0.08);
+    }
+  }
+
+  &.success,
+  &.is-valid {
+    border-color: $success;
+    background-color: rgba($success, 0.02);
+
+    &:focus {
+      box-shadow: 0 0 0 3px rgba($success, 0.08);
+    }
+  }
+
+  &.warning {
+    border-color: $warning;
+    background-color: rgba($warning, 0.02);
+
+    &:focus {
+      box-shadow: 0 0 0 3px rgba($warning, 0.08);
+    }
+  }
+}
+
+// ============================================
+// FORM FIELD WITH ICON
+// ============================================
+.form-field-icon {
+  position: relative;
+
+  .form-input {
+    padding-left: 40px;
+  }
+
+  .field-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: $coal-400;
+    pointer-events: none;
+  }
+
+  &.with-clear {
+    .form-input {
+      padding-right: 40px;
+    }
+
+    .clear-btn {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: $coal-400;
+      padding: 0;
+
+      &:hover {
+        color: $coal-600;
+      }
+    }
+  }
+}
+
+// ============================================
+// FORM GRID
+// ============================================
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: $spacing-lg;
+
+  &.cols-2 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  &.cols-3 {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+// ============================================
+// INPUT SIZES
+// ============================================
+.form-input {
+  &.input-sm {
+    padding: 6px 10px;
+    @include typography-small;
+  }
+
+  &.input-lg {
+    padding: 12px 16px;
+    @include typography-body;
+  }
+}

@@ -1,0 +1,356 @@
+/**
+ * Cards and Badges Component Styles
+ */
+
+@import '../design-tokens/colors';
+@import '../design-tokens/typography';
+@import '../design-tokens/spacing-shadows';
+
+// ============================================
+// STANDARD CARD
+// ============================================
+.card {
+  background: white;
+  border: 1px solid $coal-100;
+  @include rounded('lg');
+  @include shadow('xs');
+  overflow: hidden;
+  @include transition;
+
+  &:hover {
+    transform: translateY(-2px);
+    @include shadow('md');
+  }
+
+  &.card-clickable {
+    cursor: pointer;
+  }
+
+  &.card-bordered {
+    border-width: 2px;
+  }
+
+  &.card-flush {
+    border-radius: 0;
+    border: none;
+  }
+}
+
+// ============================================
+// CARD PARTS
+// ============================================
+.card-header {
+  padding: $spacing-xl;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid $coal-50;
+
+  &.card-header-dense {
+    padding: $spacing-lg;
+  }
+}
+
+.card-title {
+  @include typography-h3;
+  color: $coal-900;
+  margin: 0;
+  flex: 1;
+}
+
+.card-subtitle {
+  @include typography-small;
+  color: $coal-400;
+  margin: 0;
+}
+
+.card-body {
+  padding: $spacing-xl;
+
+  &.card-body-dense {
+    padding: $spacing-lg;
+  }
+
+  &:not(:last-child) {
+    border-bottom: 1px solid $coal-50;
+  }
+}
+
+.card-footer {
+  padding: $spacing-xl;
+  display: flex;
+  gap: $spacing-md;
+  border-top: 1px solid $coal-50;
+
+  &.card-footer-dense {
+    padding: $spacing-lg;
+  }
+
+  .btn {
+    flex: 1;
+  }
+}
+
+// ============================================
+// KPI CARD
+// ============================================
+.kpi-card {
+  background: white;
+  @include rounded('lg');
+  @include shadow('xs');
+  padding: $spacing-2xl;
+  position: relative;
+  overflow: hidden;
+  @include transition;
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 80px;
+    height: 80px;
+    @include rounded('xl');
+    opacity: 0.06;
+  }
+
+  &:hover {
+    @include shadow('md');
+  }
+
+  &.kpi-red {
+    &::after {
+      background: $red-500;
+    }
+
+    .kpi-icon {
+      background: rgba($red-500, 0.1);
+      color: $red-500;
+    }
+  }
+
+  &.kpi-success {
+    &::after {
+      background: $success;
+    }
+
+    .kpi-icon {
+      background: rgba($success, 0.1);
+      color: $success;
+    }
+  }
+
+  &.kpi-warning {
+    &::after {
+      background: $warning;
+    }
+
+    .kpi-icon {
+      background: rgba($warning, 0.1);
+      color: $warning;
+    }
+  }
+
+  &.kpi-info {
+    &::after {
+      background: $info;
+    }
+
+    .kpi-icon {
+      background: rgba($info, 0.1);
+      color: $info;
+    }
+  }
+}
+
+.kpi-icon {
+  width: 48px;
+  height: 48px;
+  @include rounded('md');
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  margin-bottom: $spacing-md;
+}
+
+.kpi-value {
+  font-size: 30px;
+  font-weight: $font-weight-extra-bold;
+  color: $coal-900;
+  letter-spacing: -1px;
+  margin-bottom: $spacing-xs;
+}
+
+.kpi-label {
+  @include typography-small;
+  color: $coal-500;
+  margin-bottom: $spacing-md;
+}
+
+.kpi-trend {
+  @include typography-tiny;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+
+  &.up {
+    color: $success;
+
+    &::before {
+      content: '↑';
+    }
+  }
+
+  &.down {
+    color: $error;
+
+    &::before {
+      content: '↓';
+    }
+  }
+
+  &.neutral {
+    color: $coal-400;
+
+    &::before {
+      content: '→';
+    }
+  }
+}
+
+// ============================================
+// BADGE COMPONENT
+// ============================================
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  @include rounded('full');
+  @include typography-tiny;
+  font-weight: $font-weight-semibold;
+  white-space: nowrap;
+  width: fit-content;
+}
+
+.badge::before {
+  content: '';
+  width: 5px;
+  height: 5px;
+  @include rounded('full');
+}
+
+// ============================================
+// STATUS BADGES
+// ============================================
+.status-badge {
+  &.draft {
+    background: $coal-50;
+    color: $coal-500;
+
+    &::before {
+      background: $coal-400;
+    }
+  }
+
+  &.review,
+  &.pending {
+    background: rgba($warning, 0.1);
+    color: $warning;
+
+    &::before {
+      background: $warning;
+    }
+  }
+
+  &.approved {
+    background: rgba($success, 0.1);
+    color: $success;
+
+    &::before {
+      background: $success;
+    }
+  }
+
+  &.signed,
+  &.completed {
+    background: rgba($info, 0.1);
+    color: $info;
+
+    &::before {
+      background: $info;
+    }
+  }
+
+  &.rejected,
+  &.error {
+    background: rgba($error, 0.1);
+    color: $error;
+
+    &::before {
+      background: $error;
+    }
+  }
+
+  &.disabled {
+    background: $coal-100;
+    color: $coal-400;
+
+    &::before {
+      background: $coal-300;
+    }
+  }
+}
+
+// ============================================
+// TAG VARIANT
+// ============================================
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-sm;
+  padding: 6px 12px;
+  @include rounded('md');
+  background: $coal-50;
+  color: $coal-700;
+  @include typography-small;
+  border: 1px solid $coal-100;
+
+  &.tag-removable {
+    cursor: pointer;
+
+    .tag-remove {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 16px;
+      height: 16px;
+      margin-left: $spacing-xs;
+      cursor: pointer;
+      opacity: 0.6;
+      @include transition;
+
+      &:hover {
+        opacity: 1;
+      }
+    }
+  }
+}
+
+// ============================================
+// LARGE BADGES FOR HEADERS
+// ============================================
+.badge-lg {
+  padding: 8px 16px;
+  @include typography-label;
+}
+
+// ============================================
+// BADGE GROUPS
+// ============================================
+.badge-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-sm;
+}

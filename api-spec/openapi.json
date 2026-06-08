@@ -1,0 +1,673 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "ContractIQ API",
+    "description": "RedMPS HR Contract Generation Platform REST API",
+    "version": "1.0.0",
+    "contact": {
+      "name": "RedMPS Support",
+      "email": "support@redmps.com"
+    },
+    "license": {
+      "name": "Proprietary"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://api.contractiq.redmps.com/api",
+      "description": "Production Server"
+    },
+    {
+      "url": "https://api-staging.contractiq.redmps.com/api",
+      "description": "Staging Server"
+    },
+    {
+      "url": "http://localhost:5000/api",
+      "description": "Development Server"
+    }
+  ],
+  "security": [
+    {
+      "BearerAuth": []
+    }
+  ],
+  "paths": {
+    "/auth/login": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "User login",
+        "operationId": "login",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  },
+                  "password": {
+                    "type": "string",
+                    "format": "password"
+                  }
+                },
+                "required": ["email", "password"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Login successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid credentials"
+          }
+        }
+      }
+    },
+    "/contracts": {
+      "get": {
+        "tags": ["Contracts"],
+        "summary": "Get all contracts",
+        "operationId": "getContracts",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Filter by contract status",
+            "schema": {
+              "type": "string",
+              "enum": ["Draft", "Review", "Approved", "Signed", "Executed", "Rejected"]
+            }
+          },
+          {
+            "name": "contractTypeId",
+            "in": "query",
+            "description": "Filter by contract type",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "skip",
+            "in": "query",
+            "description": "Number of records to skip",
+            "schema": {
+              "type": "integer",
+              "default": 0
+            }
+          },
+          {
+            "name": "take",
+            "in": "query",
+            "description": "Number of records to return",
+            "schema": {
+              "type": "integer",
+              "default": 20,
+              "maximum": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of contracts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Contract"
+                      }
+                    },
+                    "total": {
+                      "type": "integer"
+                    },
+                    "skip": {
+                      "type": "integer"
+                    },
+                    "take": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Contracts"],
+        "summary": "Create new contract",
+        "operationId": "createContract",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateContractRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Contract created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Contract"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request"
+          }
+        }
+      }
+    },
+    "/contracts/{id}": {
+      "get": {
+        "tags": ["Contracts"],
+        "summary": "Get contract detail",
+        "operationId": "getContractById",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Contract detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Contract"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Contract not found"
+          }
+        }
+      },
+      "put": {
+        "tags": ["Contracts"],
+        "summary": "Update contract",
+        "operationId": "updateContract",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateContractRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Contract updated"
+          },
+          "404": {
+            "description": "Contract not found"
+          }
+        }
+      }
+    },
+    "/contracts/{id}/submit": {
+      "post": {
+        "tags": ["Contracts"],
+        "summary": "Submit contract for approval",
+        "operationId": "submitContract",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Contract submitted"
+          },
+          "400": {
+            "description": "Contract cannot be submitted"
+          }
+        }
+      }
+    },
+    "/contracts/{id}/export": {
+      "post": {
+        "tags": ["Contracts"],
+        "summary": "Export contract to PDF or DOCX",
+        "operationId": "exportContract",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "description": "Export format",
+            "schema": {
+              "type": "string",
+              "enum": ["pdf", "docx"],
+              "default": "pdf"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Document exported",
+            "content": {
+              "application/pdf": {},
+              "application/vnd.openxmlformats-officedocument.wordprocessingml.document": {}
+            }
+          },
+          "404": {
+            "description": "Contract not found"
+          }
+        }
+      }
+    },
+    "/employees": {
+      "get": {
+        "tags": ["Employees"],
+        "summary": "Get all employees",
+        "operationId": "getEmployees",
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "description": "Search by name or email",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "departmentId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of employees"
+          }
+        }
+      },
+      "post": {
+        "tags": ["Employees"],
+        "summary": "Create new employee",
+        "operationId": "createEmployee",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateEmployeeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Employee created"
+          }
+        }
+      }
+    },
+    "/approvals": {
+      "get": {
+        "tags": ["Approvals"],
+        "summary": "Get pending approvals for current user",
+        "operationId": "getPendingApprovals",
+        "responses": {
+          "200": {
+            "description": "List of pending approvals"
+          }
+        }
+      }
+    },
+    "/approvals/{id}/approve": {
+      "post": {
+        "tags": ["Approvals"],
+        "summary": "Approve contract",
+        "operationId": "approveContract",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "comment": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Contract approved"
+          }
+        }
+      }
+    },
+    "/analytics/dashboard": {
+      "get": {
+        "tags": ["Analytics"],
+        "summary": "Get dashboard KPIs",
+        "operationId": "getDashboardKPIs",
+        "parameters": [
+          {
+            "name": "dateRange",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": ["7d", "30d", "90d", "1y"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Dashboard KPIs"
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "tags": ["System"],
+        "summary": "Health check endpoint",
+        "operationId": "healthCheck",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "System is healthy"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AuthResponse": {
+        "type": "object",
+        "properties": {
+          "accessToken": {
+            "type": "string",
+            "description": "JWT access token"
+          },
+          "refreshToken": {
+            "type": "string",
+            "description": "JWT refresh token"
+          },
+          "user": {
+            "$ref": "#/components/schemas/User"
+          }
+        },
+        "required": ["accessToken", "refreshToken", "user"]
+      },
+      "User": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "firstName": {
+            "type": "string"
+          },
+          "lastName": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          }
+        }
+      },
+      "Contract": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "contractNumber": {
+            "type": "string"
+          },
+          "employeeId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "contractTypeId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["Draft", "Review", "Approved", "Signed", "Executed", "Rejected"]
+          },
+          "startDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "endDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "salary": {
+            "type": "number"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "GenerateContractRequest": {
+        "type": "object",
+        "description": "HR-populated fields for contract generation. All other contract clauses come from the template.",
+        "properties": {
+          "firstName": { "type": "string", "description": "Employee name" },
+          "lastName": { "type": "string", "description": "Employee surname" },
+          "idNumber": { "type": "string", "description": "South African ID number" },
+          "role": { "type": "string", "description": "Job title / position" },
+          "salary": { "type": "number", "description": "Monthly basic salary in ZAR" },
+          "address": { "type": "string", "description": "Residential address" },
+          "probationPeriodMonths": { "type": "integer", "description": "Probation period in months" },
+          "noticePeriod": { "type": "string", "description": "Notice period during probation, e.g. '1 week'" }
+        },
+        "required": ["firstName", "lastName", "idNumber", "role", "salary", "address", "probationPeriodMonths", "noticePeriod"]
+      },
+      "CreateContractRequest": {
+        "type": "object",
+        "properties": {
+          "employeeId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "contractTypeId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "templateId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "startDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "endDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "salary": {
+            "type": "number"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "probationPeriodMonths": {
+            "type": "integer"
+          },
+          "noticePeriod": {
+            "type": "string"
+          }
+        },
+        "required": ["employeeId", "contractTypeId", "templateId", "startDate", "salary", "probationPeriodMonths", "noticePeriod"]
+      },
+      "UpdateContractRequest": {
+        "type": "object",
+        "properties": {
+          "salary": {
+            "type": "number"
+          },
+          "endDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "probationPeriodMonths": {
+            "type": "integer"
+          },
+          "noticePeriodDays": {
+            "type": "integer"
+          }
+        }
+      },
+      "CreateEmployeeRequest": {
+        "type": "object",
+        "properties": {
+          "firstName": {
+            "type": "string"
+          },
+          "lastName": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "employmentType": {
+            "type": "string",
+            "enum": ["Permanent", "Fixed-Term", "Contract", "Internship", "Consultant"]
+          },
+          "hireDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "departmentId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": ["firstName", "lastName", "email", "hireDate"]
+      }
+    },
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "JWT authentication. Obtain token from /auth/login endpoint. Include in Authorization header: 'Bearer <token>'"
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Authentication",
+      "description": "User authentication and authorization"
+    },
+    {
+      "name": "Contracts",
+      "description": "Contract management operations"
+    },
+    {
+      "name": "Employees",
+      "description": "Employee management"
+    },
+    {
+      "name": "Approvals",
+      "description": "Approval workflow management"
+    },
+    {
+      "name": "Analytics",
+      "description": "Analytics and reporting"
+    },
+    {
+      "name": "System",
+      "description": "System endpoints"
+    }
+  ]
+}

@@ -1,0 +1,230 @@
+/**
+ * Button Component Styles
+ */
+
+@import '../design-tokens/colors';
+@import '../design-tokens/typography';
+@import '../design-tokens/spacing-shadows';
+
+// ============================================
+// PRIMARY BUTTON
+// ============================================
+.btn-primary {
+  @include typography-label;
+  padding: 10px 20px;
+  @include rounded('md');
+  background: linear-gradient(135deg, $red-500, $red-700);
+  color: white;
+  @include shadow('red-glow');
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-sm;
+  @include transition;
+
+  &:hover {
+    transform: translateY(-1px);
+    @include shadow('lg');
+  }
+
+  &:active {
+    transform: translateY(0);
+    @include shadow('md');
+  }
+
+  &:focus-visible {
+    @include focus-ring;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .btn-icon {
+    width: 16px;
+    height: 16px;
+  }
+}
+
+// ============================================
+// SECONDARY BUTTON
+// ============================================
+.btn-secondary {
+  @include typography-label;
+  padding: 10px 20px;
+  @include rounded('md');
+  background: white;
+  color: $coal-700;
+  border: 1px solid $coal-100;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-sm;
+  @include transition;
+
+  &:hover {
+    background: $coal-50;
+    border-color: $coal-200;
+    @include shadow('xs');
+  }
+
+  &:active {
+    background: white;
+  }
+
+  &:focus-visible {
+    @include focus-ring;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+// ============================================
+// GHOST BUTTON
+// ============================================
+.btn-ghost {
+  @include typography-label;
+  padding: 8px 16px;
+  @include rounded('md');
+  background: transparent;
+  color: $coal-500;
+  border: 1px solid transparent;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-sm;
+  @include transition;
+
+  &:hover {
+    background: white;
+    border-color: $coal-100;
+    color: $coal-700;
+  }
+
+  &:active {
+    background: $coal-50;
+  }
+
+  &:focus-visible {
+    @include focus-ring;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+// ============================================
+// ICON BUTTON
+// ============================================
+.icon-btn {
+  width: 36px;
+  height: 36px;
+  @include rounded('xs');
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  @include transition;
+  color: $coal-500;
+
+  svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  &:hover {
+    background: $coal-50;
+    color: $coal-700;
+  }
+
+  &:active {
+    background: $coal-100;
+  }
+
+  &:focus-visible {
+    @include focus-ring;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+// ============================================
+// SIZE VARIANTS
+// ============================================
+.btn {
+  &.btn-sm {
+    padding: 6px 12px;
+    @include typography-small;
+  }
+
+  &.btn-lg {
+    padding: 12px 28px;
+    @include typography-body;
+  }
+
+  &.btn-full {
+    width: 100%;
+  }
+}
+
+// ============================================
+// STATE VARIANTS
+// ============================================
+.btn-loading {
+  position: relative;
+  color: transparent;
+
+  &::after {
+    content: '';
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    top: 50%;
+    left: 50%;
+    margin-left: -8px;
+    margin-top: -8px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    border-top-color: white;
+    animation: spin 0.6s linear infinite;
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+// ============================================
+// BUTTON GROUP
+// ============================================
+.btn-group {
+  display: flex;
+  gap: $spacing-sm;
+  flex-wrap: wrap;
+
+  &.vertical {
+    flex-direction: column;
+  }
+
+  @media (max-width: 640px) {
+    flex-direction: column;
+
+    .btn {
+      width: 100%;
+    }
+  }
+}

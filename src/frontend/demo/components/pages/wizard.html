@@ -1,0 +1,91 @@
+<div class="page-padding animate-in">
+  <div class="page-header">
+    <button class="btn-ghost" onclick="showPage('dashboard')">← Back</button>
+    <div>
+      <h1 class="page-title">New Employee Contract</h1>
+      <p class="page-subtitle">Enter the 7 required details — the template handles everything else</p>
+    </div>
+  </div>
+
+  <div class="wizard-layout">
+    <aside class="wizard-sidebar">
+      <div class="wizard-sidebar-title">Required Fields</div>
+      <div class="field-checklist">
+        <div class="field-check-item" data-field="name"><span class="field-check-icon">○</span> Name & Surname</div>
+        <div class="field-check-item" data-field="idNumber"><span class="field-check-icon">○</span> ID Number</div>
+        <div class="field-check-item" data-field="role"><span class="field-check-icon">○</span> Role</div>
+        <div class="field-check-item" data-field="salary"><span class="field-check-icon">○</span> Salary</div>
+        <div class="field-check-item" data-field="address"><span class="field-check-icon">○</span> Address</div>
+        <div class="field-check-item" data-field="probationPeriod"><span class="field-check-icon">○</span> Probation Period</div>
+        <div class="field-check-item" data-field="noticePeriod"><span class="field-check-icon">○</span> Notice Period</div>
+      </div>
+      <div class="wizard-progress-bar">
+        <div class="wizard-progress-fill" id="formProgressFill" style="width:0%"></div>
+      </div>
+      <div class="wizard-progress-label">
+        <span id="formProgressLabel">0 of 7 complete</span>
+        <span id="formProgressPct">0%</span>
+      </div>
+    </aside>
+
+    <div class="wizard-main">
+      <div class="wizard-main-header">
+        <h2>Employee Information</h2>
+        <p>All fields are required to generate the contract</p>
+      </div>
+
+      <form id="contractForm" class="wizard-form" onsubmit="event.preventDefault(); generateContractPreview();">
+        <div class="form-section-title">👤 Personal Details</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label" for="firstName">Name <span class="required">*</span></label>
+            <input class="form-input contract-field" id="firstName" type="text" value="Thabo" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="lastName">Surname <span class="required">*</span></label>
+            <input class="form-input contract-field" id="lastName" type="text" value="Mokoena" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="idNumber">ID Number <span class="required">*</span></label>
+            <input class="form-input contract-field" id="idNumber" type="text" value="9203154512089" required>
+          </div>
+          <div class="form-group form-full">
+            <label class="form-label" for="address">Address <span class="required">*</span></label>
+            <input class="form-input contract-field" id="address" type="text" value="14 Jacaranda Street, Midrand, Johannesburg, Gauteng, 1685" required>
+          </div>
+        </div>
+
+        <div class="form-section-title">💼 Employment Terms</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label" for="role">Role <span class="required">*</span></label>
+            <input class="form-input contract-field" id="role" type="text" value="Senior Software Engineer" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="salary">Monthly Salary (ZAR) <span class="required">*</span></label>
+            <input class="form-input contract-field" id="salary" type="number" min="0" value="65000" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="probationPeriod">Probation Period (months) <span class="required">*</span></label>
+            <input class="form-input contract-field" id="probationPeriod" type="number" min="0" max="12" value="3" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="noticePeriod">Notice Period <span class="required">*</span></label>
+            <input class="form-input contract-field" id="noticePeriod" type="text" value="1 week" required>
+            <div class="form-hint">During probation — e.g. "1 week"</div>
+          </div>
+        </div>
+
+        <div id="formValidationMsg" class="validation-alert" style="display:none;">
+          <span>⚠️</span>
+          <span id="formValidationText">Please complete all required fields.</span>
+        </div>
+      </form>
+
+      <div class="wizard-footer">
+        <button type="button" class="btn-ghost" onclick="showPage('dashboard')">Cancel</button>
+        <button type="button" class="btn-primary" onclick="generateContractPreview()">Generate Contract Preview →</button>
+      </div>
+    </div>
+  </div>
+</div>

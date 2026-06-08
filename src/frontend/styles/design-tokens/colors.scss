@@ -1,0 +1,135 @@
+/**
+ * Color Design Tokens - RedMPS Brand
+ * All color values and semantic color mappings
+ */
+
+// ============================================
+// PRIMARY BRAND COLOR - RedMPS Red
+// ============================================
+$red-50:   #fff5f6;
+$red-100:  #ffeaed;
+$red-300:  #f55a72;
+$red-400:  #e8234a;
+$red-500:  #d4002a; // PRIMARY
+$red-600:  #c0001a;
+$red-700:  #a80000;
+$red-800:  #8b0000;
+$red-900:  #6b0000;
+
+// ============================================
+// NEUTRAL COLOR SYSTEM - Coal
+// ============================================
+$coal-50:   #f4f4f8;
+$coal-100:  #dddde8;
+$coal-200:  #b0b0c8;
+$coal-300:  #7f7f9a;
+$coal-400:  #5a5a72;
+$coal-500:  #3d3d4e;
+$coal-600:  #2d2d38;
+$coal-700:  #22222a;
+$coal-800:  #18181e;
+$coal-900:  #111115;
+$coal-950:  #0d0d0f;
+
+// ============================================
+// SEMANTIC COLORS
+// ============================================
+$success:   #0d7a4e;  // Green - Approvals, completions, positive
+$warning:   #b45309;  // Amber - Cautions, attention needed, reviews
+$error:     #c0001a;  // Red - Errors, blocking issues, critical
+$info:      #1a5f8a;  // Blue - Help, information, neutral notifications
+
+// ============================================
+// ACCENT COLORS
+// ============================================
+$gold-primary: #c9a227;  // Premium feel, special emphasis
+$gold-light:   #f0d077;  // Subtle highlights, light backgrounds
+
+// ============================================
+// SEMANTIC COLOR MAPPINGS
+// ============================================
+$color-primary:         $red-500;
+$color-primary-dark:    $red-700;
+$color-primary-light:   $red-100;
+
+$color-text-primary:    $coal-900;
+$color-text-secondary:  $coal-700;
+$color-text-tertiary:   $coal-500;
+$color-text-muted:      $coal-400;
+$color-text-disabled:   $coal-300;
+
+$color-background:      #ffffff;
+$color-background-alt:  $coal-50;
+$color-background-dark: $coal-900;
+
+$color-border:          $coal-100;
+$color-border-light:    $coal-50;
+$color-border-dark:     $coal-200;
+
+$color-success-bg:      rgba($success, 0.08);
+$color-success-border:  rgba($success, 0.3);
+
+$color-warning-bg:      rgba($warning, 0.08);
+$color-warning-border:  rgba($warning, 0.3);
+
+$color-error-bg:        rgba($error, 0.08);
+$color-error-border:    rgba($error, 0.3);
+
+$color-info-bg:         rgba($info, 0.08);
+$color-info-border:     rgba($info, 0.3);
+
+// ============================================
+// CSS VARIABLE EXPORTS
+// ============================================
+:root {
+  // Brand Colors
+  --red-50: #{$red-50};
+  --red-100: #{$red-100};
+  --red-300: #{$red-300};
+  --red-400: #{$red-400};
+  --red-500: #{$red-500};
+  --red-600: #{$red-600};
+  --red-700: #{$red-700};
+  --red-800: #{$red-800};
+  --red-900: #{$red-900};
+
+  // Coal Colors
+  --coal-50: #{$coal-50};
+  --coal-100: #{$coal-100};
+  --coal-200: #{$coal-200};
+  --coal-300: #{$coal-300};
+  --coal-400: #{$coal-400};
+  --coal-500: #{$coal-500};
+  --coal-600: #{$coal-600};
+  --coal-700: #{$coal-700};
+  --coal-800: #{$coal-800};
+  --coal-900: #{$coal-900};
+  --coal-950: #{$coal-950};
+
+  // Semantic Colors
+  --success: #{$success};
+  --warning: #{$warning};
+  --error: #{$error};
+  --info: #{$info};
+
+  // Gold
+  --gold-primary: #{$gold-primary};
+  --gold-light: #{$gold-light};
+
+  // Text
+  --text-primary: #{$color-text-primary};
+  --text-secondary: #{$color-text-secondary};
+  --text-tertiary: #{$color-text-tertiary};
+  --text-muted: #{$color-text-muted};
+  --text-disabled: #{$color-text-disabled};
+
+  // Background
+  --bg-primary: #{$color-background};
+  --bg-alt: #{$color-background-alt};
+  --bg-dark: #{$color-background-dark};
+
+  // Border
+  --border: #{$color-border};
+  --border-light: #{$color-border-light};
+  --border-dark: #{$color-border-dark};
+}

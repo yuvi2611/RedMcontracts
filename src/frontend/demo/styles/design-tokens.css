@@ -1,0 +1,58 @@
+/* ═══════════════════════════════════════════
+   DESIGN TOKENS — RedMPS Brand System
+═══════════════════════════════════════════ */
+:root {
+  /* COLORS - Red Palette */
+  --red-900: #6b0000;
+  --red-800: #8b0000;
+  --red-700: #a80000;
+  --red-600: #c0001a;
+  --red-500: #d4002a;  /* Primary brand red */
+  --red-400: #e8234a;
+  --red-300: #f55a72;
+  --red-100: #ffeaed;
+  --red-50:  #fff5f6;
+
+  /* COLORS - Coal Palette */
+  --coal-950: #0d0d0f;
+  --coal-900: #111115;
+  --coal-800: #18181e;
+  --coal-700: #22222a;
+  --coal-600: #2d2d38;
+  --coal-500: #3d3d4e;
+  --coal-400: #5a5a72;
+  --coal-300: #7f7f9a;
+  --coal-200: #b0b0c8;
+  --coal-100: #dddde8;
+  --coal-50:  #f4f4f8;
+
+  /* COLORS - Semantic */
+  --white: #ffffff;
+  --gold: #c9a227;
+  --gold-light: #f0d077;
+  --success: #0d7a4e;
+  --success-bg: #e8f7f0;
+  --warning: #b45309;
+  --warning-bg: #fef3e2;
+  --info: #1a5f8a;
+  --info-bg: #e8f3fa;
+
+  /* LAYOUT */
+  --sidebar-w: 260px;
+  --header-h: 64px;
+
+  /* RADIUS */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+
+  /* SHADOWS */
+  --shadow-sm: 0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.06);
+  --shadow-md: 0 4px 16px rgba(0,0,0,.10), 0 2px 6px rgba(0,0,0,.06);
+  --shadow-lg: 0 12px 40px rgba(0,0,0,.14), 0 4px 12px rgba(0,0,0,.08);
+  --shadow-red: 0 8px 32px rgba(212,0,42,.22);
+
+  /* TRANSITIONS */
+  --transition: all .2s cubic-bezier(.4,0,.2,1);
+}

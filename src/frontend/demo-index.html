@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RedMPS · ContractIQ — HR Contract Platform</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+  
+  <!-- Design Tokens & Global Styles -->
+  <link rel="stylesheet" href="demo/styles/design-tokens.css">
+  <link rel="stylesheet" href="demo/styles/global.css">
+  
+  <!-- Component Styles -->
+  <link rel="stylesheet" href="demo/styles/components/buttons.css">
+  <link rel="stylesheet" href="demo/styles/components/forms.css">
+  <link rel="stylesheet" href="demo/styles/components/cards.css">
+  <link rel="stylesheet" href="demo/styles/components/sidebar.css">
+  <link rel="stylesheet" href="demo/styles/components/topbar.css">
+  <link rel="stylesheet" href="demo/styles/components/modals.css">
+  
+  <!-- Page Styles -->
+  <link rel="stylesheet" href="demo/styles/pages/dashboard.css">
+  <link rel="stylesheet" href="demo/styles/pages/wizard.css">
+  <link rel="stylesheet" href="demo/styles/pages/preview.css">
+  <link rel="stylesheet" href="demo/styles/pages/contracts.css">
+  <link rel="stylesheet" href="demo/styles/pages/analytics.css">
+</head>
+<body>
+
+  <!-- Welcome Modal -->
+  <div id="welcomeModal" class="modal-overlay">
+    <div class="modal animate-in">
+      <div class="modal-icon">📋</div>
+      <div class="modal-title">Welcome to ContractIQ</div>
+      <div class="modal-sub">RedMPS's intelligent HR contract generation platform. Generate, review, and manage employee contracts in minutes — not hours.</div>
+      <div class="modal-actions">
+        <button class="btn-secondary" onclick="closeModal()">Explore Dashboard</button>
+        <button class="btn-primary" onclick="closeModal(); showPage('wizard')">
+          ✦ Create First Contract
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- App Shell -->
+  <div class="app-shell">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar" id="sidebar"></aside>
+    
+    <!-- Main Content -->
+    <main class="main">
+      <!-- Topbar -->
+      <header class="topbar" id="topbar"></header>
+      
+      <!-- Pages Container -->
+      <div id="pages-container"></div>
+    </main>
+  </div>
+
+  <!-- Component Templates -->
+  <template id="sidebar-template">
+    <!-- See: demo/components/sidebar.html -->
+  </template>
+
+  <template id="topbar-template">
+    <!-- See: demo/components/topbar.html -->
+  </template>
+
+  <!-- Scripts -->
+  <script src="demo/scripts/navigation.js"></script>
+  <script src="demo/scripts/contract.js"></script>
+  <script src="demo/scripts/app.js"></script>
+
+</body>
+</html>

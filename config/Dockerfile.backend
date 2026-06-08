@@ -1,0 +1,35 @@
+# Multi-stage build for ContractIQ Backend API
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS builder
+
+WORKDIR /src
+
+# Copy project files
+COPY ["RedMPS.ContractIQ.Api.csproj", "./"]
+RUN dotnet restore "RedMPS.ContractIQ.Api.csproj"
+
+COPY . .
+RUN dotnet build "RedMPS.ContractIQ.Api.csproj" -c Release -o /app/build
+
+# Publish stage
+FROM builder AS publish
+RUN dotnet publish "RedMPS.ContractIQ.Api.csproj" -c Release -o /app/publish
+
+# Runtime stage
+FROM mcr.microsoft.com/dotnet/aspnet:8.0
+
+WORKDIR /app
+COPY --from=publish /app/publish .
+
+# Create non-root user
+RUN useradd -m -u 1000 contractiq && chown -R contractiq:contractiq /app
+USER contractiq
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD dotnet /app/ContractIQ.HealthCheck.dll || exit 1
+
+EXPOSE 5000
+ENV ASPNETCORE_URLS=http://+:5000
+ENV ASPNETCORE_ENVIRONMENT=Production
+
+ENTRYPOINT ["dotnet", "RedMPS.ContractIQ.Api.dll"]

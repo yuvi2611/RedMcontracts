@@ -1,0 +1,178 @@
+/**
+ * Typography Design Tokens
+ * Font families, sizes, weights, and line heights
+ */
+
+// ============================================
+// FONT FAMILIES
+// ============================================
+$font-primary: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+$font-display: 'Playfair Display', Georgia, serif;
+$font-fallback: system-ui, -apple-system, sans-serif;
+
+// ============================================
+// FONT WEIGHTS
+// ============================================
+$font-weight-light: 300;
+$font-weight-regular: 400;
+$font-weight-medium: 500;
+$font-weight-semibold: 600;
+$font-weight-bold: 700;
+$font-weight-extra-bold: 800;
+
+// ============================================
+// TYPE SCALE (Base 15px)
+// ============================================
+// H1 - Page titles, modals
+$h1-size: 24px;
+$h1-weight: $font-weight-bold;
+$h1-line-height: 1.2;
+$h1-margin: 0 0 20px 0;
+
+// H2 - Dashboard greeting, section headers
+$h2-size: 22px;
+$h2-weight: $font-weight-bold;
+$h2-line-height: 1.2;
+$h2-margin: 0 0 16px 0;
+
+// H3 - Card titles, subsection headers
+$h3-size: 18px;
+$h3-weight: $font-weight-bold;
+$h3-line-height: 1.3;
+$h3-margin: 0 0 14px 0;
+
+// H4 - Form section headers
+$h4-size: 16px;
+$h4-weight: $font-weight-bold;
+$h4-line-height: 1.3;
+$h4-margin: 0 0 12px 0;
+
+// H5 - Smaller headers
+$h5-size: 14px;
+$h5-weight: $font-weight-bold;
+$h5-line-height: 1.4;
+$h5-margin: 0 0 10px 0;
+
+// Body - Main paragraph text
+$body-size: 13.5px;
+$body-weight: $font-weight-regular;
+$body-line-height: 1.6;
+$body-margin: 0;
+
+// Label - Form labels, badges
+$label-size: 12.5px;
+$label-weight: $font-weight-semibold;
+$label-line-height: 1.4;
+$label-margin: 0;
+
+// Small - Help text, secondary info
+$small-size: 12px;
+$small-weight: $font-weight-medium;
+$small-line-height: 1.5;
+$small-margin: 0;
+
+// Tiny - Meta data, subtle text
+$tiny-size: 11px;
+$tiny-weight: $font-weight-medium;
+$tiny-line-height: 1.5;
+$tiny-margin: 0;
+
+// XTiny - Timestamps, indicators
+$xtiny-size: 10.5px;
+$xtiny-weight: $font-weight-semibold;
+$xtiny-line-height: 1.4;
+$xtiny-margin: 0;
+
+// ============================================
+// MIXINS FOR TYPOGRAPHY
+// ============================================
+@mixin typography-h1 {
+  font-family: $font-display;
+  font-size: $h1-size;
+  font-weight: $h1-weight;
+  line-height: $h1-line-height;
+  margin: $h1-margin;
+  letter-spacing: -0.5px;
+}
+
+@mixin typography-h2 {
+  font-family: $font-display;
+  font-size: $h2-size;
+  font-weight: $h2-weight;
+  line-height: $h2-line-height;
+  margin: $h2-margin;
+  letter-spacing: -0.3px;
+}
+
+@mixin typography-h3 {
+  font-family: $font-primary;
+  font-size: $h3-size;
+  font-weight: $h3-weight;
+  line-height: $h3-line-height;
+  margin: $h3-margin;
+}
+
+@mixin typography-h4 {
+  font-family: $font-primary;
+  font-size: $h4-size;
+  font-weight: $h4-weight;
+  line-height: $h4-line-height;
+  margin: $h4-margin;
+}
+
+@mixin typography-body {
+  font-family: $font-primary;
+  font-size: $body-size;
+  font-weight: $body-weight;
+  line-height: $body-line-height;
+  margin: $body-margin;
+}
+
+@mixin typography-label {
+  font-family: $font-primary;
+  font-size: $label-size;
+  font-weight: $label-weight;
+  line-height: $label-line-height;
+  margin: $label-margin;
+}
+
+@mixin typography-small {
+  font-family: $font-primary;
+  font-size: $small-size;
+  font-weight: $small-weight;
+  line-height: $small-line-height;
+  margin: $small-margin;
+}
+
+@mixin typography-tiny {
+  font-family: $font-primary;
+  font-size: $tiny-size;
+  font-weight: $tiny-weight;
+  line-height: $tiny-line-height;
+  margin: $tiny-margin;
+}
+
+// ============================================
+// CSS VARIABLES FOR TYPOGRAPHY
+// ============================================
+:root {
+  --font-primary: #{$font-primary};
+  --font-display: #{$font-display};
+
+  // Font Weights
+  --font-weight-light: #{$font-weight-light};
+  --font-weight-regular: #{$font-weight-regular};
+  --font-weight-medium: #{$font-weight-medium};
+  --font-weight-semibold: #{$font-weight-semibold};
+  --font-weight-bold: #{$font-weight-bold};
+  --font-weight-extra-bold: #{$font-weight-extra-bold};
+
+  // Type Scale
+  --h1-size: #{$h1-size};
+  --h2-size: #{$h2-size};
+  --h3-size: #{$h3-size};
+  --h4-size: #{$h4-size};
+  --body-size: #{$body-size};
+  --label-size: #{$label-size};
+  --small-size: #{$small-size};
+}

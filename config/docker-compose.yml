@@ -1,0 +1,125 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: contractiq-postgres
+    environment:
+      POSTGRES_USER: ${DATABASE_USER:-contractiq_user}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:-your_secure_password}
+      POSTGRES_DB: ${DATABASE_NAME:-contractiq_dev}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=en_US.UTF-8"
+    ports:
+      - "${DATABASE_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/migrations:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U contractiq_user"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - contractiq-network
+    restart: unless-stopped
+
+  # Backend API
+  backend:
+    build:
+      context: .
+      dockerfile: config/Dockerfile.backend
+    container_name: contractiq-backend
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${API_ENVIRONMENT:-Development}
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+      DATABASE_NAME: ${DATABASE_NAME:-contractiq_dev}
+      DATABASE_USER: ${DATABASE_USER:-contractiq_user}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD:-your_secure_password}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-your_super_secret_key_min_32_chars_here}
+      CORS_ALLOWED_ORIGINS: http://localhost:4200,http://localhost:3000
+    ports:
+      - "${API_PORT:-5000}:5000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./logs:/app/logs
+      - ./temp:/app/temp
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - contractiq-network
+    restart: unless-stopped
+
+  # Frontend Application
+  frontend:
+    build:
+      context: .
+      dockerfile: config/Dockerfile.frontend
+    container_name: contractiq-frontend
+    environment:
+      API_URL: ${API_URL:-http://localhost:5000/api}
+      ENVIRONMENT: ${FRONTEND_ENVIRONMENT:-development}
+    ports:
+      - "${FRONTEND_PORT:-4200}:4200"
+    depends_on:
+      - backend
+    volumes:
+      - ./src/frontend:/app/src
+      - /app/node_modules
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:4200/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - contractiq-network
+    restart: unless-stopped
+
+  # Optional: pgAdmin for Database Management
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: contractiq-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@example.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+    networks:
+      - contractiq-network
+    restart: unless-stopped
+    profiles:
+      - debug
+
+  # Optional: Redis Cache (for future use)
+  redis:
+    image: redis:7-alpine
+    container_name: contractiq-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - contractiq-network
+    restart: unless-stopped
+    profiles:
+      - optional
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  contractiq-network:
+    driver: bridge

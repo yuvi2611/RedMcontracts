@@ -1,0 +1,16 @@
+{
+  "name": "contractiq-redmps",
+  "version": "1.0.0",
+  "private": true,
+  "description": "RedMPS ContractIQ - dev utilities for prototypes and local preview",
+  "scripts": {
+    "demo": "http-server src/frontend -p 8000 -c-1 -o /demo-index.html",
+    "prototype": "http-server . -p 8000 -c-1 -o /redmps-hr-platform.html"
+  },
+  "devDependencies": {
+    "http-server": "^14.1.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

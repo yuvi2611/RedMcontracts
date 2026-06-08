@@ -1,0 +1,180 @@
+/**
+ * Spacing, Shadows, and Effects Design Tokens
+ */
+
+// ============================================
+// SPACING SYSTEM (Base Unit: 4px)
+// ============================================
+$spacing-xs: 4px;     // Tight internal spacing
+$spacing-sm: 8px;     // Component gaps, small spacing
+$spacing-md: 12px;    // Section spacing, moderate gaps
+$spacing-lg: 16px;    // Block spacing, standard gap
+$spacing-xl: 20px;    // Card padding, larger spacing
+$spacing-2xl: 24px;   // Section spacing
+$spacing-3xl: 28px;   // Page padding
+$spacing-4xl: 32px;   // Large sections
+$spacing-5xl: 40px;   // Hero sections
+
+// Mapping for shorthand use
+$space: (
+  'xs': $spacing-xs,
+  'sm': $spacing-sm,
+  'md': $spacing-md,
+  'lg': $spacing-lg,
+  'xl': $spacing-xl,
+  '2xl': $spacing-2xl,
+  '3xl': $spacing-3xl,
+  '4xl': $spacing-4xl,
+  '5xl': $spacing-5xl,
+);
+
+// ============================================
+// BORDER RADIUS SCALE
+// ============================================
+$radius-xs: 6px;    // Buttons, form inputs, small cards, badges
+$radius-md: 10px;   // Form groups, standard cards, dropdowns
+$radius-lg: 16px;   // Card panels, larger modals, sidebars
+$radius-xl: 24px;   // Hero sections, large modals, containers
+$radius-full: 50%;  // Circular (avatars, status indicators)
+
+// Mapping for shorthand use
+$radii: (
+  'xs': $radius-xs,
+  'md': $radius-md,
+  'lg': $radius-lg,
+  'xl': $radius-xl,
+  'full': $radius-full,
+);
+
+// ============================================
+// SHADOW SYSTEM
+// ============================================
+// Subtle lift, small cards
+$shadow-xs:
+  0 1px 3px rgba(0, 0, 0, 0.08),
+  0 1px 2px rgba(0, 0, 0, 0.06);
+
+// Standard cards, modals
+$shadow-md:
+  0 4px 16px rgba(0, 0, 0, 0.10),
+  0 2px 6px rgba(0, 0, 0, 0.06);
+
+// Hero sections, floating panels
+$shadow-lg:
+  0 12px 40px rgba(0, 0, 0, 0.14),
+  0 4px 12px rgba(0, 0, 0, 0.08);
+
+// Primary CTAs, emphasis (Red glow)
+$shadow-red-glow:
+  0 8px 32px rgba(212, 0, 42, 0.22);
+
+// Mapping for shorthand use
+$shadows: (
+  'xs': $shadow-xs,
+  'md': $shadow-md,
+  'lg': $shadow-lg,
+  'red-glow': $shadow-red-glow,
+);
+
+// ============================================
+// TRANSITIONS & ANIMATIONS
+// ============================================
+$transition-fast: 0.1s ease;
+$transition-base: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+$transition-slow: 0.35s ease;
+
+$timing-function-ease-out: cubic-bezier(0.4, 0, 0.2, 1);
+$timing-function-ease-in: cubic-bezier(0.4, 0, 0.2, 1);
+
+// ============================================
+// Z-INDEX SCALE
+// ============================================
+$z-index: (
+  'base': 0,
+  'dropdown': 100,
+  'tooltip': 150,
+  'sticky': 200,
+  'fixed': 300,
+  'modal-bg': 400,
+  'modal': 500,
+  'popup': 600,
+  'notification': 1000,
+);
+
+// ============================================
+// MIXIN GENERATORS
+// ============================================
+@mixin spacing($size) {
+  @if map-has-key($space, $size) {
+    #{map-get($space, $size)}
+  } @else {
+    $size
+  }
+}
+
+@mixin shadow($level) {
+  @if map-has-key($shadows, $level) {
+    box-shadow: map-get($shadows, $level);
+  } @else {
+    box-shadow: $shadow-md;
+  }
+}
+
+@mixin shadow-hover {
+  transition: box-shadow $transition-base;
+  &:hover {
+    @include shadow('md');
+  }
+  &:active {
+    @include shadow('xs');
+  }
+}
+
+@mixin rounded($size) {
+  @if map-has-key($radii, $size) {
+    border-radius: map-get($radii, $size);
+  } @else {
+    border-radius: $radius-md;
+  }
+}
+
+@mixin transition($property: all) {
+  transition: $property $transition-base;
+}
+
+@mixin transition-fast($property: all) {
+  transition: $property $transition-fast;
+}
+
+@mixin focus-ring($color: #d4002a) {
+  outline: 2px solid $color;
+  outline-offset: 2px;
+}
+
+// ============================================
+// CSS VARIABLES FOR SPACING & EFFECTS
+// ============================================
+:root {
+  // Spacing
+  --spacing-xs: #{$spacing-xs};
+  --spacing-sm: #{$spacing-sm};
+  --spacing-md: #{$spacing-md};
+  --spacing-lg: #{$spacing-lg};
+  --spacing-xl: #{$spacing-xl};
+  --spacing-2xl: #{$spacing-2xl};
+  --spacing-3xl: #{$spacing-3xl};
+  --spacing-4xl: #{$spacing-4xl};
+  --spacing-5xl: #{$spacing-5xl};
+
+  // Border Radius
+  --radius-xs: #{$radius-xs};
+  --radius-md: #{$radius-md};
+  --radius-lg: #{$radius-lg};
+  --radius-xl: #{$radius-xl};
+  --radius-full: #{$radius-full};
+
+  // Transitions
+  --transition-fast: #{$transition-fast};
+  --transition-base: #{$transition-base};
+  --transition-slow: #{$transition-slow};
+}
