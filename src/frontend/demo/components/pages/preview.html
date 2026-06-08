@@ -1,55 +1,93 @@
 <div class="page-padding animate-in">
   <div class="page-header">
-    <button class="btn-ghost" onclick="showPage('wizard')">← Back to Form</button>
+    <button class="btn-ghost" onclick="routeTo('wizard')">Back to studio</button>
     <div>
-      <h1 class="page-title">Contract Preview & Export</h1>
-      <p class="page-subtitle" id="preview-subtitle">Thabo Mokoena · Permanent Employment Contract</p>
+      <h1 class="page-title">Review, Approve and Export</h1>
+      <p class="page-subtitle" id="preview-subtitle">Yuvaan Pather - Fixed-Term Employment Agreement</p>
     </div>
   </div>
 
-  <div class="preview-doc">
-    <div class="doc-header">
-      <div class="doc-company">RedMPS Management & Professional Services</div>
-      <div class="doc-title">Employment Contract</div>
-      <div class="doc-subtitle">Permanent / Full-Time Employment</div>
-    </div>
-
-    <div class="doc-section">
-      <div class="doc-section-title">1. Parties</div>
-      <p class="doc-p">This Employment Contract is entered into between <strong>RedMPS Management & Professional Services (Pty) Ltd</strong> ("the Employer"), and <strong id="doc-employee-name">Thabo Mokoena</strong>, South African ID Number <strong id="doc-id-number">9203154512089</strong>, residing at <strong id="doc-address">14 Jacaranda Street, Midrand, Johannesburg, 1685</strong> ("the Employee").</p>
-    </div>
-
-    <div class="doc-section">
-      <div class="doc-section-title">2. Position</div>
-      <p class="doc-p">The Employee is appointed in the position of <strong id="doc-role">Senior Software Engineer</strong>.</p>
-    </div>
-
-    <div class="doc-section">
-      <div class="doc-section-title">3. Remuneration</div>
-      <p class="doc-p">Basic Salary: <strong id="doc-salary-monthly">R 65,000.00</strong> per month (<strong id="doc-salary-annual">R 780,000.00</strong> per annum).</p>
-    </div>
-
-    <div class="doc-section">
-      <div class="doc-section-title">4. Probation & Notice Period</div>
-      <p class="doc-p">Probationary period of <strong id="doc-probation">3 (three) months</strong>. During probation, notice period is <strong id="doc-notice">1 week</strong>, subject to the Basic Conditions of Employment Act.</p>
-    </div>
-
-    <div class="doc-signatures">
-      <div>
-        <div class="sig-line"></div>
-        <div class="sig-name" id="doc-sig-employee-name">Thabo Mokoena</div>
-        <div class="sig-label">Employee</div>
+  <div class="preview-layout">
+    <aside class="review-panel">
+      <div class="review-score">
+        <strong>98%</strong>
+        <span>approval ready</span>
       </div>
-      <div>
-        <div class="sig-line"></div>
-        <div class="sig-name">Nomsa Mahlangu</div>
-        <div class="sig-label">HR Administrator · RedMPS</div>
+      <div class="review-list">
+        <div><span class="review-dot good"></span>Template placeholders resolved</div>
+        <div><span class="review-dot good"></span>POPIA sensitive data protected</div>
+        <div><span class="review-dot good"></span>BCEA probation wording present</div>
+        <div><span class="review-dot warn"></span>Salary requires manager acknowledgement</div>
+      </div>
+      <button class="btn-primary full-width">Submit for Approval</button>
+      <button class="btn-secondary full-width">Save Draft</button>
+    </aside>
+
+    <div>
+      <div class="preview-doc">
+        <div class="doc-header">
+          <div class="doc-company">RedM Professional Services</div>
+          <div class="doc-title" id="doc-contract-title">Fixed-Term Employment Agreement</div>
+          <div class="doc-subtitle" id="doc-contract-subtitle">In compliance with the Basic Conditions of Employment Act 1997</div>
+        </div>
+
+        <table class="schedule-table">
+          <tbody>
+            <tr><th>Employer</th><td>RedM Professional Services (Pty) Ltd</td></tr>
+            <tr><th>Registration Number</th><td>2013/172695/07</td></tr>
+            <tr><th>Physical address</th><td>Woodmead Business Park, 145 Western Services Road, Woodmead, Sandton, 2191</td></tr>
+            <tr><th>Employee</th><td id="doc-employee-name">Yuvaan Pather</td></tr>
+            <tr><th>Identity Number</th><td id="doc-id-number">0311265539081</td></tr>
+            <tr><th>Physical address</th><td id="doc-address">Sandton, Johannesburg</td></tr>
+            <tr><th>Position of Employee</th><td id="doc-role">Junior Platform Engineer</td></tr>
+            <tr data-preview-scope="fixed-term"><th>Fixed-term Period</th><td id="doc-fixed-term">1 (One) Year</td></tr>
+            <tr><th>Commencement Date</th><td id="doc-start-date">1 January 2026</td></tr>
+            <tr data-preview-scope="fixed-term"><th>Termination Date</th><td id="doc-end-date">31 December 2026</td></tr>
+            <tr><th>Probation Period</th><td id="doc-probation">3 (three) months</td></tr>
+            <tr><th>Hours of Work</th><td id="doc-work-hours">08:00 - 17:00, Monday - Friday</td></tr>
+            <tr><th>Gross Monthly Salary</th><td id="doc-salary-monthly">R22 800</td></tr>
+            <tr><th>Notice Period</th><td id="doc-notice">30 (Thirty) Days</td></tr>
+            <tr><th>Duties and Responsibilities</th><td id="doc-duties">As per job description</td></tr>
+            <tr><th>Arbitration City</th><td id="doc-arbitration-city">Gauteng</td></tr>
+            <tr><th>Restraint Area</th><td id="doc-restraint-area">Gauteng</td></tr>
+            <tr><th>Restraint Period</th><td id="doc-restraint-period">12 (Twelve) Months</td></tr>
+          </tbody>
+        </table>
+
+        <div class="doc-section">
+          <div class="doc-section-title">1. Preamble</div>
+          <p class="doc-p">The Employer has decided to offer the Employee a position of fixed-term employment, which offer the Employee has decided to accept.</p>
+        </div>
+
+        <div class="doc-section">
+          <div class="doc-section-title" id="doc-employment-section-title">2. Fixed-Term Employment</div>
+          <p class="doc-p" id="doc-employment-section-copy">The Employee is employed for the fixed-term period set out in the schedule. This agreement automatically terminates on the termination date or on occurrence of the specified event recorded above.</p>
+        </div>
+
+        <div class="doc-section">
+          <div class="doc-section-title">3. Compliance Clauses</div>
+          <p class="doc-p">The generated agreement includes probation, hours of work, remuneration, dispute resolution, confidentiality, intellectual property, restraint of trade, POPIA consent, whole agreement, and signature clauses.</p>
+        </div>
+
+        <div class="doc-signatures">
+          <div>
+            <div class="sig-line"></div>
+            <div class="sig-name" id="doc-sig-employee-name">Yuvaan Pather</div>
+            <div class="sig-label">Employee</div>
+          </div>
+          <div>
+            <div class="sig-line"></div>
+            <div class="sig-name">Nomsa Mahlangu</div>
+            <div class="sig-label">HR Administrator - RedMPS</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="preview-actions">
+        <button class="btn-primary">Download PDF</button>
+        <button class="btn-secondary">Download DOCX</button>
+        <button class="btn-secondary">Send for Signature</button>
       </div>
     </div>
-  </div>
-
-  <div class="preview-actions">
-    <button class="btn-primary">📄 Download PDF</button>
-    <button class="btn-secondary">📝 Download DOCX</button>
   </div>
 </div>

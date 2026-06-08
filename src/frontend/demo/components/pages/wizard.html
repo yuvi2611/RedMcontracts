@@ -1,90 +1,179 @@
 <div class="page-padding animate-in">
   <div class="page-header">
-    <button class="btn-ghost" onclick="showPage('dashboard')">← Back</button>
+    <button class="btn-ghost" onclick="routeTo('dashboard')">Back</button>
     <div>
-      <h1 class="page-title">New Employee Contract</h1>
-      <p class="page-subtitle">Enter the 7 required details — the template handles everything else</p>
+      <h1 class="page-title">Guided Contract Studio</h1>
+      <p class="page-subtitle">Confirm the intent, let ContractIQ prefill what it can, then resolve only the exceptions.</p>
     </div>
   </div>
 
   <div class="wizard-layout">
     <aside class="wizard-sidebar">
-      <div class="wizard-sidebar-title">Required Fields</div>
+      <div class="wizard-sidebar-title">Contract journey</div>
+      <div class="step-list">
+        <div class="step-item active"><span>1</span><div><strong>Intent</strong><small id="journeyIntentLabel">Fixed-term agreement</small></div></div>
+        <div class="step-item active"><span>2</span><div><strong>Employee</strong><small>Profile matched</small></div></div>
+        <div class="step-item"><span>3</span><div><strong>Terms</strong><small>Needs confirmation</small></div></div>
+        <div class="step-item"><span>4</span><div><strong>Compliance</strong><small>Auto-checking</small></div></div>
+        <div class="step-item"><span>5</span><div><strong>Approval</strong><small>Route prepared</small></div></div>
+      </div>
+
+      <div class="wizard-sidebar-title mt-20">Readiness checklist</div>
       <div class="field-checklist">
-        <div class="field-check-item" data-field="name"><span class="field-check-icon">○</span> Name & Surname</div>
-        <div class="field-check-item" data-field="idNumber"><span class="field-check-icon">○</span> ID Number</div>
-        <div class="field-check-item" data-field="role"><span class="field-check-icon">○</span> Role</div>
-        <div class="field-check-item" data-field="salary"><span class="field-check-icon">○</span> Salary</div>
-        <div class="field-check-item" data-field="address"><span class="field-check-icon">○</span> Address</div>
-        <div class="field-check-item" data-field="probationPeriod"><span class="field-check-icon">○</span> Probation Period</div>
-        <div class="field-check-item" data-field="noticePeriod"><span class="field-check-icon">○</span> Notice Period</div>
+        <div class="field-check-item" data-field="contractType"><span class="field-check-icon">o</span> Contract type</div>
+        <div class="field-check-item" data-field="name"><span class="field-check-icon">o</span> Name and surname</div>
+        <div class="field-check-item" data-field="idNumber"><span class="field-check-icon">o</span> ID number</div>
+        <div class="field-check-item" data-field="role"><span class="field-check-icon">o</span> Role</div>
+        <div class="field-check-item" data-field="salary"><span class="field-check-icon">o</span> Salary</div>
+        <div class="field-check-item" data-field="address"><span class="field-check-icon">o</span> Address</div>
+        <div class="field-check-item" data-field="fixedTermPeriod" data-contract-scope="fixed-term"><span class="field-check-icon">o</span> Fixed-term period</div>
+        <div class="field-check-item" data-field="startDate"><span class="field-check-icon">o</span> Commencement date</div>
+        <div class="field-check-item" data-field="endDate" data-contract-scope="fixed-term"><span class="field-check-icon">o</span> Termination date</div>
+        <div class="field-check-item" data-field="probationPeriod"><span class="field-check-icon">o</span> Probation period</div>
+        <div class="field-check-item" data-field="workHours"><span class="field-check-icon">o</span> Hours of work</div>
+        <div class="field-check-item" data-field="noticePeriod"><span class="field-check-icon">o</span> Notice period</div>
       </div>
       <div class="wizard-progress-bar">
         <div class="wizard-progress-fill" id="formProgressFill" style="width:0%"></div>
       </div>
       <div class="wizard-progress-label">
-        <span id="formProgressLabel">0 of 7 complete</span>
+        <span id="formProgressLabel">0 of 12 complete</span>
         <span id="formProgressPct">0%</span>
       </div>
     </aside>
 
     <div class="wizard-main">
       <div class="wizard-main-header">
-        <h2>Employee Information</h2>
-        <p>All fields are required to generate the contract</p>
+        <div>
+          <h2>Contract details</h2>
+          <p>Smart defaults are applied from policy, employee records, and template rules.</p>
+        </div>
+        <div class="autosave-indicator"><span class="autosave-dot"></span>Autosaved draft</div>
       </div>
 
       <form id="contractForm" class="wizard-form" onsubmit="event.preventDefault(); generateContractPreview();">
-        <div class="form-section-title">👤 Personal Details</div>
+        <section class="recommendation-panel">
+          <div>
+            <span class="recommendation-label">Recommended workflow</span>
+            <h3 id="recommendationTitle">Fixed-Term Employment Agreement</h3>
+            <p id="recommendationText">Matched from RedMPS's schedule-based fixed-term contract format, BCEA requirements, probation rules, and restraint fields.</p>
+          </div>
+          <div class="recommendation-score">
+            <strong id="readinessScore">0%</strong>
+            <span>ready</span>
+          </div>
+        </section>
+
+        <div class="form-section-title">Personal details</div>
         <div class="form-grid">
           <div class="form-group">
+            <label class="form-label" for="contractType">Document type <span class="required">*</span></label>
+            <select class="form-select contract-field" id="contractType" required>
+              <option value="Fixed-Term Employment Agreement" selected>Fixed-Term Employment Agreement</option>
+              <option value="Permanent Employment Contract">Permanent Employment Contract</option>
+              <option value="Internship Agreement">Internship Agreement</option>
+              <option value="Consultant Agreement">Consultant Agreement</option>
+              <option value="Offer Letter">Offer Letter</option>
+            </select>
+          </div>
+          <div class="form-group">
             <label class="form-label" for="firstName">Name <span class="required">*</span></label>
-            <input class="form-input contract-field" id="firstName" type="text" value="Thabo" required>
+            <input class="form-input contract-field" id="firstName" type="text" value="Yuvaan" required>
           </div>
           <div class="form-group">
             <label class="form-label" for="lastName">Surname <span class="required">*</span></label>
-            <input class="form-input contract-field" id="lastName" type="text" value="Mokoena" required>
+            <input class="form-input contract-field" id="lastName" type="text" value="Pather" required>
           </div>
           <div class="form-group">
             <label class="form-label" for="idNumber">ID Number <span class="required">*</span></label>
-            <input class="form-input contract-field" id="idNumber" type="text" value="9203154512089" required>
+            <input class="form-input contract-field" id="idNumber" type="text" value="0311265539081" required>
           </div>
           <div class="form-group form-full">
             <label class="form-label" for="address">Address <span class="required">*</span></label>
-            <input class="form-input contract-field" id="address" type="text" value="14 Jacaranda Street, Midrand, Johannesburg, Gauteng, 1685" required>
+            <input class="form-input contract-field" id="address" type="text" value="Sandton, Johannesburg" required>
           </div>
         </div>
 
-        <div class="form-section-title">💼 Employment Terms</div>
+        <div class="form-section-title">Employment terms</div>
         <div class="form-grid">
           <div class="form-group">
             <label class="form-label" for="role">Role <span class="required">*</span></label>
-            <input class="form-input contract-field" id="role" type="text" value="Senior Software Engineer" required>
+            <input class="form-input contract-field" id="role" type="text" value="Junior Platform Engineer" required>
           </div>
           <div class="form-group">
             <label class="form-label" for="salary">Monthly Salary (ZAR) <span class="required">*</span></label>
-            <input class="form-input contract-field" id="salary" type="number" min="0" value="65000" required>
+            <input class="form-input contract-field" id="salary" type="number" min="0" value="22800" required>
+          </div>
+          <div class="form-group" data-contract-scope="fixed-term">
+            <label class="form-label" for="fixedTermPeriod">Fixed-term period <span class="required">*</span></label>
+            <input class="form-input contract-field" id="fixedTermPeriod" type="text" value="1 (One) Year" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="startDate">Commencement date <span class="required">*</span></label>
+            <input class="form-input contract-field" id="startDate" type="text" value="1 January 2026" required>
+          </div>
+          <div class="form-group" data-contract-scope="fixed-term">
+            <label class="form-label" for="endDate">Termination date <span class="required">*</span></label>
+            <input class="form-input contract-field" id="endDate" type="text" value="31 December 2026" required>
           </div>
           <div class="form-group">
             <label class="form-label" for="probationPeriod">Probation Period (months) <span class="required">*</span></label>
             <input class="form-input contract-field" id="probationPeriod" type="number" min="0" max="12" value="3" required>
           </div>
           <div class="form-group">
+            <label class="form-label" for="workHours">Hours of work <span class="required">*</span></label>
+            <input class="form-input contract-field" id="workHours" type="text" value="08:00 - 17:00, Monday - Friday" required>
+          </div>
+          <div class="form-group">
             <label class="form-label" for="noticePeriod">Notice Period <span class="required">*</span></label>
-            <input class="form-input contract-field" id="noticePeriod" type="text" value="1 week" required>
-            <div class="form-hint">During probation — e.g. "1 week"</div>
+            <input class="form-input contract-field" id="noticePeriod" type="text" value="30 (Thirty) Days" required>
+          </div>
+        </div>
+
+        <div class="form-section-title">Compliance schedule</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label" for="duties">Duties and responsibilities</label>
+            <input class="form-input contract-field" id="duties" type="text" value="As per job description">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="arbitrationCity">Arbitration city</label>
+            <input class="form-input contract-field" id="arbitrationCity" type="text" value="Gauteng">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="restraintArea">Restraint area</label>
+            <input class="form-input contract-field" id="restraintArea" type="text" value="Gauteng">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="restraintPeriod">Restraint period</label>
+            <input class="form-input contract-field" id="restraintPeriod" type="text" value="12 (Twelve) Months">
+          </div>
+        </div>
+
+        <div class="automation-grid">
+          <div class="automation-card">
+            <strong>Template match</strong>
+            <span id="templateMatchText">RedMPS Fixed-Term Employment Agreement v1</span>
+          </div>
+          <div class="automation-card">
+            <strong>Compliance check</strong>
+            <span id="complianceCheckText">BCEA, POPIA, fixed-term reason, probation clause, salary band</span>
+          </div>
+          <div class="automation-card">
+            <strong>Approval route</strong>
+            <span>HR Manager to Director to Final Approval</span>
           </div>
         </div>
 
         <div id="formValidationMsg" class="validation-alert" style="display:none;">
-          <span>⚠️</span>
+          <span class="validation-alert-icon">!</span>
           <span id="formValidationText">Please complete all required fields.</span>
         </div>
       </form>
 
       <div class="wizard-footer">
-        <button type="button" class="btn-ghost" onclick="showPage('dashboard')">Cancel</button>
-        <button type="button" class="btn-primary" onclick="generateContractPreview()">Generate Contract Preview →</button>
+        <button type="button" class="btn-ghost" onclick="routeTo('dashboard')">Cancel</button>
+        <button type="button" class="btn-primary" onclick="generateContractPreview()">Generate Contract Preview</button>
       </div>
     </div>
   </div>

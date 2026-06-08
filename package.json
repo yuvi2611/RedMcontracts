@@ -4,11 +4,14 @@
   "private": true,
   "description": "RedMPS ContractIQ - dev utilities for prototypes and local preview",
   "scripts": {
+    "dev": "live-server src/frontend --port=5500 --open=/demo-index.html --watch=src/frontend",
     "demo": "http-server src/frontend -p 8000 -c-1 -o /demo-index.html",
-    "prototype": "http-server . -p 8000 -c-1 -o /redmps-hr-platform.html"
+    "prototype": "http-server . -p 8000 -c-1 -o /redmps-hr-platform.html",
+    "test:routes": "node src/frontend/demo/tests/route-smoke.test.js"
   },
   "devDependencies": {
-    "http-server": "^14.1.1"
+    "http-server": "^14.1.1",
+    "live-server": "^1.2.2"
   },
   "engines": {
     "node": ">=18.0.0"

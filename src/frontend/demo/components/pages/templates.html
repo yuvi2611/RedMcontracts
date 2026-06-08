@@ -1,0 +1,171 @@
+<div class="page-padding animate-in">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Template Library</h1>
+      <p class="page-subtitle">Manage contract templates, placeholder sets, versions, and publishing status.</p>
+    </div>
+    <div style="display:flex;gap:10px;">
+      <button class="btn-secondary" onclick="showToast('Opening import dialog…','info')" type="button">Import .docx</button>
+      <button class="btn-primary" onclick="showToast('New template editor coming soon.','info')" type="button">+ New Template</button>
+    </div>
+  </div>
+
+  <!-- Coverage Summary -->
+  <div class="template-coverage-bar animate-in animate-delay-1">
+    <div class="tcov-item">
+      <div class="tcov-num green">38</div>
+      <div class="tcov-label">Approved Placeholders</div>
+    </div>
+    <div class="tcov-item">
+      <div class="tcov-num amber">6</div>
+      <div class="tcov-label">Require Ownership</div>
+    </div>
+    <div class="tcov-item">
+      <div class="tcov-num blue">2</div>
+      <div class="tcov-label">Pending Director Approval</div>
+    </div>
+    <div class="tcov-item">
+      <div class="tcov-num coal">3</div>
+      <div class="tcov-label">Active Templates</div>
+    </div>
+  </div>
+
+  <!-- Filter Tabs -->
+  <div class="filter-tabs animate-in animate-delay-2" style="margin-bottom:20px">
+    <button class="filter-tab active">All <span class="tab-count">3</span></button>
+    <button class="filter-tab" onclick="showToast('Filtering published templates…','info')">Published <span class="tab-count">2</span></button>
+    <button class="filter-tab" onclick="showToast('Filtering drafts…','info')">Draft <span class="tab-count">1</span></button>
+  </div>
+
+  <!-- Template Cards -->
+  <div class="template-cards animate-in animate-delay-3">
+
+    <div class="template-card">
+      <div class="template-card-header">
+        <div class="template-doc-icon">
+          <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg>
+        </div>
+        <div style="flex:1">
+          <div class="template-card-name">Fixed-Term Employment Agreement</div>
+          <div class="template-card-meta">
+            <span class="version-badge">v1</span>
+            <span class="status-badge approved" style="font-size:10px;padding:2px 8px">Published</span>
+          </div>
+        </div>
+        <div class="template-card-actions">
+          <button class="icon-btn" title="Edit" onclick="showToast('Opening template editor…','info')">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>
+          <button class="icon-btn" title="Duplicate" onclick="showToast('Template duplicated as draft.','success')">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          </button>
+          <button class="icon-btn" title="Download" onclick="showToast('Downloading template .docx…','success')">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="template-card-body">
+        <div class="template-stat-row">
+          <span class="template-stat"><strong>14</strong> placeholders</span>
+          <span class="template-stat"><strong>4</strong> compliance clauses</span>
+          <span class="template-stat"><strong>87</strong> contracts generated</span>
+        </div>
+        <div class="template-compliance-checks">
+          <span class="compliance-chip green">BCEA ✓</span>
+          <span class="compliance-chip green">POPIA ✓</span>
+          <span class="compliance-chip green">Salary band ✓</span>
+          <span class="compliance-chip amber">Restraint clause — review</span>
+        </div>
+      </div>
+      <div class="template-card-footer">
+        <span class="template-updated">Last updated 5 June 2026 by System Administrator</span>
+        <button class="btn-secondary" style="font-size:12px;padding:6px 14px" onclick="showToast('Opening contract wizard with this template…','info')">Use Template</button>
+      </div>
+    </div>
+
+    <div class="template-card draft">
+      <div class="template-card-header">
+        <div class="template-doc-icon amber">
+          <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg>
+        </div>
+        <div style="flex:1">
+          <div class="template-card-name">Permanent Employment Contract</div>
+          <div class="template-card-meta">
+            <span class="version-badge draft-v">Draft</span>
+            <span class="status-badge draft" style="font-size:10px;padding:2px 8px">Needs Review</span>
+          </div>
+        </div>
+        <div class="template-card-actions">
+          <button class="icon-btn" title="Edit" onclick="showToast('Opening template editor…','info')">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>
+          <button class="icon-btn" title="Submit for review" onclick="showToast('Submitted for director review.','success')">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="template-card-body">
+        <div class="template-stat-row">
+          <span class="template-stat"><strong>11</strong> placeholders</span>
+          <span class="template-stat"><strong>3</strong> compliance clauses</span>
+          <span class="template-stat"><strong>0</strong> contracts generated</span>
+        </div>
+        <div class="template-compliance-checks">
+          <span class="compliance-chip amber">BCEA — pending review</span>
+          <span class="compliance-chip green">POPIA ✓</span>
+          <span class="compliance-chip red">Salary band — not confirmed</span>
+        </div>
+        <div class="draft-notice">
+          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          This template requires director approval before it can be used to generate contracts.
+        </div>
+      </div>
+      <div class="template-card-footer">
+        <span class="template-updated">Last updated 2 June 2026 by Nomsa Mahlangu</span>
+        <button class="btn-primary" style="font-size:12px;padding:6px 14px" onclick="showToast('Submitted for director review.','success')">Submit for Review</button>
+      </div>
+    </div>
+
+    <div class="template-card">
+      <div class="template-card-header">
+        <div class="template-doc-icon">
+          <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg>
+        </div>
+        <div style="flex:1">
+          <div class="template-card-name">Offer Letter</div>
+          <div class="template-card-meta">
+            <span class="version-badge">v2</span>
+            <span class="status-badge approved" style="font-size:10px;padding:2px 8px">Published</span>
+          </div>
+        </div>
+        <div class="template-card-actions">
+          <button class="icon-btn" title="Edit" onclick="showToast('Opening template editor…','info')">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>
+          <button class="icon-btn" title="Duplicate" onclick="showToast('Template duplicated as draft.','success')">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          </button>
+          <button class="icon-btn" title="Download" onclick="showToast('Downloading template .docx…','success')">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="template-card-body">
+        <div class="template-stat-row">
+          <span class="template-stat"><strong>8</strong> placeholders</span>
+          <span class="template-stat"><strong>2</strong> compliance clauses</span>
+          <span class="template-stat"><strong>34</strong> contracts generated</span>
+        </div>
+        <div class="template-compliance-checks">
+          <span class="compliance-chip green">BCEA ✓</span>
+          <span class="compliance-chip green">POPIA ✓</span>
+        </div>
+      </div>
+      <div class="template-card-footer">
+        <span class="template-updated">Last updated 1 May 2026 by System Administrator</span>
+        <button class="btn-secondary" style="font-size:12px;padding:6px 14px" onclick="showToast('Opening contract wizard with this template…','info')">Use Template</button>
+      </div>
+    </div>
+
+  </div>
+</div>

@@ -1,28 +1,115 @@
 <div class="page-padding animate-in">
   <div class="page-header">
     <div>
-      <h1 class="page-title">Good morning, Nomsa 👋</h1>
-      <p class="page-subtitle">Create employment contracts by filling in 7 employee details.</p>
+      <h1 class="page-title">Good morning, Nomsa</h1>
+      <p class="page-subtitle">Your automated contract desk is ready. Priority work is already surfaced.</p>
     </div>
-    <button class="btn-primary" onclick="showPage('wizard')">✦ New Contract</button>
+    <button class="btn-primary" onclick="routeTo('wizard')">New Contract</button>
   </div>
 
+  <section class="automation-hero">
+    <div>
+      <div class="eyebrow">RedMPS ContractIQ</div>
+      <h2>Generate the right document, route it, and export it without chasing details.</h2>
+      <p>ContractIQ combines guided capture, reusable employee data, compliance checks, and approval automation so HR can move confidently without technical training.</p>
+      <div class="hero-actions">
+        <button class="btn-primary" onclick="routeTo('wizard')">Start Guided Contract</button>
+        <button class="btn-secondary" onclick="routeTo('contracts')">Review Queue</button>
+      </div>
+    </div>
+    <div class="hero-panel">
+      <div class="hero-panel-row">
+        <span>Automation readiness</span>
+        <strong>92%</strong>
+      </div>
+      <div class="readiness-track"><span style="width:92%"></span></div>
+      <div class="hero-checks">
+        <span>Template matched</span>
+        <span>POPIA check clean</span>
+        <span>Approval route prepared</span>
+      </div>
+    </div>
+  </section>
+
   <div class="kpi-grid">
-    <div class="kpi-card">
+    <div class="kpi-card red">
+      <div class="kpi-icon red">01</div>
       <div class="kpi-label">Contracts Generated</div>
       <div class="kpi-value">142</div>
+      <div class="kpi-trend up">18% faster than last month</div>
     </div>
-    <div class="kpi-card">
+    <div class="kpi-card gold">
+      <div class="kpi-icon gold">02</div>
       <div class="kpi-label">Pending Approvals</div>
       <div class="kpi-value">5</div>
+      <div class="kpi-trend neutral">2 need director review</div>
     </div>
-    <div class="kpi-card">
+    <div class="kpi-card blue">
+      <div class="kpi-icon blue">03</div>
       <div class="kpi-label">Avg. Processing</div>
-      <div class="kpi-value">5 min</div>
+      <div class="kpi-value">4.8 min</div>
+      <div class="kpi-trend up">From draft to preview</div>
     </div>
-    <div class="kpi-card">
-      <div class="kpi-label">Fields per Contract</div>
-      <div class="kpi-value">7</div>
+    <div class="kpi-card green">
+      <div class="kpi-icon green">04</div>
+      <div class="kpi-label">Automation Coverage</div>
+      <div class="kpi-value">87%</div>
+      <div class="kpi-trend up">Data prefilled by policy</div>
     </div>
+  </div>
+
+  <div class="dash-grid">
+    <section class="card">
+      <div class="card-header">
+        <div class="card-title">Priority Approval Queue</div>
+        <button class="card-action" onclick="routeTo('contracts')">View all</button>
+      </div>
+      <div class="card-body">
+        <div class="approval-item">
+          <div class="approval-avatar red-bg">TM</div>
+          <div class="approval-info">
+            <div class="approval-name">Thabo Mokoena</div>
+            <div class="approval-type">Fixed-term agreement - schedule ready for review</div>
+          </div>
+          <span class="status-badge review">Manager review</span>
+        </div>
+        <div class="approval-item">
+          <div class="approval-avatar coal-bg">AN</div>
+          <div class="approval-info">
+            <div class="approval-name">Aisha Naidoo</div>
+            <div class="approval-type">Offer letter - ready for director approval</div>
+          </div>
+          <span class="status-badge approved">Clean</span>
+        </div>
+        <div class="approval-item">
+          <div class="approval-avatar blue-bg">MK</div>
+          <div class="approval-info">
+            <div class="approval-name">Mandla Khumalo</div>
+            <div class="approval-type">Fixed-term contract - end date verified</div>
+          </div>
+          <span class="status-badge signed">Signature ready</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-header">
+        <div class="card-title">Automation Signals</div>
+      </div>
+      <div class="card-body signal-list">
+        <div class="signal-item">
+          <strong>6</strong>
+          <span>contracts can be generated from existing employee data</span>
+        </div>
+        <div class="signal-item">
+          <strong>3</strong>
+          <span>templates have unpublished compliance updates</span>
+        </div>
+        <div class="signal-item">
+          <strong>0</strong>
+          <span>critical POPIA findings in today's drafts</span>
+        </div>
+      </div>
+    </section>
   </div>
 </div>

@@ -1,0 +1,13 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "ContractIQ PostgreSQL",
+      "Group": "RedMPS",
+      "Host": "postgres",
+      "Port": 5432,
+      "MaintenanceDB": "RedMPS Contracts",
+      "Username": "postgres",
+      "SSLMode": "prefer"
+    }
+  }
+}

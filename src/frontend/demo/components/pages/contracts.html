@@ -1,7 +1,219 @@
 <div class="page-padding animate-in">
   <div class="page-header">
-    <h1 class="page-title">Contracts</h1>
-    <button class="btn-primary" onclick="showPage('wizard')">+ New Contract</button>
+    <div>
+      <h1 class="page-title">Contracts</h1>
+      <p class="page-subtitle">Generated, drafted, and archived employment agreements.</p>
+    </div>
+    <div style="display:flex;gap:10px;">
+      <button class="btn-secondary" onclick="showToast('Exporting contracts...','info')" type="button">Export CSV</button>
+      <button class="btn-primary" onclick="routeTo('wizard')" type="button">+ New Contract</button>
+    </div>
   </div>
-  <p class="page-subtitle">Contracts are generated from the 7-field employee form.</p>
+
+  <!-- Stats Row -->
+  <div class="contracts-stats-row animate-in animate-delay-1">
+    <div class="cstat-card">
+      <div class="cstat-value">142</div>
+      <div class="cstat-label">Total Generated</div>
+      <div class="cstat-bar"><span style="width:100%"></span></div>
+    </div>
+    <div class="cstat-card">
+      <div class="cstat-value">12</div>
+      <div class="cstat-label">In Progress</div>
+      <div class="cstat-bar blue"><span style="width:8%"></span></div>
+    </div>
+    <div class="cstat-card">
+      <div class="cstat-value">5</div>
+      <div class="cstat-label">Pending Approval</div>
+      <div class="cstat-bar amber"><span style="width:4%"></span></div>
+    </div>
+    <div class="cstat-card">
+      <div class="cstat-value">125</div>
+      <div class="cstat-label">Signed & Archived</div>
+      <div class="cstat-bar green"><span style="width:88%"></span></div>
+    </div>
+  </div>
+
+  <!-- Search & Filters -->
+  <div class="list-toolbar animate-in animate-delay-2">
+    <div class="search-wrap">
+      <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input class="search-input" type="text" placeholder="Search by name, role, or reference…" id="contractsSearch" oninput="filterContracts(this.value)">
+    </div>
+    <div class="filter-tabs" id="contractsTabs">
+      <button class="filter-tab active" onclick="setContractsTab(this,'all')">All <span class="tab-count">142</span></button>
+      <button class="filter-tab" onclick="setContractsTab(this,'active')">Active <span class="tab-count">12</span></button>
+      <button class="filter-tab" onclick="setContractsTab(this,'pending')">Pending <span class="tab-count">5</span></button>
+      <button class="filter-tab" onclick="setContractsTab(this,'signed')">Signed <span class="tab-count">125</span></button>
+    </div>
+    <div style="display:flex;gap:8px;margin-left:auto;">
+      <button class="icon-btn tooltip" onclick="setContractsView('grid')" id="viewGrid" title="Grid view">
+        <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      </button>
+      <button class="icon-btn tooltip active" onclick="setContractsView('list')" id="viewList" title="List view">
+        <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Contract List -->
+  <div id="contractsListView" class="animate-in animate-delay-3">
+    <section class="card card-no-pad">
+      <table class="table contracts-table" id="contractsTable">
+        <thead>
+          <tr>
+            <th>Employee</th>
+            <th>Contract Type</th>
+            <th>Role</th>
+            <th>Start Date</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="contract-row" data-status="signed" data-search="thabo mokoena fixed-term rmp-2026-001">
+            <td><div class="employee-cell"><div class="emp-avatar" style="background:var(--red-600)">TM</div><div><div class="emp-name">Thabo Mokoena</div><div class="emp-dept">RMP-2026-001</div></div></div></td>
+            <td><span class="type-chip fixed">Fixed-Term</span></td>
+            <td>Operations Associate</td>
+            <td>01 Mar 2026</td>
+            <td><span class="status-badge signed">Signed</span></td>
+            <td><div class="row-actions"><button class="row-btn" onclick="showToast('Opening contract preview…','info')">View</button><button class="row-btn" onclick="showToast('Downloading PDF…','success')">PDF</button></div></td>
+          </tr>
+          <tr class="contract-row" data-status="pending" data-search="aisha naidoo offer letter rmp-2026-002">
+            <td><div class="employee-cell"><div class="emp-avatar" style="background:var(--coal-700)">AN</div><div><div class="emp-name">Aisha Naidoo</div><div class="emp-dept">RMP-2026-002</div></div></div></td>
+            <td><span class="type-chip offer">Offer Letter</span></td>
+            <td>Senior HR Analyst</td>
+            <td>15 Mar 2026</td>
+            <td><span class="status-badge review">Pending</span></td>
+            <td><div class="row-actions"><button class="row-btn" onclick="showToast('Opening contract preview…','info')">View</button><button class="row-btn" onclick="showToast('Approval reminder sent.','success')">Remind</button></div></td>
+          </tr>
+          <tr class="contract-row" data-status="active" data-search="mandla khumalo fixed-term rmp-2026-003">
+            <td><div class="employee-cell"><div class="emp-avatar" style="background:var(--info)">MK</div><div><div class="emp-name">Mandla Khumalo</div><div class="emp-dept">RMP-2026-003</div></div></div></td>
+            <td><span class="type-chip fixed">Fixed-Term</span></td>
+            <td>Logistics Coordinator</td>
+            <td>01 Apr 2026</td>
+            <td><span class="status-badge approved">Active</span></td>
+            <td><div class="row-actions"><button class="row-btn" onclick="showToast('Opening contract preview…','info')">View</button><button class="row-btn" onclick="showToast('Downloading PDF…','success')">PDF</button></div></td>
+          </tr>
+          <tr class="contract-row" data-status="signed" data-search="yuvaan pather permanent rmp-2026-004">
+            <td><div class="employee-cell"><div class="emp-avatar" style="background:#7c3aed">YP</div><div><div class="emp-name">Yuvaan Pather</div><div class="emp-dept">RMP-2026-004</div></div></div></td>
+            <td><span class="type-chip perm">Permanent</span></td>
+            <td>Finance Manager</td>
+            <td>15 Jan 2026</td>
+            <td><span class="status-badge signed">Signed</span></td>
+            <td><div class="row-actions"><button class="row-btn" onclick="showToast('Opening contract preview…','info')">View</button><button class="row-btn" onclick="showToast('Downloading PDF…','success')">PDF</button></div></td>
+          </tr>
+          <tr class="contract-row" data-status="active" data-search="nomsa dlamini fixed-term rmp-2026-005">
+            <td><div class="employee-cell"><div class="emp-avatar" style="background:#0891b2">ND</div><div><div class="emp-name">Nomsa Dlamini</div><div class="emp-dept">RMP-2026-005</div></div></div></td>
+            <td><span class="type-chip fixed">Fixed-Term</span></td>
+            <td>Administrative Officer</td>
+            <td>01 May 2026</td>
+            <td><span class="status-badge approved">Active</span></td>
+            <td><div class="row-actions"><button class="row-btn" onclick="showToast('Opening contract preview…','info')">View</button><button class="row-btn" onclick="showToast('Downloading PDF…','success')">PDF</button></div></td>
+          </tr>
+          <tr class="contract-row" data-status="pending" data-search="sipho ndlovu offer letter rmp-2026-006">
+            <td><div class="employee-cell"><div class="emp-avatar" style="background:#b45309">SN</div><div><div class="emp-name">Sipho Ndlovu</div><div class="emp-dept">RMP-2026-006</div></div></div></td>
+            <td><span class="type-chip offer">Offer Letter</span></td>
+            <td>IT Systems Analyst</td>
+            <td>01 Jun 2026</td>
+            <td><span class="status-badge review">Pending</span></td>
+            <td><div class="row-actions"><button class="row-btn" onclick="showToast('Opening contract preview…','info')">View</button><button class="row-btn" onclick="showToast('Approval reminder sent.','success')">Remind</button></div></td>
+          </tr>
+          <tr class="contract-row" data-status="signed" data-search="fatima ally permanent rmp-2025-089">
+            <td><div class="employee-cell"><div class="emp-avatar" style="background:#059669">FA</div><div><div class="emp-name">Fatima Ally</div><div class="emp-dept">RMP-2025-089</div></div></div></td>
+            <td><span class="type-chip perm">Permanent</span></td>
+            <td>Compliance Officer</td>
+            <td>01 Sep 2025</td>
+            <td><span class="status-badge signed">Signed</span></td>
+            <td><div class="row-actions"><button class="row-btn" onclick="showToast('Opening contract preview…','info')">View</button><button class="row-btn" onclick="showToast('Downloading PDF…','success')">PDF</button></div></td>
+          </tr>
+          <tr class="contract-row" data-status="active" data-search="keegan botha fixed-term rmp-2026-007">
+            <td><div class="employee-cell"><div class="emp-avatar" style="background:#dc2626">KB</div><div><div class="emp-name">Keegan Botha</div><div class="emp-dept">RMP-2026-007</div></div></div></td>
+            <td><span class="type-chip fixed">Fixed-Term</span></td>
+            <td>Marketing Coordinator</td>
+            <td>01 Jun 2026</td>
+            <td><span class="status-badge approved">Active</span></td>
+            <td><div class="row-actions"><button class="row-btn" onclick="showToast('Opening contract preview…','info')">View</button><button class="row-btn" onclick="showToast('Downloading PDF…','success')">PDF</button></div></td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="table-footer">
+        <span class="table-count" id="contractsCount">Showing 8 of 142 contracts</span>
+        <div class="pagination">
+          <button class="page-btn active" onclick="showToast('Page 1 of 18','info')">1</button>
+          <button class="page-btn" onclick="showToast('Loading page 2…','info')">2</button>
+          <button class="page-btn" onclick="showToast('Loading page 3…','info')">3</button>
+          <span class="page-ellipsis">…</span>
+          <button class="page-btn" onclick="showToast('Loading page 18…','info')">18</button>
+          <button class="page-btn-next" onclick="showToast('Loading next page…','info')">Next →</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Grid View (hidden by default) -->
+  <div id="contractsGridView" style="display:none">
+    <div class="contracts-grid animate-in">
+      <div class="contract-card" onclick="showToast('Opening Thabo Mokoena contract…','info')">
+        <div class="contract-card-header">
+          <div class="emp-avatar" style="background:var(--red-600);width:42px;height:42px;font-size:14px">TM</div>
+          <span class="status-badge signed">Signed</span>
+        </div>
+        <div class="contract-card-name">Thabo Mokoena</div>
+        <div class="contract-card-role">Operations Associate</div>
+        <div class="contract-card-meta"><span class="type-chip fixed">Fixed-Term</span><span style="font-size:11px;color:var(--coal-400)">RMP-2026-001</span></div>
+        <div class="contract-card-date">Start: 01 Mar 2026</div>
+      </div>
+      <div class="contract-card" onclick="showToast('Opening Aisha Naidoo contract…','info')">
+        <div class="contract-card-header">
+          <div class="emp-avatar" style="background:var(--coal-700);width:42px;height:42px;font-size:14px">AN</div>
+          <span class="status-badge review">Pending</span>
+        </div>
+        <div class="contract-card-name">Aisha Naidoo</div>
+        <div class="contract-card-role">Senior HR Analyst</div>
+        <div class="contract-card-meta"><span class="type-chip offer">Offer Letter</span><span style="font-size:11px;color:var(--coal-400)">RMP-2026-002</span></div>
+        <div class="contract-card-date">Start: 15 Mar 2026</div>
+      </div>
+      <div class="contract-card" onclick="showToast('Opening Mandla Khumalo contract…','info')">
+        <div class="contract-card-header">
+          <div class="emp-avatar" style="background:var(--info);width:42px;height:42px;font-size:14px">MK</div>
+          <span class="status-badge approved">Active</span>
+        </div>
+        <div class="contract-card-name">Mandla Khumalo</div>
+        <div class="contract-card-role">Logistics Coordinator</div>
+        <div class="contract-card-meta"><span class="type-chip fixed">Fixed-Term</span><span style="font-size:11px;color:var(--coal-400)">RMP-2026-003</span></div>
+        <div class="contract-card-date">Start: 01 Apr 2026</div>
+      </div>
+      <div class="contract-card" onclick="showToast('Opening Yuvaan Pather contract…','info')">
+        <div class="contract-card-header">
+          <div class="emp-avatar" style="background:#7c3aed;width:42px;height:42px;font-size:14px">YP</div>
+          <span class="status-badge signed">Signed</span>
+        </div>
+        <div class="contract-card-name">Yuvaan Pather</div>
+        <div class="contract-card-role">Finance Manager</div>
+        <div class="contract-card-meta"><span class="type-chip perm">Permanent</span><span style="font-size:11px;color:var(--coal-400)">RMP-2026-004</span></div>
+        <div class="contract-card-date">Start: 15 Jan 2026</div>
+      </div>
+      <div class="contract-card" onclick="showToast('Opening Nomsa Dlamini contract…','info')">
+        <div class="contract-card-header">
+          <div class="emp-avatar" style="background:#0891b2;width:42px;height:42px;font-size:14px">ND</div>
+          <span class="status-badge approved">Active</span>
+        </div>
+        <div class="contract-card-name">Nomsa Dlamini</div>
+        <div class="contract-card-role">Administrative Officer</div>
+        <div class="contract-card-meta"><span class="type-chip fixed">Fixed-Term</span><span style="font-size:11px;color:var(--coal-400)">RMP-2026-005</span></div>
+        <div class="contract-card-date">Start: 01 May 2026</div>
+      </div>
+      <div class="contract-card" onclick="showToast('Opening Sipho Ndlovu contract…','info')">
+        <div class="contract-card-header">
+          <div class="emp-avatar" style="background:#b45309;width:42px;height:42px;font-size:14px">SN</div>
+          <span class="status-badge review">Pending</span>
+        </div>
+        <div class="contract-card-name">Sipho Ndlovu</div>
+        <div class="contract-card-role">IT Systems Analyst</div>
+        <div class="contract-card-meta"><span class="type-chip offer">Offer Letter</span><span style="font-size:11px;color:var(--coal-400)">RMP-2026-006</span></div>
+        <div class="contract-card-date">Start: 01 Jun 2026</div>
+      </div>
+    </div>
+  </div>
 </div>

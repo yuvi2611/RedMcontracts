@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "contractiq-demo",
+      "runtimeExecutable": "C:\\Users\\USER-PC\\AppData\\Local\\Microsoft\\WindowsApps\\python.exe",
+      "runtimeArgs": ["-m", "http.server", "8000", "--directory", "src/frontend"],
+      "port": 8000
+    }
+  ]
+}
