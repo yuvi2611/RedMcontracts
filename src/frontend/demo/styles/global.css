@@ -26,10 +26,16 @@ button {
   cursor: pointer;
   border: none;
   outline: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 input, select, textarea {
   font-family: inherit;
+}
+
+:where(button, input, select, textarea, a):focus-visible {
+  outline: 2px solid rgba(212,0,42,.45);
+  outline-offset: 3px;
 }
 
 a {
@@ -54,7 +60,9 @@ a {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  transition: margin-left .22s cubic-bezier(.4,0,.2,1);
+  transition:
+    margin-left var(--motion-med) var(--ease-standard),
+    width var(--motion-med) var(--ease-standard);
 }
 
 .app-shell.sidebar-collapsed .main {
@@ -66,10 +74,12 @@ a {
   display: none;
   flex: 1;
   overflow-y: auto;
+  min-width: 0;
 }
 
 .page.active {
   display: block;
+  animation: pageReveal var(--motion-slow) var(--ease-out) both;
 }
 
 /* ═══════════════════════════════════════════
@@ -87,13 +97,37 @@ a {
   }
 }
 
+@keyframes pageReveal {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+    filter: saturate(.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: saturate(1);
+  }
+}
+
+@keyframes subtleLiftIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(.99);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
 @keyframes pulse-dot {
   0%, 100% { opacity: 1; }
   50% { opacity: .4; }
 }
 
 .animate-in {
-  animation: fadeInUp .35s ease both;
+  animation: subtleLiftIn var(--motion-slow) var(--ease-out) both;
 }
 
 .animate-delay-1 { animation-delay: .05s; }
@@ -135,6 +169,57 @@ a {
 
 .hidden {
   display: none !important;
+}
+
+:where(.btn-primary, .btn-secondary, .btn-ghost, .icon-btn, .nav-item, .filter-tab, .page-btn, .row-btn, .export-btn, .card-action, .link-button):active {
+  transform: translateY(0) scale(.985);
+}
+
+:where(.card, .kpi-card, .contract-card, .approval-card, .template-card, .settings-card, .cu-info-card, .wizard-sidebar) {
+  transition:
+    transform var(--motion-med) var(--ease-standard),
+    box-shadow var(--motion-med) var(--ease-standard),
+    border-color var(--motion-med) var(--ease-standard),
+    background-color var(--motion-med) var(--ease-standard);
+}
+
+:where(.card, .contract-card, .template-card, .settings-card, .cu-info-card):hover {
+  border-color: rgba(212,0,42,.16);
+  box-shadow: var(--shadow-md);
+}
+
+.page.active :where(.kpi-card, .card, .contract-card, .approval-card, .template-card, .settings-card) {
+  animation: subtleLiftIn var(--motion-slow) var(--ease-out) both;
+}
+
+.page.active :where(.kpi-card, .card, .contract-card, .approval-card, .template-card, .settings-card):nth-child(1) { animation-delay: .02s; }
+.page.active :where(.kpi-card, .card, .contract-card, .approval-card, .template-card, .settings-card):nth-child(2) { animation-delay: .05s; }
+.page.active :where(.kpi-card, .card, .contract-card, .approval-card, .template-card, .settings-card):nth-child(3) { animation-delay: .08s; }
+.page.active :where(.kpi-card, .card, .contract-card, .approval-card, .template-card, .settings-card):nth-child(4) { animation-delay: .11s; }
+
+.table,
+.contracts-table,
+.schedule-table {
+  min-width: 720px;
+}
+
+.card-no-pad,
+.card:has(.table),
+.preview-paper {
+  overflow-x: auto;
+}
+
+.card-no-pad::-webkit-scrollbar,
+.card:has(.table)::-webkit-scrollbar,
+.preview-paper::-webkit-scrollbar {
+  height: 8px;
+}
+
+.card-no-pad::-webkit-scrollbar-thumb,
+.card:has(.table)::-webkit-scrollbar-thumb,
+.preview-paper::-webkit-scrollbar-thumb {
+  background: var(--coal-200);
+  border-radius: 999px;
 }
 
 /* ═══════════════════════════════════════════
@@ -1034,6 +1119,12 @@ a {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+  }
+
   .login-screen,
   .login-stage,
   .login-form,
@@ -1043,9 +1134,27 @@ a {
   .login-floating-card,
   .login-field-group,
   .login-input,
-  .login-submit {
+  .login-submit,
+  .page,
+  .page.active,
+  .animate-in,
+  .card,
+  .kpi-card,
+  .contract-card,
+  .approval-card,
+  .template-card,
+  .settings-card,
+  .nav-item,
+  .sidebar,
+  .main,
+  .topbar-search,
+  .btn-primary,
+  .btn-secondary,
+  .btn-ghost,
+  .icon-btn {
     animation: none !important;
     transition: none !important;
+    transform: none !important;
   }
 }
 
@@ -1154,11 +1263,11 @@ a {
     width: auto;
   }
   .sidebar {
-    width: 200px;
+    width: var(--sidebar-collapsed-w);
   }
   .main {
-    margin-left: 200px;
-    width: calc(100% - 200px);
+    margin-left: var(--sidebar-collapsed-w);
+    width: calc(100% - var(--sidebar-collapsed-w));
   }
   .app-shell.sidebar-collapsed .main {
     margin-left: var(--sidebar-collapsed-w);

@@ -66,8 +66,8 @@ cd src/frontend
 # Python 3
 python -m http.server 8000
 
-# Or Node.js
-npx http-server
+# Or Node.js from the repo root
+npm run demo
 
 # Then open: http://localhost:8000/demo-index.html
 ```

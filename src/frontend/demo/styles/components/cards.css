@@ -8,6 +8,7 @@
   border: 1px solid var(--coal-100);
   box-shadow: var(--shadow-sm);
   overflow: hidden;
+  transition: var(--transition);
 }
 
 .card-header {
@@ -29,10 +30,12 @@
   color: var(--red-500);
   font-weight: 600;
   cursor: pointer;
+  transition: color var(--motion-fast) var(--ease-standard), transform var(--motion-fast) var(--ease-standard);
 }
 
 .card-action:hover {
   color: var(--red-700);
+  transform: translateX(1px);
 }
 
 .card-body {
@@ -59,7 +62,7 @@
 }
 
 .kpi-card:hover {
-  transform: translateY(-2px);
+  transform: translateY(-3px);
   box-shadow: var(--shadow-md);
 }
 
@@ -72,6 +75,12 @@
   height: 80px;
   border-radius: 0 0 0 80px;
   opacity: .06;
+  transition: opacity var(--motion-med) var(--ease-standard), transform var(--motion-med) var(--ease-standard);
+}
+
+.kpi-card:hover::after {
+  opacity: .1;
+  transform: scale(1.08);
 }
 
 .kpi-card.red::after { background: var(--red-500); }
@@ -250,7 +259,7 @@
 }
 
 .mini-bar:hover { background: var(--red-400); }
-.mini-bar.active { background: var(--red-500); }
+.mini-bar.active { background: var(--red-500); box-shadow: 0 0 0 1px rgba(212,0,42,.08); }
 
 .bar-chart {
   display: flex;
@@ -276,7 +285,7 @@
   transition: var(--transition);
 }
 
-.bar-col:hover { opacity: .85; }
+.bar-col:hover { opacity: .9; transform: translateY(-2px); }
 
 .bar-label {
   font-size: 10px;

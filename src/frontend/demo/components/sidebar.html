@@ -4,7 +4,7 @@
     <div class="logo-text-main">RedMPS</div>
     <div class="logo-text-sub">ContractIQ</div>
   </div>
-  <button class="sidebar-toggle" type="button" onclick="toggleSidebar()" aria-label="Collapse sidebar" aria-expanded="true">
+  <button class="sidebar-toggle" type="button" onclick="toggleSidebar()" aria-label="Collapse sidebar" aria-expanded="true" data-tooltip="Collapse sidebar">
     <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
   </button>
 </div>
@@ -13,16 +13,16 @@
   <div class="sidebar-section-label">Main</div>
   <button class="nav-item active" type="button" onclick="routeTo('dashboard')" id="nav-dashboard">
     <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-    Dashboard
+    <span class="nav-label">Dashboard</span>
   </button>
   <button class="nav-item" type="button" onclick="routeTo('contracts')" id="nav-contracts">
     <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg>
-    Contracts
+    <span class="nav-label">Contracts</span>
     <span class="nav-badge">3</span>
   </button>
   <button class="nav-item" type="button" onclick="routeTo('wizard')" id="nav-wizard">
     <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
-    New Contract
+    <span class="nav-label">New Contract</span>
   </button>
 </div>
 
@@ -30,15 +30,15 @@
   <div class="sidebar-section-label">Management</div>
   <button class="nav-item" type="button" onclick="routeTo('employees')" id="nav-employees">
     <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-    Employees
+    <span class="nav-label">Employees</span>
   </button>
   <button class="nav-item" type="button" onclick="routeTo('templates')" id="nav-templates">
     <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
-    Templates
+    <span class="nav-label">Templates</span>
   </button>
   <button class="nav-item" type="button" onclick="routeTo('approvals')" id="nav-approvals">
     <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-    Approvals
+    <span class="nav-label">Approvals</span>
     <span class="nav-badge">5</span>
   </button>
 </div>
@@ -47,11 +47,11 @@
   <div class="sidebar-section-label">Insights</div>
   <button class="nav-item" type="button" onclick="routeTo('analytics')" id="nav-analytics">
     <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-    Analytics
+    <span class="nav-label">Analytics</span>
   </button>
   <button class="nav-item" type="button" onclick="routeTo('audit')" id="nav-audit">
     <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-    Audit Log
+    <span class="nav-label">Audit Log</span>
   </button>
 </div>
 
@@ -59,16 +59,16 @@
   <div class="sidebar-section-label">System</div>
   <button class="nav-item" type="button" onclick="routeTo('settings')" id="nav-settings">
     <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-    Settings
+    <span class="nav-label">Settings</span>
   </button>
   <button class="nav-item" type="button" onclick="routeTo('create-user')" id="nav-create-user">
     <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
-    Create User
+    <span class="nav-label">Create User</span>
   </button>
 </div>
 
 <div class="sidebar-footer">
-  <div class="user-card">
+  <div class="user-card" data-tooltip="System Administrator">
     <div class="user-avatar" id="sidebarUserInitials">SA</div>
     <div>
       <div class="user-name" id="sidebarUserName">System Administrator</div>

@@ -275,12 +275,10 @@ function showNotification(message, type) { }
 
 ### 1. Open in Browser
 ```bash
-# Using a local server (recommended)
-python -m http.server 8000
-# or
-npx http-server
+# From the repo root
+npm run demo
 
-# Then visit: http://localhost:8000/src/frontend/demo-index.html
+# Then visit: http://localhost:8000/demo-index.html
 ```
 
 ### 2. File Structure

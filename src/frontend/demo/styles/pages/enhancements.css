@@ -1606,7 +1606,44 @@
 ═══════════════════════════════════════════ */
 
 .page.active > .page-padding {
-  animation: fadeInUp .3s cubic-bezier(.2,.8,.2,1) both;
+  animation: subtleLiftIn var(--motion-slow) var(--ease-out) both;
+}
+
+.filter-tab,
+.page-btn,
+.row-btn,
+.setting-select,
+.search-input,
+.cu-input,
+.cu-select {
+  transition:
+    border-color var(--motion-fast) var(--ease-standard),
+    box-shadow var(--motion-fast) var(--ease-standard),
+    background-color var(--motion-fast) var(--ease-standard),
+    color var(--motion-fast) var(--ease-standard),
+    transform var(--motion-fast) var(--ease-standard);
+}
+
+.filter-tab:hover,
+.page-btn:hover,
+.row-btn:hover {
+  transform: translateY(-1px);
+}
+
+.contracts-table tbody tr,
+.table tbody tr {
+  transition: background-color var(--motion-fast) var(--ease-standard);
+}
+
+.contracts-table td,
+.table td {
+  transition: background-color var(--motion-fast) var(--ease-standard);
+}
+
+.approval-card:hover,
+.template-card:hover,
+.contract-card:hover {
+  transform: translateY(-3px);
 }
 
 /* ═══════════════════════════════════════════
@@ -1631,4 +1668,26 @@
   .list-toolbar { flex-direction: column; align-items: flex-start; }
   .search-input { width: 100%; }
   .contracts-grid { grid-template-columns: 1fr; }
+
+  .page-padding {
+    padding-inline: 14px;
+  }
+
+  .contracts-table,
+  .table,
+  .schedule-table {
+    min-width: 680px;
+  }
+}
+
+@media (max-width: 520px) {
+  .contracts-stats-row,
+  .template-coverage-bar {
+    grid-template-columns: 1fr;
+  }
+
+  .filter-tab {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
 }

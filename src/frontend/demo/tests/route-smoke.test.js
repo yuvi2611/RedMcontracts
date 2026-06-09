@@ -18,9 +18,19 @@ const ROUTES = [
   'settings'
 ];
 
-function request(path) {
+function request(path, redirects = 0) {
   return new Promise((resolve, reject) => {
     const req = http.get({ host: HOST, port: PORT, path }, res => {
+      if ([301, 302, 303, 307, 308].includes(res.statusCode) && res.headers.location) {
+        res.resume();
+        if (redirects >= 5) {
+          reject(new Error('Too many redirects for: ' + path));
+          return;
+        }
+        const nextPath = new URL(res.headers.location, `http://${HOST}:${PORT}${path}`).pathname;
+        resolve(request(nextPath, redirects + 1));
+        return;
+      }
       res.resume();
       res.on('end', () => resolve(res.statusCode));
     });

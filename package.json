@@ -5,20 +5,18 @@
   "description": "RedMPS ContractIQ - dev utilities for prototypes and local preview",
   "scripts": {
     "api": "node src/backend/server.js",
-    "dev": "live-server src/frontend --port=5500 --open=/demo-index.html --watch=src/frontend",
-    "demo": "http-server src/frontend -p 8000 -c-1 -o /demo-index.html",
-    "prototype": "http-server . -p 8000 -c-1 -o /redmps-hr-platform.html",
+    "dev": "serve src/frontend -l 5500",
+    "demo": "serve src/frontend -l 8000",
+    "prototype": "serve . -l 8000",
     "test:routes": "node src/frontend/demo/tests/route-smoke.test.js"
   },
   "dependencies": {
-    "pdfplumber": "^0.0.1-security",
     "pg": "^8.16.0"
-  },
-  "devDependencies": {
-    "http-server": "^14.1.1",
-    "live-server": "^1.2.2"
   },
   "engines": {
     "node": ">=18.0.0"
+  },
+  "devDependencies": {
+    "serve": "^14.2.6"
   }
 }

@@ -45,9 +45,11 @@ function syncUserChrome() {
   const name = document.getElementById('sidebarUserName');
   const role = document.getElementById('sidebarUserRole');
   const initials = document.getElementById('sidebarUserInitials');
+  const card = document.querySelector('.sidebar .user-card');
   if (name) name.textContent = session.name;
   if (role) role.textContent = session.role;
   if (initials) initials.textContent = session.initials;
+  if (card) card.setAttribute('data-tooltip', session.name || 'Account');
   if (typeof syncProfileMenu === 'function') syncProfileMenu();
 }
 

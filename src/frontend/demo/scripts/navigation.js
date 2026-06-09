@@ -89,17 +89,28 @@ function renderRoute(routeName = getRouteFromHash()) {
 
   showAuthenticatedApp?.();
   closeProfileMenu?.();
+  document.body.dataset.route = routeName;
   document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
-  document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(item => {
+    item.classList.remove('active');
+    item.removeAttribute('aria-current');
+  });
 
   const page = document.getElementById('page-' + route.page);
-  if (page) page.classList.add('active');
+  if (page) {
+    page.classList.add('active');
+    page.scrollTop = 0;
+  }
 
   const nav = document.getElementById('nav-' + routeName);
-  if (nav) nav.classList.add('active');
+  if (nav) {
+    nav.classList.add('active');
+    nav.setAttribute('aria-current', 'page');
+  }
 
   const title = document.getElementById('topbar-title');
   if (title) title.textContent = route.title;
+  document.title = `${route.title} - RedMPS ContractIQ`;
 
   const breadcrumb = document.getElementById('topbar-breadcrumb');
   if (breadcrumb) breadcrumb.textContent = routeName === DEFAULT_AUTH_ROUTE ? '' : '/ ' + route.title;

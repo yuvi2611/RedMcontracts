@@ -94,13 +94,17 @@ function initShellControls() {
   });
 
   document.addEventListener('keydown', event => {
-    if (event.key === 'Escape') closeProfileMenu();
+    if (event.key === 'Escape') {
+      closeProfileMenu();
+      toggleFaqChat(false);
+    }
   });
 }
 
 function initSidebarLabels() {
   document.querySelectorAll('.sidebar .nav-item').forEach(item => {
-    const label = item.textContent.replace(/\s+/g, ' ').trim();
+    const label = item.querySelector('.nav-label')?.textContent.trim()
+      || item.textContent.replace(/\s+/g, ' ').trim();
     if (!item.getAttribute('aria-label')) item.setAttribute('aria-label', label);
     if (!item.title) item.title = label;
   });
@@ -112,6 +116,7 @@ function setSidebarCollapsed(collapsed) {
   shell?.classList.toggle('sidebar-collapsed', collapsed);
   toggle?.setAttribute('aria-expanded', String(!collapsed));
   toggle?.setAttribute('aria-label', collapsed ? 'Expand sidebar' : 'Collapse sidebar');
+  toggle?.setAttribute('data-tooltip', collapsed ? 'Expand sidebar' : 'Collapse sidebar');
   try {
     localStorage.setItem(SIDEBAR_STATE_KEY, String(collapsed));
   } catch {
@@ -167,6 +172,275 @@ async function copyProfileEmail() {
   } catch {
     showToast(email, 'info');
   }
+}
+
+const FAQ_ANSWERS = [
+  {
+    keywords: ['create', 'new contract', 'contract', 'generate', 'wizard'],
+    answer: 'I can help with that. Open New Contract, complete the guided fields, validate the form, then generate the preview. ContractIQ matches the approved template and prepares the approval route.',
+    route: 'wizard',
+    label: 'Open New Contract'
+  },
+  {
+    keywords: ['approval', 'approve', 'director', 'manager', 'queue'],
+    answer: 'Approvals are routed by policy. HR prepares the draft, managers or directors review depending on the route, and the queue shows age, priority, and action buttons for each item.',
+    route: 'approvals',
+    label: 'View Approvals'
+  },
+  {
+    keywords: ['template', 'templates', 'publish', 'placeholder', 'clause'],
+    answer: 'Templates control clauses, placeholders, and publishing status. Published templates can be used immediately; draft templates should be reviewed before they generate contracts.',
+    route: 'templates',
+    label: 'Manage Templates'
+  },
+  {
+    keywords: ['user', 'users', 'account', 'superuser', 'create user'],
+    answer: 'Public registration is disabled. Only active superusers can create accounts, assign roles, choose departments, and force a password change on first login.',
+    route: 'create-user',
+    label: 'Create User'
+  },
+  {
+    keywords: ['password', 'reset', 'forgot', 'login', 'sign in'],
+    answer: 'Use Forgot Password on the sign-in screen. In the local demo, the reset code is RESET-2026. In production, resets should be issued only for provisioned accounts.',
+    route: 'reset-password',
+    label: 'Reset Password'
+  },
+  {
+    keywords: ['audit', 'log', 'history', 'trace', 'activity'],
+    answer: 'The Audit Log traces contract, user, template, and approval activity. Use it to confirm who changed what, when it happened, and which workspace action created the event.',
+    route: 'audit',
+    label: 'Open Audit Log'
+  },
+  {
+    keywords: ['settings', 'security', 'policy', 'configuration', 'configure'],
+    answer: 'Settings controls security, document generation, approval policies, retention, and feature toggles. Superuser permissions are required for the most sensitive controls.',
+    route: 'settings',
+    label: 'Open Settings'
+  },
+  {
+    keywords: ['dashboard', 'summary', 'workspace', 'overview', 'status'],
+    answer: 'Workspace summary: 142 contracts generated, 5 pending approvals, 4.8 minute average processing, and 87% automation coverage. The highest-value next step is clearing pending approvals.',
+    route: 'dashboard',
+    label: 'Open Dashboard'
+  },
+  {
+    keywords: ['employee', 'employees', 'directory', 'staff'],
+    answer: 'The Employees area is for browsing employee records and contract history. Use it when you need reusable employee data before starting a contract.',
+    route: 'employees',
+    label: 'Open Employees'
+  },
+  {
+    keywords: ['preview', 'export', 'download', 'sign', 'signature'],
+    answer: 'Preview opens after the contract is validated. From there you can review the generated agreement, check schedule details, and export or prepare for signature.',
+    route: 'preview',
+    label: 'Open Preview'
+  }
+];
+
+const FAQ_ROUTE_GUIDE = {
+  dashboard: 'You are on Dashboard. Use it to monitor volume, approval pressure, automation readiness, and priority queues.',
+  contracts: 'You are on Contracts. Search, filter, switch list/grid views, and inspect contract statuses from here.',
+  wizard: 'You are in New Contract. Complete the required employee and contract fields, then validate to unlock preview.',
+  preview: 'You are on Preview. Review generated content, schedule details, and export options before signing.',
+  employees: 'You are on Employees. Use it to find employee records and reuse master data for contracts.',
+  templates: 'You are on Templates. Review placeholder coverage, versions, publishing state, and compliance readiness.',
+  approvals: 'You are on Approvals. Filter by route and process pending manager, director, or signature tasks.',
+  analytics: 'You are on Analytics. Use this for trends, compliance signals, and operational reporting.',
+  audit: 'You are on Audit Log. Trace user, contract, template, and approval actions.',
+  settings: 'You are on Settings. Configure security, document generation, approval policy, and feature toggles.',
+  'create-user': 'You are on Create User. Superusers can provision accounts, assign roles, and enforce first-login password changes.'
+};
+
+const FAQ_ROUTE_ALIASES = {
+  dashboard: 'dashboard',
+  contracts: 'contracts',
+  contract: 'contracts',
+  wizard: 'wizard',
+  'new contract': 'wizard',
+  preview: 'preview',
+  employees: 'employees',
+  employee: 'employees',
+  templates: 'templates',
+  template: 'templates',
+  approvals: 'approvals',
+  approval: 'approvals',
+  analytics: 'analytics',
+  audit: 'audit',
+  settings: 'settings',
+  profile: 'profile',
+  users: 'create-user',
+  'create user': 'create-user'
+};
+
+function toggleFaqChat(forceOpen = null) {
+  const panel = document.getElementById('faqChatPanel');
+  const fab = document.querySelector('.ai-chat-fab');
+  const topbarButton = document.querySelector('.ai-chat-topbar-btn');
+  if (!panel) return;
+  const open = forceOpen === null ? panel.classList.contains('hidden') : forceOpen;
+  panel.classList.toggle('hidden', !open);
+  fab?.setAttribute('aria-expanded', String(open));
+  topbarButton?.setAttribute('aria-expanded', String(open));
+  if (open) {
+    closeProfileMenu();
+    setTimeout(() => document.getElementById('faqChatInput')?.focus(), 50);
+  }
+}
+
+function submitFaqQuestion(event) {
+  event?.preventDefault();
+  const input = document.getElementById('faqChatInput');
+  const question = input?.value.trim();
+  if (!question) return;
+  appendFaqMessage(question, 'user');
+  input.value = '';
+  appendFaqTyping(resolveContractaIntent(question));
+}
+
+function askFaqSuggestion(question) {
+  toggleFaqChat(true);
+  const input = document.getElementById('faqChatInput');
+  if (input) input.value = question;
+  submitFaqQuestion(new Event('submit'));
+}
+
+function resolveContractaIntent(question) {
+  const normalized = question.toLowerCase();
+  const directCommand = handleContractaCommand(normalized);
+  if (directCommand) return directCommand;
+
+  const scored = FAQ_ANSWERS
+    .map(item => ({
+      item,
+      score: item.keywords.reduce((total, keyword) => total + (normalized.includes(keyword) ? 1 : 0), 0)
+    }))
+    .sort((a, b) => b.score - a.score);
+
+  if (scored[0]?.score > 0) return scored[0].item;
+  return {
+    answer: 'I am Contracta. I can answer FAQs, explain the current page, navigate to app areas, summarize the workspace, clear this chat, open your profile, or collapse and expand the sidebar. Try "what can I do here?", "open templates", or "summarize my workspace".',
+    route: null,
+    label: null
+  };
+}
+
+function handleContractaCommand(normalized) {
+  if (/\b(clear|reset)\b.*\b(chat|conversation)\b/.test(normalized)) {
+    clearFaqChat();
+    return {
+      answer: 'Fresh chat started. What would you like help with next?',
+      route: null,
+      label: null
+    };
+  }
+
+  if (normalized.includes('what can i do here') || normalized.includes('current page') || normalized.includes('this page') || normalized.includes('where am i')) {
+    const route = getCurrentContractaRoute();
+    return {
+      answer: FAQ_ROUTE_GUIDE[route] || 'This page is part of the ContractIQ workspace. I can explain workflows, navigate, or answer common questions.',
+      route: route && route !== 'login' ? route : null,
+      label: route && route !== 'login' ? 'Stay Here' : null
+    };
+  }
+
+  if (normalized.includes('summarize') || normalized.includes('workspace status') || normalized.includes('status report')) {
+    return {
+      answer: 'Workspace snapshot: 142 contracts generated, 5 pending approvals, 92% readiness, 3 templates needing compliance updates, and no critical POPIA findings in today’s drafts.',
+      route: 'dashboard',
+      label: 'Open Dashboard'
+    };
+  }
+
+  if (normalized.includes('collapse sidebar')) {
+    setSidebarCollapsed(true);
+    return { answer: 'Sidebar collapsed. You can say “expand sidebar” whenever you want it back.', route: null, label: null };
+  }
+
+  if (normalized.includes('expand sidebar')) {
+    setSidebarCollapsed(false);
+    return { answer: 'Sidebar expanded.', route: null, label: null };
+  }
+
+  if (normalized.includes('open profile') || normalized.includes('show profile') || normalized.includes('my profile')) {
+    toggleProfileMenu();
+    return { answer: 'Profile panel opened. You can copy the account email, review access, or jump to account actions from there.', route: null, label: null };
+  }
+
+  const routeCommand = Object.entries(FAQ_ROUTE_ALIASES)
+    .find(([phrase]) => normalized.includes('open ' + phrase) || normalized.includes('go to ' + phrase) || normalized.includes('show ' + phrase));
+
+  if (routeCommand) {
+    const route = routeCommand[1];
+    if (route === 'profile') {
+      toggleProfileMenu();
+      return { answer: 'Profile panel opened.', route: null, label: null };
+    }
+    return {
+      answer: `I can take you to ${APP_ROUTES[route]?.title || route}.`,
+      route,
+      label: `Open ${APP_ROUTES[route]?.title || route}`
+    };
+  }
+
+  return null;
+}
+
+function getCurrentContractaRoute() {
+  const raw = window.location.hash.replace(/^#\/?/, '').split('?')[0];
+  if (raw && APP_ROUTES[raw]) return raw;
+  const active = document.querySelector('.page.active')?.id.replace(/^page-/, '');
+  return active || 'dashboard';
+}
+
+function clearFaqChat() {
+  const messages = document.getElementById('faqChatMessages');
+  if (!messages) return;
+  messages.innerHTML = `
+    <div class="ai-message bot">
+      <span>Contracta is ready. Ask for page help, workflow guidance, navigation, or a workspace summary.</span>
+    </div>
+  `;
+}
+
+function appendFaqTyping(match) {
+  const typing = appendFaqMessage('Thinking...', 'bot typing');
+  setTimeout(() => {
+    typing?.remove();
+    appendFaqMessage(match.answer, 'bot', match);
+  }, 320);
+}
+
+function appendFaqMessage(text, type, action = null) {
+  const messages = document.getElementById('faqChatMessages');
+  if (!messages) return null;
+  const message = document.createElement('div');
+  message.className = `ai-message ${type}`;
+  const bubble = document.createElement('span');
+  bubble.textContent = text;
+  message.appendChild(bubble);
+
+  if (action?.route && action?.label) {
+    const button = document.createElement('button');
+    button.className = 'ai-message-action';
+    button.type = 'button';
+    button.textContent = action.label;
+    button.addEventListener('click', () => runContractaAction(action));
+    message.appendChild(button);
+  }
+
+  messages.appendChild(message);
+  messages.scrollTop = messages.scrollHeight;
+  return message;
+}
+
+function runContractaAction(action) {
+  if (!action?.route) return;
+  if (action.route === getCurrentContractaRoute()) {
+    showToast('You are already there.', 'info');
+    return;
+  }
+  routeTo(action.route);
+  toggleFaqChat(false);
 }
 
 /* ═══════════════════════════════════════════
