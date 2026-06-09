@@ -48,10 +48,18 @@ a {
 
 .main {
   margin-left: var(--sidebar-w);
+  width: calc(100% - var(--sidebar-w));
+  min-width: 0;
   flex: 1;
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+  transition: margin-left .22s cubic-bezier(.4,0,.2,1);
+}
+
+.app-shell.sidebar-collapsed .main {
+  margin-left: var(--sidebar-collapsed-w);
+  width: calc(100% - var(--sidebar-collapsed-w));
 }
 
 .page {
@@ -1150,6 +1158,11 @@ a {
   }
   .main {
     margin-left: 200px;
+    width: calc(100% - 200px);
+  }
+  .app-shell.sidebar-collapsed .main {
+    margin-left: var(--sidebar-collapsed-w);
+    width: calc(100% - var(--sidebar-collapsed-w));
   }
   .kpi-grid {
     grid-template-columns: 1fr !important;

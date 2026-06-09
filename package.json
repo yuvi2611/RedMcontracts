@@ -11,6 +11,7 @@
     "test:routes": "node src/frontend/demo/tests/route-smoke.test.js"
   },
   "dependencies": {
+    "pdfplumber": "^0.0.1-security",
     "pg": "^8.16.0"
   },
   "devDependencies": {

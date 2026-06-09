@@ -80,7 +80,15 @@ function renderRoute(routeName = getRouteFromHash()) {
     return;
   }
 
+  if (routeName === 'preview' && typeof canAccessPreview === 'function' && !canAccessPreview()) {
+    showAuthenticatedApp?.();
+    showToast?.('Complete and validate the contract before opening Preview & Sign.', 'warning');
+    navigateTo('wizard', { replace: true });
+    return;
+  }
+
   showAuthenticatedApp?.();
+  closeProfileMenu?.();
   document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
 

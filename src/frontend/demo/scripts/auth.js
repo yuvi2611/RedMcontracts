@@ -48,6 +48,7 @@ function syncUserChrome() {
   if (name) name.textContent = session.name;
   if (role) role.textContent = session.role;
   if (initials) initials.textContent = session.initials;
+  if (typeof syncProfileMenu === 'function') syncProfileMenu();
 }
 
 function showAuthenticatedApp() {
@@ -88,6 +89,8 @@ function signOut() {
     // Ignore storage failures in restricted browser modes.
   }
   clearSession();
+  setPreviewAccess?.(false);
+  closeProfileMenu?.();
   navigateTo?.('login', { replace: true });
 }
 
@@ -322,6 +325,7 @@ function initAuthShell() {
   bindPasswordReset();
   window.__pendingRoute = null;
   clearSession();
+  setPreviewAccess?.(false);
   try {
     sessionStorage.removeItem('contractiq.pendingRoute');
   } catch {

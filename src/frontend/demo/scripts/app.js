@@ -40,6 +40,7 @@ async function loadPages() {
 async function initApp() {
   await loadPages();
   initToastContainer();
+  initShellControls();
   bindContractForm();
   initAuthShell();
   initRouter();
@@ -49,6 +50,123 @@ document.addEventListener('DOMContentLoaded', initApp);
 
 function closeModal() {
   document.getElementById('welcomeModal')?.classList.add('hidden');
+}
+
+const SIDEBAR_STATE_KEY = 'contractiq.sidebarCollapsed';
+const PREVIEW_READY_KEY = 'contractiq.previewReady';
+
+function canAccessPreview() {
+  try {
+    return sessionStorage.getItem(PREVIEW_READY_KEY) === 'true';
+  } catch {
+    return false;
+  }
+}
+
+function setPreviewAccess(ready) {
+  try {
+    if (ready) {
+      sessionStorage.setItem(PREVIEW_READY_KEY, 'true');
+    } else {
+      sessionStorage.removeItem(PREVIEW_READY_KEY);
+    }
+  } catch {
+    // Ignore storage failures in restricted browser modes.
+  }
+}
+
+function initShellControls() {
+  initSidebarLabels();
+  let collapsed = false;
+  try {
+    collapsed = localStorage.getItem(SIDEBAR_STATE_KEY) === 'true';
+  } catch {
+    collapsed = false;
+  }
+  setSidebarCollapsed(collapsed);
+
+  document.addEventListener('click', event => {
+    const menu = document.getElementById('profileMenu');
+    const button = document.getElementById('profileMenuButton');
+    if (!menu || menu.classList.contains('hidden')) return;
+    if (menu.contains(event.target) || button?.contains(event.target)) return;
+    closeProfileMenu();
+  });
+
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape') closeProfileMenu();
+  });
+}
+
+function initSidebarLabels() {
+  document.querySelectorAll('.sidebar .nav-item').forEach(item => {
+    const label = item.textContent.replace(/\s+/g, ' ').trim();
+    if (!item.getAttribute('aria-label')) item.setAttribute('aria-label', label);
+    if (!item.title) item.title = label;
+  });
+}
+
+function setSidebarCollapsed(collapsed) {
+  const shell = document.getElementById('appShell');
+  const toggle = document.querySelector('.sidebar-toggle');
+  shell?.classList.toggle('sidebar-collapsed', collapsed);
+  toggle?.setAttribute('aria-expanded', String(!collapsed));
+  toggle?.setAttribute('aria-label', collapsed ? 'Expand sidebar' : 'Collapse sidebar');
+  try {
+    localStorage.setItem(SIDEBAR_STATE_KEY, String(collapsed));
+  } catch {
+    // Ignore storage failures in restricted browser modes.
+  }
+}
+
+function toggleSidebar() {
+  const shell = document.getElementById('appShell');
+  setSidebarCollapsed(!shell?.classList.contains('sidebar-collapsed'));
+}
+
+function syncProfileMenu() {
+  const session = typeof getSession === 'function' ? getSession() : null;
+  if (!session) return;
+  const set = (id, value) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = value;
+  };
+  const signedIn = session.signedInAt ? new Date(session.signedInAt) : new Date();
+  const memberSince = signedIn.toLocaleDateString('en-ZA', { month: 'short', year: 'numeric' });
+
+  set('profileMenuInitials', session.initials || 'SA');
+  set('profileMenuName', session.name || 'System Administrator');
+  set('profileMenuEmail', session.email || 'admin@redmps.com');
+  set('profileMenuRole', session.role || 'Administrator');
+  set('profileMemberSince', memberSince);
+  set('profileSessionState', 'Active');
+  set('profileAccessLevel', session.isSuperuser ? 'Full' : 'Standard');
+}
+
+function toggleProfileMenu() {
+  const menu = document.getElementById('profileMenu');
+  const button = document.getElementById('profileMenuButton');
+  if (!menu) return;
+  const opening = menu.classList.contains('hidden');
+  if (opening) syncProfileMenu();
+  menu.classList.toggle('hidden', !opening);
+  button?.setAttribute('aria-expanded', String(opening));
+}
+
+function closeProfileMenu() {
+  document.getElementById('profileMenu')?.classList.add('hidden');
+  document.getElementById('profileMenuButton')?.setAttribute('aria-expanded', 'false');
+}
+
+async function copyProfileEmail() {
+  const email = document.getElementById('profileMenuEmail')?.textContent.trim();
+  if (!email) return;
+  try {
+    await navigator.clipboard.writeText(email);
+    showToast('Profile email copied.', 'success');
+  } catch {
+    showToast(email, 'info');
+  }
 }
 
 /* ═══════════════════════════════════════════

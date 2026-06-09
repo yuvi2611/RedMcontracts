@@ -64,6 +64,24 @@
 
 .doc-p { font-size: 13.5px; line-height: 1.7; color: var(--coal-700); }
 
+.doc-list {
+  margin: 8px 0 0 28px;
+  color: var(--coal-700);
+  font-size: 13.5px;
+  line-height: 1.7;
+}
+
+.clause-indent { margin-left: 34px; }
+
+.signature-copy { margin-top: 34px; }
+
+.signature-role {
+  display: inline-block;
+  margin-left: 80px;
+  font-weight: 700;
+  color: var(--coal-900);
+}
+
 .doc-signatures {
   display: grid;
   grid-template-columns: 1fr 1fr;

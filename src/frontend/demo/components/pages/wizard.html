@@ -3,7 +3,7 @@
     <button class="btn-ghost" onclick="routeTo('dashboard')">Back</button>
     <div>
       <h1 class="page-title">Guided Contract Studio</h1>
-      <p class="page-subtitle">Confirm the intent, let ContractIQ prefill what it can, then resolve only the exceptions.</p>
+      <p class="page-subtitle">Capture the contract details, validate required fields, and generate the agreement from the approved template.</p>
     </div>
   </div>
 
@@ -11,27 +11,27 @@
     <aside class="wizard-sidebar">
       <div class="wizard-sidebar-title">Contract journey</div>
       <div class="step-list">
-        <div class="step-item active"><span>1</span><div><strong>Intent</strong><small id="journeyIntentLabel">Fixed-term agreement</small></div></div>
-        <div class="step-item active"><span>2</span><div><strong>Employee</strong><small>Profile matched</small></div></div>
-        <div class="step-item"><span>3</span><div><strong>Terms</strong><small>Needs confirmation</small></div></div>
-        <div class="step-item"><span>4</span><div><strong>Compliance</strong><small>Auto-checking</small></div></div>
-        <div class="step-item"><span>5</span><div><strong>Approval</strong><small>Route prepared</small></div></div>
+        <div class="step-item" data-step="intent"><span>1</span><div><strong>Intent</strong><small id="journeyIntentLabel">Select contract type</small></div></div>
+        <div class="step-item" data-step="employee"><span>2</span><div><strong>Employee</strong><small>Required details pending</small></div></div>
+        <div class="step-item" data-step="terms"><span>3</span><div><strong>Terms</strong><small>Employment terms pending</small></div></div>
+        <div class="step-item" data-step="compliance"><span>4</span><div><strong>Compliance</strong><small>Schedule details pending</small></div></div>
+        <div class="step-item" data-step="approval"><span>5</span><div><strong>Preview</strong><small>Ready after validation</small></div></div>
       </div>
 
       <div class="wizard-sidebar-title mt-20">Readiness checklist</div>
       <div class="field-checklist">
-        <div class="field-check-item" data-field="contractType"><span class="field-check-icon">o</span> Contract type</div>
-        <div class="field-check-item" data-field="name"><span class="field-check-icon">o</span> Name and surname</div>
-        <div class="field-check-item" data-field="idNumber"><span class="field-check-icon">o</span> ID number</div>
-        <div class="field-check-item" data-field="role"><span class="field-check-icon">o</span> Role</div>
-        <div class="field-check-item" data-field="salary"><span class="field-check-icon">o</span> Salary</div>
-        <div class="field-check-item" data-field="address"><span class="field-check-icon">o</span> Address</div>
-        <div class="field-check-item" data-field="fixedTermPeriod" data-contract-scope="fixed-term"><span class="field-check-icon">o</span> Fixed-term period</div>
-        <div class="field-check-item" data-field="startDate"><span class="field-check-icon">o</span> Commencement date</div>
-        <div class="field-check-item" data-field="endDate" data-contract-scope="fixed-term"><span class="field-check-icon">o</span> Termination date</div>
-        <div class="field-check-item" data-field="probationPeriod"><span class="field-check-icon">o</span> Probation period</div>
-        <div class="field-check-item" data-field="workHours"><span class="field-check-icon">o</span> Hours of work</div>
-        <div class="field-check-item" data-field="noticePeriod"><span class="field-check-icon">o</span> Notice period</div>
+        <div class="field-check-item" data-field="contractType"><span class="field-check-icon"></span> Contract type</div>
+        <div class="field-check-item" data-field="name"><span class="field-check-icon"></span> Name and surname</div>
+        <div class="field-check-item" data-field="idNumber"><span class="field-check-icon"></span> Identity document</div>
+        <div class="field-check-item" data-field="role"><span class="field-check-icon"></span> Role</div>
+        <div class="field-check-item" data-field="salary"><span class="field-check-icon"></span> Salary</div>
+        <div class="field-check-item" data-field="address"><span class="field-check-icon"></span> Address</div>
+        <div class="field-check-item" data-field="fixedTermPeriod" data-contract-scope="fixed-term"><span class="field-check-icon"></span> Fixed-term period</div>
+        <div class="field-check-item" data-field="startDate"><span class="field-check-icon"></span> Commencement date</div>
+        <div class="field-check-item" data-field="endDate" data-contract-scope="fixed-term"><span class="field-check-icon"></span> Termination date</div>
+        <div class="field-check-item" data-field="probationPeriod"><span class="field-check-icon"></span> Probation period</div>
+        <div class="field-check-item" data-field="workHours"><span class="field-check-icon"></span> Hours of work</div>
+        <div class="field-check-item" data-field="noticePeriod"><span class="field-check-icon"></span> Notice period</div>
       </div>
       <div class="wizard-progress-bar">
         <div class="wizard-progress-fill" id="formProgressFill" style="width:0%"></div>
@@ -46,9 +46,9 @@
       <div class="wizard-main-header">
         <div>
           <h2>Contract details</h2>
-          <p>Smart defaults are applied from policy, employee records, and template rules.</p>
+          <p>Complete each required field before generating the agreement preview.</p>
         </div>
-        <div class="autosave-indicator"><span class="autosave-dot"></span>Autosaved draft</div>
+        <div class="autosave-indicator"><span class="autosave-dot"></span><span id="draftStatus">Draft not saved</span></div>
       </div>
 
       <form id="contractForm" class="wizard-form" onsubmit="event.preventDefault(); generateContractPreview();">
@@ -64,12 +64,14 @@
           </div>
         </section>
 
-        <div class="form-section-title">Personal details</div>
-        <div class="form-grid">
+        <section class="form-panel">
+          <div class="form-section-title">Personal details</div>
+          <div class="form-grid">
           <div class="form-group">
             <label class="form-label" for="contractType">Document type <span class="required">*</span></label>
             <select class="form-select contract-field" id="contractType" required>
-              <option value="Fixed-Term Employment Agreement" selected>Fixed-Term Employment Agreement</option>
+              <option value="" selected disabled>Select document type</option>
+              <option value="Fixed-Term Employment Agreement">Fixed-Term Employment Agreement</option>
               <option value="Permanent Employment Contract">Permanent Employment Contract</option>
               <option value="Internship Agreement">Internship Agreement</option>
               <option value="Consultant Agreement">Consultant Agreement</option>
@@ -78,77 +80,120 @@
           </div>
           <div class="form-group">
             <label class="form-label" for="firstName">Name <span class="required">*</span></label>
-            <input class="form-input contract-field" id="firstName" type="text" value="Yuvaan" required>
+            <input class="form-input contract-field" id="firstName" type="text" placeholder="Employee first name" required>
+            <div class="field-error" id="firstNameError"></div>
           </div>
           <div class="form-group">
             <label class="form-label" for="lastName">Surname <span class="required">*</span></label>
-            <input class="form-input contract-field" id="lastName" type="text" value="Pather" required>
+            <input class="form-input contract-field" id="lastName" type="text" placeholder="Employee surname" required>
+            <div class="field-error" id="lastNameError"></div>
           </div>
           <div class="form-group">
-            <label class="form-label" for="idNumber">ID Number <span class="required">*</span></label>
-            <input class="form-input contract-field" id="idNumber" type="text" value="0311265539081" required>
+            <label class="form-label" for="idType">Identity document type <span class="required">*</span></label>
+            <select class="form-select contract-field" id="idType" required>
+              <option value="south-african-id" selected>South African ID</option>
+              <option value="passport">Passport</option>
+            </select>
+            <div class="field-error" id="idTypeError"></div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="idNumber" id="idNumberLabel">ID Number <span class="required">*</span></label>
+            <input class="form-input contract-field" id="idNumber" type="text" inputmode="numeric" placeholder="13-digit ID number" required>
+            <div class="field-error" id="idNumberError"></div>
           </div>
           <div class="form-group form-full">
             <label class="form-label" for="address">Address <span class="required">*</span></label>
-            <input class="form-input contract-field" id="address" type="text" value="Sandton, Johannesburg" required>
+            <input class="form-input contract-field" id="address" type="text" placeholder="Physical address" required>
+            <div class="field-error" id="addressError"></div>
           </div>
-        </div>
+          <div class="form-group">
+            <label class="form-label" for="phoneNumber">Phone number</label>
+            <input class="form-input contract-field" id="phoneNumber" type="tel" placeholder="Employee phone number">
+            <div class="field-error" id="phoneNumberError"></div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="emailAddress">Email address</label>
+            <input class="form-input contract-field" id="emailAddress" type="text" placeholder="Employee email address">
+            <div class="field-error" id="emailAddressError"></div>
+          </div>
+          </div>
+        </section>
 
-        <div class="form-section-title">Employment terms</div>
-        <div class="form-grid">
+        <section class="form-panel">
+          <div class="form-section-title">Employment terms</div>
+          <div class="form-grid">
           <div class="form-group">
             <label class="form-label" for="role">Role <span class="required">*</span></label>
-            <input class="form-input contract-field" id="role" type="text" value="Junior Platform Engineer" required>
+            <input class="form-input contract-field" id="role" type="text" placeholder="Position of employee" required>
+            <div class="field-error" id="roleError"></div>
           </div>
           <div class="form-group">
             <label class="form-label" for="salary">Monthly Salary (ZAR) <span class="required">*</span></label>
-            <input class="form-input contract-field" id="salary" type="number" min="0" value="22800" required>
+            <input class="form-input contract-field" id="salary" type="number" min="0" placeholder="0" required>
+            <div class="field-error" id="salaryError"></div>
           </div>
           <div class="form-group" data-contract-scope="fixed-term">
             <label class="form-label" for="fixedTermPeriod">Fixed-term period <span class="required">*</span></label>
-            <input class="form-input contract-field" id="fixedTermPeriod" type="text" value="1 (One) Year" required>
+            <input class="form-input contract-field" id="fixedTermPeriod" type="text" placeholder="e.g. 1 (One) Year" required>
+            <div class="field-error" id="fixedTermPeriodError"></div>
           </div>
           <div class="form-group">
             <label class="form-label" for="startDate">Commencement date <span class="required">*</span></label>
-            <input class="form-input contract-field" id="startDate" type="text" value="1 January 2026" required>
+            <input class="contract-field date-hidden-input" id="startDate" type="hidden" required>
+            <button class="date-picker-trigger" type="button" data-date-target="startDate" onclick="openDatePicker('startDate')">
+              <span class="date-picker-icon">Cal</span>
+              <span class="date-picker-text" id="startDateDisplay">Select commencement date</span>
+            </button>
+            <div class="field-error" id="startDateError"></div>
           </div>
           <div class="form-group" data-contract-scope="fixed-term">
             <label class="form-label" for="endDate">Termination date <span class="required">*</span></label>
-            <input class="form-input contract-field" id="endDate" type="text" value="31 December 2026" required>
+            <input class="contract-field date-hidden-input" id="endDate" type="hidden" required>
+            <button class="date-picker-trigger" type="button" data-date-target="endDate" onclick="openDatePicker('endDate')">
+              <span class="date-picker-icon">Cal</span>
+              <span class="date-picker-text" id="endDateDisplay">Select termination date</span>
+            </button>
+            <div class="field-error" id="endDateError"></div>
           </div>
           <div class="form-group">
             <label class="form-label" for="probationPeriod">Probation Period (months) <span class="required">*</span></label>
-            <input class="form-input contract-field" id="probationPeriod" type="number" min="0" max="12" value="3" required>
+            <input class="form-input contract-field" id="probationPeriod" type="number" min="0" max="12" placeholder="0" required>
+            <div class="field-error" id="probationPeriodError"></div>
           </div>
           <div class="form-group">
             <label class="form-label" for="workHours">Hours of work <span class="required">*</span></label>
-            <input class="form-input contract-field" id="workHours" type="text" value="08:00 - 17:00, Monday - Friday" required>
+            <input class="form-input contract-field" id="workHours" type="text" placeholder="e.g. 08:00 - 17:00, Monday - Friday" required>
+            <div class="field-error" id="workHoursError"></div>
           </div>
           <div class="form-group">
             <label class="form-label" for="noticePeriod">Notice Period <span class="required">*</span></label>
-            <input class="form-input contract-field" id="noticePeriod" type="text" value="30 (Thirty) Days" required>
+            <input class="form-input contract-field" id="noticePeriod" type="text" placeholder="e.g. 30 (Thirty) Days" required>
+            <div class="field-error" id="noticePeriodError"></div>
           </div>
-        </div>
+          </div>
+        </section>
 
-        <div class="form-section-title">Compliance schedule</div>
-        <div class="form-grid">
+        <section class="form-panel">
+          <div class="form-section-title">Compliance schedule</div>
+          <div class="form-grid">
           <div class="form-group">
             <label class="form-label" for="duties">Duties and responsibilities</label>
-            <input class="form-input contract-field" id="duties" type="text" value="As per job description">
+            <input class="form-input contract-field" id="duties" type="text" placeholder="As per job description">
           </div>
           <div class="form-group">
             <label class="form-label" for="arbitrationCity">Arbitration city</label>
-            <input class="form-input contract-field" id="arbitrationCity" type="text" value="Gauteng">
+            <input class="form-input contract-field" id="arbitrationCity" type="text" placeholder="City where arbitration is held">
           </div>
           <div class="form-group">
             <label class="form-label" for="restraintArea">Restraint area</label>
-            <input class="form-input contract-field" id="restraintArea" type="text" value="Gauteng">
+            <input class="form-input contract-field" id="restraintArea" type="text" placeholder="Geographical restraint area">
           </div>
           <div class="form-group">
             <label class="form-label" for="restraintPeriod">Restraint period</label>
-            <input class="form-input contract-field" id="restraintPeriod" type="text" value="12 (Twelve) Months">
+            <input class="form-input contract-field" id="restraintPeriod" type="text" placeholder="e.g. 12 (Twelve) Months">
           </div>
-        </div>
+          </div>
+        </section>
 
         <div class="automation-grid">
           <div class="automation-card">
@@ -172,8 +217,11 @@
       </form>
 
       <div class="wizard-footer">
-        <button type="button" class="btn-ghost" onclick="routeTo('dashboard')">Cancel</button>
-        <button type="button" class="btn-primary" onclick="generateContractPreview()">Generate Contract Preview</button>
+        <button type="button" class="btn-ghost" onclick="clearContractDraft()">Clear Form</button>
+        <div class="wizard-footer-actions">
+          <button type="button" class="btn-secondary" onclick="saveContractDraft()">Save Draft</button>
+          <button type="button" class="btn-primary" id="generatePreviewButton" onclick="generateContractPreview()">Generate Contract Preview</button>
+        </div>
       </div>
     </div>
   </div>

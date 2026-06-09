@@ -187,6 +187,9 @@
           <div class="logo-text-main">RedMPS</div>
           <div class="logo-text-sub">ContractIQ</div>
         </div>
+        <button class="sidebar-toggle" type="button" onclick="toggleSidebar()" aria-label="Collapse sidebar" aria-expanded="true">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
+        </button>
       </div>
 
       <div class="sidebar-section">
@@ -203,10 +206,6 @@
         <button class="nav-item" type="button" onclick="routeTo('wizard')" id="nav-wizard">
           <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
           New Contract
-        </button>
-        <button class="nav-item" type="button" onclick="routeTo('preview')" id="nav-preview">
-          <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-          Preview &amp; Sign
         </button>
       </div>
 
@@ -276,11 +275,68 @@
           <div class="notif-dot"></div>
           <span class="tooltip-text">Notifications</span>
         </button>
-        <button class="icon-btn tooltip" aria-label="My profile">
+        <button class="icon-btn tooltip" aria-label="My profile" id="profileMenuButton" onclick="toggleProfileMenu()" aria-expanded="false" aria-controls="profileMenu">
           <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/></svg>
           <span class="tooltip-text">My Profile</span>
         </button>
         <button class="btn-ghost" type="button" onclick="signOut()">Sign Out</button>
+        <section class="profile-menu hidden" id="profileMenu" aria-label="User profile">
+          <div class="profile-hero">
+            <div class="profile-avatar-lg" id="profileMenuInitials">SA</div>
+            <div class="profile-hero-copy">
+              <h3 id="profileMenuName">System Administrator</h3>
+              <p id="profileMenuEmail">admin@redmps.com</p>
+              <span id="profileMenuRole">Administrator</span>
+            </div>
+            <button class="profile-icon-action" type="button" onclick="copyProfileEmail()" title="Copy email" aria-label="Copy profile email">
+              <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+          </div>
+
+          <div class="profile-meta-strip">
+            <div><span>Member since</span><strong id="profileMemberSince">Jun 2026</strong></div>
+            <div><span>Session</span><strong id="profileSessionState">Active</strong></div>
+            <div><span>Access</span><strong id="profileAccessLevel">Full</strong></div>
+          </div>
+
+          <div class="profile-section">
+            <div class="profile-section-head">
+              <strong>Writes at</strong>
+              <button type="button" onclick="routeTo('templates')">Manage templates</button>
+            </div>
+            <div class="profile-blog-row">
+              <div class="profile-blog-logo">RM</div>
+              <div>
+                <strong>RedMPS ContractIQ</strong>
+                <span>Internal HR automation workspace</span>
+              </div>
+              <button type="button" onclick="routeTo('contracts')">Open queue</button>
+            </div>
+          </div>
+
+          <div class="profile-card-grid">
+            <div class="profile-mini-card">
+              <strong>About</strong>
+              <p>Creates and reviews compliant HR contracts, manages approval flow, and keeps template governance clean.</p>
+            </div>
+            <div class="profile-mini-card">
+              <strong>Permissions</strong>
+              <div class="profile-chip-row">
+                <span>Contracts</span><span>Approvals</span><span>Users</span>
+              </div>
+            </div>
+            <div class="profile-mini-card">
+              <strong>Availability</strong>
+              <p>Available for contract review and user administration.</p>
+            </div>
+          </div>
+
+          <div class="profile-actions">
+            <button type="button" onclick="routeTo('settings')">Account settings</button>
+            <button type="button" onclick="routeTo('create-user')">Create user</button>
+            <button type="button" class="danger" onclick="signOut()">Sign out</button>
+          </div>
+        </section>
       </header>
       <div id="pages-container"></div>
     </main>

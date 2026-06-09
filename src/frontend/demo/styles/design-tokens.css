@@ -39,6 +39,7 @@
 
   /* LAYOUT */
   --sidebar-w: 260px;
+  --sidebar-collapsed-w: 76px;
   --header-h: 64px;
 
   /* RADIUS */
