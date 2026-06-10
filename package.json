@@ -11,7 +11,8 @@
     "test:routes": "node src/frontend/demo/tests/route-smoke.test.js"
   },
   "dependencies": {
-    "pg": "^8.16.0"
+    "pg": "^8.16.0",
+    "resend": "^6.12.4"
   },
   "engines": {
     "node": ">=18.0.0"

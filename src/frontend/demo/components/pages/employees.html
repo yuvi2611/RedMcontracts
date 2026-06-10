@@ -1,4 +1,47 @@
 <div class="page-padding animate-in">
-  <h1 class="page-title">Employees</h1>
-  <p class="page-subtitle">Employee details are captured when creating a contract.</p>
+  <div class="page-header page-header-balanced">
+    <div>
+      <h1 class="page-title">Employees</h1>
+      <p class="page-subtitle">Reusable employee records for contract generation, validation, and approval routing.</p>
+    </div>
+    <div class="page-actions">
+      <button class="btn-secondary" type="button" onclick="showToast('Employee import prepared.','info')">Import CSV</button>
+      <button class="btn-primary" type="button" onclick="routeTo('wizard')">Create Contract</button>
+    </div>
+  </div>
+
+  <section class="experience-strip animate-in animate-delay-1">
+    <div>
+      <span class="experience-eyebrow">Master Data Health</span>
+      <strong id="emp-stat-health">—</strong>
+      <p>Most employee profiles are ready to prefill contract schedules.</p>
+    </div>
+    <div>
+      <span>Missing ID / passport</span>
+      <strong id="emp-stat-missing-id">—</strong>
+    </div>
+    <div>
+      <span>Missing phone</span>
+      <strong id="emp-stat-missing-phone">—</strong>
+    </div>
+    <div>
+      <span>Ready for reuse</span>
+      <strong id="emp-stat-ready">—</strong>
+    </div>
+  </section>
+
+  <div class="list-toolbar animate-in animate-delay-2">
+    <div class="search-wrap">
+      <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input class="search-input" type="text" placeholder="Search employee, role, or department" oninput="filterEmployeeCards(this.value)">
+    </div>
+    <div class="filter-tabs">
+      <button class="filter-tab active" type="button" onclick="setEmployeeFilter(this,'all')">All <span class="tab-count">—</span></button>
+      <button class="filter-tab" type="button" onclick="setEmployeeFilter(this,'ready')">Active <span class="tab-count">—</span></button>
+      <button class="filter-tab" type="button" onclick="setEmployeeFilter(this,'needs-data')">Inactive <span class="tab-count">—</span></button>
+    </div>
+  </div>
+
+  <section class="employee-directory animate-in animate-delay-3" id="employeeDirectory">
+  </section>
 </div>

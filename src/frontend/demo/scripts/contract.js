@@ -27,7 +27,7 @@ const CONTRACT_SCHEMAS = {
     employmentTitle: '2. Permanent Employment',
     employmentCopy: 'The Employee is appointed on an indefinite basis from the commencement date, subject to the terms, policies, probation rules, and notice provisions recorded in this agreement.',
     required: ['contractType', 'name', 'idNumber', 'role', 'salary', 'address', 'startDate', 'probationPeriod', 'workHours', 'noticePeriod'],
-    visibleScopes: []
+    visibleScopes: ['permanent']
   }
 };
 
@@ -163,6 +163,11 @@ function isRequiredPresent(field, data) {
   return !!data[field];
 }
 
+function isActiveContractField(field, schema = getSchema()) {
+  if (['fixedTermPeriod', 'endDate'].includes(field)) return schema.visibleScopes.includes('fixed-term');
+  return true;
+}
+
 function isReasonableText(value, minLength = 2) {
   return (value || '').trim().length >= minLength;
 }
@@ -279,16 +284,16 @@ function validateContractData(data = getContractData()) {
   if (data.salary > 1000000) {
     errors.salary = 'Monthly salary looks too high. Please confirm the amount.';
   }
-  if (data.fixedTermPeriod && !isReasonableText(data.fixedTermPeriod, 3)) {
+  if (isActiveContractField('fixedTermPeriod', schema) && data.fixedTermPeriod && !isReasonableText(data.fixedTermPeriod, 3)) {
     errors.fixedTermPeriod = 'Fixed-term period must be descriptive, e.g. 1 (One) Year.';
   }
   if (data.startDate && !parseIsoDate(data.startDate)) {
     errors.startDate = 'Select a valid commencement date.';
   }
-  if (data.endDate && !parseIsoDate(data.endDate)) {
+  if (isActiveContractField('endDate', schema) && data.endDate && !parseIsoDate(data.endDate)) {
     errors.endDate = 'Select a valid termination date.';
   }
-  if (data.startDate && data.endDate && dateCompare(data.endDate, data.startDate) < 0) {
+  if (isActiveContractField('endDate', schema) && data.startDate && data.endDate && dateCompare(data.endDate, data.startDate) < 0) {
     errors.endDate = 'Termination date cannot be before commencement date.';
   }
   if (data.probationPeriod !== '') {
@@ -475,6 +480,11 @@ function updateContractTypeUI() {
       }
       control.disabled = hidden;
       control.required = hidden ? false : control.dataset.originalRequired === 'true';
+      if (hidden && control.value) {
+        control.value = '';
+        control.classList.remove('is-invalid');
+        control.setAttribute('aria-invalid', 'false');
+      }
     });
   });
 
@@ -535,7 +545,12 @@ function updateFormProgress() {
   const score = document.getElementById('readinessScore');
   if (score) score.textContent = pct + '%';
   updateJourneySteps(data);
-  updateGenerateButton(pct === 100 && Object.keys(errors).length === 0);
+  updateGenerateButton(requiredFieldsComplete(data));
+}
+
+function requiredFieldsComplete(data = getContractData()) {
+  const schema = getSchema();
+  return schema.required.filter(field => isActiveContractField(field, schema)).every(field => isFieldComplete(field, data));
 }
 
 function setStepState(step, complete, active, label) {
@@ -556,9 +571,10 @@ function updateJourneySteps(data) {
   const employeeDone = ['name', 'idNumber', 'address'].every(field => isFieldComplete(field, data));
   const termsDone = schema.required
     .filter(field => ['role', 'salary', 'fixedTermPeriod', 'startDate', 'endDate', 'probationPeriod', 'workHours', 'noticePeriod'].includes(field))
+    .filter(field => isActiveContractField(field, schema))
     .every(field => isFieldComplete(field, data));
   const complianceDone = !!(data.duties && data.arbitrationCity && data.restraintArea && data.restraintPeriod);
-  const readyDone = schema.required.every(field => isFieldComplete(field, data));
+  const readyDone = requiredFieldsComplete(data);
 
   setStepState('intent', intentDone, !intentDone, intentDone ? schema.intent : 'Select contract type');
   setStepState('employee', employeeDone, intentDone && !employeeDone, employeeDone ? 'Required details complete' : 'Required details pending');
@@ -572,6 +588,9 @@ function updateGenerateButton(enabled) {
   if (!button) return;
   button.disabled = !enabled;
   button.classList.toggle('is-disabled', !enabled);
+  button.title = enabled
+    ? 'Generate contract preview'
+    : 'Complete all required fields to generate a contract preview';
 }
 
 function validateContractForm() {
@@ -602,6 +621,11 @@ function validateContractForm() {
   if (messages.length) {
     if (msg) msg.style.display = 'flex';
     if (text) text.textContent = 'Please fix: ' + messages.join(', ') + '.';
+    const firstError = Object.keys(errors)[0];
+    const firstInput = document.getElementById(firstError) || document.querySelector('[data-date-target="' + firstError + '"]');
+    firstInput?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    firstInput?.focus?.({ preventScroll: true });
+    showToast?.('Please fix the highlighted contract fields before preview.', 'warning');
     return false;
   }
   if (msg) msg.style.display = 'none';
@@ -649,9 +673,9 @@ function generateContractPreview() {
   set('doc-email-address', data.emailAddress || ' ');
   set('doc-role', data.role);
   set('doc-salary-monthly', formatCurrency(data.salary));
-  set('doc-fixed-term', data.fixedTermPeriod);
+  set('doc-fixed-term', schema.visibleScopes.includes('fixed-term') ? data.fixedTermPeriod : '');
   set('doc-start-date', formatDisplayDate(data.startDate));
-  set('doc-end-date', formatDisplayDate(data.endDate));
+  set('doc-end-date', schema.visibleScopes.includes('fixed-term') ? formatDisplayDate(data.endDate) : '');
   set('doc-probation', formatProbation(data.probationPeriod));
   set('doc-work-hours', data.workHours);
   set('doc-notice', data.noticePeriod);
@@ -662,9 +686,11 @@ function generateContractPreview() {
   set('doc-sig-employee-name', fullName);
   set('preview-subtitle', fullName + ' - ' + schema.label + ' - REF: ' + ref);
   updatePreviewForSchema(schema);
+  storeGeneratedContract?.({ ref, fullName, data, schemaKey: getContractKey(), schemaLabel: schema.label });
 
   setPreviewAccess?.(true);
   routeTo('preview');
+  resetContractFormAfterGeneration();
 }
 
 function getDraftPayload() {
@@ -720,6 +746,23 @@ function clearContractDraft() {
   }
   setPreviewAccess?.(false);
   setDraftStatus('Draft cleared');
+  updateDateDisplays();
+  updateContractTypeUI();
+  updateFormProgress();
+}
+
+function resetContractFormAfterGeneration() {
+  document.querySelectorAll('.contract-field').forEach(input => {
+    input.value = input.id === 'idType' ? 'south-african-id' : '';
+    input.classList.remove('is-invalid');
+    input.setAttribute('aria-invalid', 'false');
+  });
+  try {
+    localStorage.removeItem(CONTRACT_DRAFT_KEY);
+  } catch {
+    // Storage can be unavailable in hardened browser modes.
+  }
+  setDraftStatus('Form cleared after generation');
   updateDateDisplays();
   updateContractTypeUI();
   updateFormProgress();

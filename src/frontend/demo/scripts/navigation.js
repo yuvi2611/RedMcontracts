@@ -117,13 +117,18 @@ function renderRoute(routeName = getRouteFromHash()) {
 
   window.scrollTo(0, 0);
 
-  if (route.page === 'wizard' && typeof bindContractForm === 'function') {
-    bindContractForm();
-  }
+  if (route.page === 'wizard'       && typeof bindContractForm === 'function') bindContractForm();
+  if (route.page === 'create-user'  && typeof initCreateUser   === 'function') initCreateUser();
+  if (route.page === 'approvals'    && typeof initApprovals    === 'function') initApprovals();
 
-  if (route.page === 'create-user' && typeof initCreateUser === 'function') {
-    initCreateUser();
-  }
+  // Live API page inits
+  if (route.page === 'dashboard'  && typeof initDashboard  === 'function') initDashboard();
+  if (route.page === 'employees'  && typeof initEmployees  === 'function') initEmployees();
+  if (route.page === 'contracts'  && typeof initContracts  === 'function') initContracts();
+  if (route.page === 'approvals'  && typeof initApprovalsFromApi === 'function') initApprovalsFromApi();
+  if (route.page === 'analytics'  && typeof initAnalytics  === 'function') initAnalytics();
+  if (route.page === 'audit'      && typeof initAuditLog   === 'function') initAuditLog();
+  if (route.page === 'templates'  && typeof initTemplates  === 'function') initTemplates();
 }
 
 function initRouter() {

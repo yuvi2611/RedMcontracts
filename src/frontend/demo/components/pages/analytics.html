@@ -1,4 +1,59 @@
 <div class="page-padding animate-in">
-  <h1 class="page-title">Analytics</h1>
-  <p class="page-subtitle">Contract metrics and reporting.</p>
+  <div class="page-header page-header-balanced">
+    <div>
+      <h1 class="page-title">Analytics</h1>
+      <p class="page-subtitle">Contract generation speed, approval pressure, compliance signals, and template usage.</p>
+    </div>
+    <div class="page-actions">
+      <button class="btn-secondary" type="button" onclick="showToast('Analytics snapshot exported.','success')">Export</button>
+      <button class="btn-primary" type="button" onclick="routeTo('approvals')">Clear Bottlenecks</button>
+    </div>
+  </div>
+
+  <section class="analytics-command-strip animate-in animate-delay-1">
+    <div>
+      <span>Avg Approval Time</span>
+      <strong id="analytics-sla-hours">—</strong>
+      <p>Average hours from submission to approval decision.</p>
+    </div>
+    <div>
+      <span>Total Approved</span>
+      <strong id="analytics-approved-total">—</strong>
+      <p>Contracts approved through the full workflow.</p>
+    </div>
+    <div>
+      <span>Total Contracts</span>
+      <strong id="analytics-total-contracts">—</strong>
+      <p>All contracts in the system across all statuses.</p>
+    </div>
+  </section>
+
+  <div class="analytics-grid animate-in animate-delay-2">
+    <section class="analytics-panel">
+      <div class="card-header">
+        <div class="card-title">Generation Volume</div>
+        <button class="card-action" type="button" onclick="showToast('Showing last 6 months.','info')">6 months</button>
+      </div>
+      <div class="bar-chart" aria-label="Monthly contract volume">
+      </div>
+    </section>
+
+    <section class="analytics-panel">
+      <div class="card-header">
+        <div class="card-title">Approval Bottlenecks</div>
+        <button class="card-action" type="button" onclick="routeTo('approvals')">Open queue</button>
+      </div>
+      <div class="insight-list">
+      </div>
+    </section>
+  </div>
+
+  <section class="analytics-panel animate-in animate-delay-3">
+    <div class="card-header">
+      <div class="card-title">Template Performance</div>
+      <button class="card-action" type="button" onclick="routeTo('templates')">Manage templates</button>
+    </div>
+    <div class="template-performance analytics-type-list">
+    </div>
+  </section>
 </div>

@@ -96,6 +96,14 @@ function signOut() {
   navigateTo?.('login', { replace: true });
 }
 
+function fillDemoLogin() {
+  const email = document.getElementById('loginEmail');
+  const password = document.getElementById('loginPassword');
+  if (email) email.value = 'admin@redmps.com';
+  if (password) password.value = 'ChangeMe!2026';
+  showToast?.('Demo administrator credentials filled.', 'success');
+}
+
 function bindLogin() {
   const form = document.getElementById('loginForm');
   if (!form) return;

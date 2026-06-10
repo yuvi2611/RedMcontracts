@@ -2,32 +2,35 @@
   <div class="page-header">
     <div>
       <h1 class="page-title">Settings</h1>
-      <p class="page-subtitle">Configure security, document generation, and approval policies.</p>
+      <p class="page-subtitle">Configure how ContractIQ works for your team.</p>
     </div>
-    <button class="btn-primary" onclick="showToast('Settings saved successfully.','success')" type="button">Save Changes</button>
   </div>
 
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start;" class="animate-in animate-delay-1">
+  <div class="settings-layout animate-in animate-delay-1">
 
     <!-- ── LEFT COLUMN ── -->
-    <div style="display:flex;flex-direction:column;gap:20px;">
+    <div class="settings-col">
 
-      <section class="card">
-        <div class="card-header">
-          <div class="card-title" style="display:flex;align-items:center;gap:7px;">
-            <svg width="14" height="14" fill="none" stroke="var(--red-500)" stroke-width="1.8" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-            Authentication Policy
+      <!-- Team Access -->
+      <section class="settings-card">
+        <div class="settings-card-header">
+          <div class="settings-card-icon red">
+            <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          </div>
+          <div>
+            <div class="settings-card-title">Team Access</div>
+            <div class="settings-card-sub">Control who can log in and how</div>
           </div>
         </div>
-        <div class="card-body">
+        <div class="settings-card-body">
 
           <div class="setting-row">
             <div class="setting-info">
-              <div class="setting-label">Manual user creation only</div>
-              <div class="setting-desc">Only superusers can create new accounts. Public registration is disabled.</div>
+              <div class="setting-label">Admin-only account creation</div>
+              <div class="setting-desc">New user accounts can only be created by an administrator. Team members cannot sign up on their own.</div>
             </div>
             <label class="toggle-switch">
-              <input type="checkbox" checked onchange="showToast('Authentication policy updated.','success')">
+              <input type="checkbox" checked onchange="showToast('Account creation policy saved.','success')">
               <span class="toggle-track"><span class="toggle-thumb"></span></span>
             </label>
           </div>
@@ -36,23 +39,10 @@
 
           <div class="setting-row">
             <div class="setting-info">
-              <div class="setting-label">JWT Token Authentication</div>
-              <div class="setting-desc">Token-based API authentication for backend integration.</div>
+              <div class="setting-label">Auto sign-out after inactivity</div>
+              <div class="setting-desc">Automatically log out team members who haven't been active for a while.</div>
             </div>
-            <label class="toggle-switch">
-              <input type="checkbox" onchange="showToast('JWT authentication toggled.','info')">
-              <span class="toggle-track"><span class="toggle-thumb"></span></span>
-            </label>
-          </div>
-
-          <div class="setting-divider"></div>
-
-          <div class="setting-row">
-            <div class="setting-info">
-              <div class="setting-label">Session timeout</div>
-              <div class="setting-desc">Automatically sign out inactive users.</div>
-            </div>
-            <select class="setting-select" onchange="showToast('Session timeout updated.','success')">
+            <select class="setting-select" onchange="showToast('Sign-out timer saved.','success')">
               <option>8 hours</option>
               <option selected>24 hours</option>
               <option>48 hours</option>
@@ -64,31 +54,37 @@
 
           <div class="setting-row" style="padding-bottom:4px;">
             <div class="setting-info">
-              <div class="setting-label">Manage Users</div>
-              <div class="setting-desc">Provision a new account for an HR team member.</div>
+              <div class="setting-label">Add a team member</div>
+              <div class="setting-desc">Create a login for a new HR team member or manager.</div>
             </div>
-            <button class="btn-secondary" style="font-size:12px;padding:6px 14px;flex-shrink:0;" onclick="routeTo('create-user')">Create User</button>
+            <button class="btn-primary" style="font-size:12.5px;padding:7px 16px;flex-shrink:0;" onclick="routeTo('create-user')">
+              + Create User
+            </button>
           </div>
 
         </div>
       </section>
 
-      <section class="card">
-        <div class="card-header">
-          <div class="card-title" style="display:flex;align-items:center;gap:7px;">
-            <svg width="14" height="14" fill="none" stroke="var(--red-500)" stroke-width="1.8" viewBox="0 0 24 24"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-            Approval Workflow
+      <!-- Approval Workflow -->
+      <section class="settings-card">
+        <div class="settings-card-header">
+          <div class="settings-card-icon red">
+            <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+          </div>
+          <div>
+            <div class="settings-card-title">Approval Workflow</div>
+            <div class="settings-card-sub">Set how contracts are reviewed before signing</div>
           </div>
         </div>
-        <div class="card-body">
+        <div class="settings-card-body">
 
           <div class="setting-row">
             <div class="setting-info">
               <div class="setting-label">Require director approval</div>
-              <div class="setting-desc">All contracts must pass through a director approval step before signing.</div>
+              <div class="setting-desc">Every contract must be reviewed and approved by a director before it can be signed.</div>
             </div>
             <label class="toggle-switch">
-              <input type="checkbox" checked onchange="showToast('Director approval requirement updated.','success')">
+              <input type="checkbox" checked onchange="showToast('Director approval setting saved.','success')">
               <span class="toggle-track"><span class="toggle-thumb"></span></span>
             </label>
           </div>
@@ -97,11 +93,11 @@
 
           <div class="setting-row">
             <div class="setting-info">
-              <div class="setting-label">Auto-remind reviewers</div>
-              <div class="setting-desc">Send a reminder if a decision is not made within 48 hours.</div>
+              <div class="setting-label">Send reminders to reviewers</div>
+              <div class="setting-desc">If a reviewer hasn't acted on a contract within 48 hours, send them an automatic reminder email.</div>
             </div>
             <label class="toggle-switch">
-              <input type="checkbox" checked onchange="showToast('Auto-reminder updated.','success')">
+              <input type="checkbox" checked onchange="showToast('Reminder setting saved.','success')">
               <span class="toggle-track"><span class="toggle-thumb"></span></span>
             </label>
           </div>
@@ -111,9 +107,9 @@
           <div class="setting-row">
             <div class="setting-info">
               <div class="setting-label">Default approval route</div>
-              <div class="setting-desc">Standard route applied to all new contracts.</div>
+              <div class="setting-desc">The review chain applied to all new contracts.</div>
             </div>
-            <select class="setting-select" onchange="showToast('Default approval route updated.','success')">
+            <select class="setting-select" onchange="showToast('Approval route saved.','success')">
               <option selected>HR Manager → Director → Signature</option>
               <option>HR Manager → Signature</option>
               <option>Director → Signature</option>
@@ -123,22 +119,26 @@
         </div>
       </section>
 
-      <section class="card">
-        <div class="card-header">
-          <div class="card-title" style="display:flex;align-items:center;gap:7px;">
-            <svg width="14" height="14" fill="none" stroke="var(--red-500)" stroke-width="1.8" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>
-            Document Generation
+      <!-- Document Settings -->
+      <section class="settings-card">
+        <div class="settings-card-header">
+          <div class="settings-card-icon coal">
+            <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>
+          </div>
+          <div>
+            <div class="settings-card-title">Documents</div>
+            <div class="settings-card-sub">Control how contracts are generated and exported</div>
           </div>
         </div>
-        <div class="card-body">
+        <div class="settings-card-body">
 
           <div class="setting-row">
             <div class="setting-info">
-              <div class="setting-label">Auto-generate reference numbers</div>
-              <div class="setting-desc">Assign RMP-YYYY-### references automatically on contract creation.</div>
+              <div class="setting-label">Auto-assign reference numbers</div>
+              <div class="setting-desc">Automatically give each new contract a unique reference number (e.g. RMP-2025-001).</div>
             </div>
             <label class="toggle-switch">
-              <input type="checkbox" checked onchange="showToast('Reference number setting updated.','success')">
+              <input type="checkbox" checked onchange="showToast('Reference number setting saved.','success')">
               <span class="toggle-track"><span class="toggle-thumb"></span></span>
             </label>
           </div>
@@ -147,11 +147,11 @@
 
           <div class="setting-row">
             <div class="setting-info">
-              <div class="setting-label">Include POPIA notice in all documents</div>
-              <div class="setting-desc">Append the standard POPIA data-processing notice to every contract.</div>
+              <div class="setting-label">Include POPIA privacy notice</div>
+              <div class="setting-desc">Automatically add the required POPIA data protection notice to every contract.</div>
             </div>
             <label class="toggle-switch">
-              <input type="checkbox" checked onchange="showToast('POPIA notice setting updated.','success')">
+              <input type="checkbox" checked onchange="showToast('POPIA notice setting saved.','success')">
               <span class="toggle-track"><span class="toggle-thumb"></span></span>
             </label>
           </div>
@@ -160,13 +160,13 @@
 
           <div class="setting-row">
             <div class="setting-info">
-              <div class="setting-label">Default export format</div>
-              <div class="setting-desc">Preferred format when downloading completed contracts.</div>
+              <div class="setting-label">Download format</div>
+              <div class="setting-desc">The file format used when downloading completed contracts.</div>
             </div>
-            <select class="setting-select" onchange="showToast('Default export format updated.','success')">
+            <select class="setting-select" onchange="showToast('Download format saved.','success')">
               <option selected>PDF</option>
-              <option>DOCX</option>
-              <option>Both PDF + DOCX</option>
+              <option>Word (.docx)</option>
+              <option>Both PDF + Word</option>
             </select>
           </div>
 
@@ -176,72 +176,134 @@
     </div>
 
     <!-- ── RIGHT COLUMN ── -->
-    <div style="display:flex;flex-direction:column;gap:20px;">
+    <div class="settings-col">
 
-      <section class="card">
-        <div class="card-header">
-          <div class="card-title" style="display:flex;align-items:center;gap:7px;">
-            <svg width="14" height="14" fill="none" stroke="var(--red-500)" stroke-width="1.8" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
-            Database Connection
+      <!-- Notifications -->
+      <section class="settings-card">
+        <div class="settings-card-header">
+          <div class="settings-card-icon red">
+            <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          </div>
+          <div>
+            <div class="settings-card-title">Email Notifications</div>
+            <div class="settings-card-sub">Choose what emails ContractIQ sends automatically</div>
           </div>
         </div>
-        <div class="card-body">
+        <div class="settings-card-body">
 
-          <div style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:rgba(16,185,129,.06);border:1px solid rgba(16,185,129,.2);border-radius:8px;margin-bottom:16px;">
-            <span style="width:8px;height:8px;border-radius:50%;background:var(--success);flex-shrink:0;animation:pulse-dot 2s infinite;"></span>
-            <span style="font-size:13px;font-weight:600;color:#059669;flex:1;">PostgreSQL connected</span>
-            <span style="font-size:10px;font-weight:800;padding:2px 7px;border-radius:5px;background:rgba(16,185,129,.15);color:#059669;letter-spacing:.4px;">Live</span>
-          </div>
-
-          <div style="margin-bottom:12px;">
-            <label style="display:block;font-size:11px;font-weight:700;color:var(--coal-400);text-transform:uppercase;letter-spacing:.6px;margin-bottom:5px;">Database name</label>
-            <input class="setting-input" type="text" value="contractiq_dev" readonly>
-          </div>
-          <div style="margin-bottom:12px;">
-            <label style="display:block;font-size:11px;font-weight:700;color:var(--coal-400);text-transform:uppercase;letter-spacing:.6px;margin-bottom:5px;">pgAdmin port</label>
-            <input class="setting-input" type="text" value="5050" readonly>
-          </div>
-          <div style="margin-bottom:16px;">
-            <label style="display:block;font-size:11px;font-weight:700;color:var(--coal-400);text-transform:uppercase;letter-spacing:.6px;margin-bottom:5px;">Role-based access</label>
-            <input class="setting-input" type="text" value="RBAC — superuser, hr_manager, director" readonly>
+          <div class="setting-row">
+            <div class="setting-info">
+              <div class="setting-label">Contract sent for approval</div>
+              <div class="setting-desc">Email the reviewer when a contract is ready for their decision.</div>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" checked onchange="showToast('Notification preference saved.','success')">
+              <span class="toggle-track"><span class="toggle-thumb"></span></span>
+            </label>
           </div>
 
-          <button class="btn-secondary" style="font-size:12px;padding:6px 14px;" onclick="showToast('Opening pgAdmin at localhost:5050…','info')">Open pgAdmin</button>
+          <div class="setting-divider"></div>
+
+          <div class="setting-row">
+            <div class="setting-info">
+              <div class="setting-label">Contract approved or rejected</div>
+              <div class="setting-desc">Notify the HR officer when a director approves or rejects their contract.</div>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" checked onchange="showToast('Notification preference saved.','success')">
+              <span class="toggle-track"><span class="toggle-thumb"></span></span>
+            </label>
+          </div>
+
+          <div class="setting-divider"></div>
+
+          <div class="setting-row">
+            <div class="setting-info">
+              <div class="setting-label">Contract ready to sign</div>
+              <div class="setting-desc">Notify the employee when their contract is ready for signature.</div>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" checked onchange="showToast('Notification preference saved.','success')">
+              <span class="toggle-track"><span class="toggle-thumb"></span></span>
+            </label>
+          </div>
+
+          <div class="setting-divider"></div>
+
+          <div class="setting-row">
+            <div class="setting-info">
+              <div class="setting-label">New user account created</div>
+              <div class="setting-desc">Send the new team member a welcome email with their login details.</div>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" checked onchange="showToast('Notification preference saved.','success')">
+              <span class="toggle-track"><span class="toggle-thumb"></span></span>
+            </label>
+          </div>
 
         </div>
       </section>
 
-      <section class="card">
-        <div class="card-header">
-          <div class="card-title" style="display:flex;align-items:center;gap:7px;">
-            <svg width="14" height="14" fill="none" stroke="var(--coal-400)" stroke-width="1.8" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-            System Information
+      <!-- System Status -->
+      <section class="settings-card">
+        <div class="settings-card-header">
+          <div class="settings-card-icon green">
+            <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          </div>
+          <div>
+            <div class="settings-card-title">System Status</div>
+            <div class="settings-card-sub">Everything is running normally</div>
           </div>
         </div>
-        <div class="card-body">
-          <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--coal-50);font-size:13px;"><span style="color:var(--coal-400)">Version</span><strong style="color:var(--coal-800)">ContractIQ v1.0.0-demo</strong></div>
-          <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--coal-50);font-size:13px;"><span style="color:var(--coal-400)">Environment</span><strong style="color:var(--coal-800)">Development</strong></div>
-          <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--coal-50);font-size:13px;"><span style="color:var(--coal-400)">Compliance</span><strong style="color:var(--coal-800)">BCEA · POPIA · LRA</strong></div>
-          <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;font-size:13px;"><span style="color:var(--coal-400)">Last migration</span><code style="font-size:11.5px;color:var(--coal-700);background:var(--coal-50);padding:2px 7px;border-radius:4px;font-family:'Courier New',monospace;">002_auth_manual_users</code></div>
+        <div class="settings-card-body">
+
+          <div class="settings-status-row">
+            <span class="settings-status-dot online"></span>
+            <span class="settings-status-label">Database connected</span>
+            <span class="settings-status-badge green">Live</span>
+          </div>
+          <div class="settings-status-row">
+            <span class="settings-status-dot online"></span>
+            <span class="settings-status-label">Email notifications</span>
+            <span class="settings-status-badge green">Active</span>
+          </div>
+          <div class="settings-status-row">
+            <span class="settings-status-dot online"></span>
+            <span class="settings-status-label">Audit logging</span>
+            <span class="settings-status-badge green">On</span>
+          </div>
+
+          <div class="setting-divider" style="margin:16px 0 14px;"></div>
+
+          <div class="settings-info-grid">
+            <span>Version</span><strong>ContractIQ v1.0</strong>
+            <span>Compliance</span><strong>BCEA · POPIA · LRA</strong>
+            <span>Environment</span><strong>Production</strong>
+          </div>
+
         </div>
       </section>
 
-      <section class="card">
-        <div class="card-header">
-          <div class="card-title" style="display:flex;align-items:center;gap:7px;">
-            <svg width="14" height="14" fill="none" stroke="var(--red-500)" stroke-width="1.8" viewBox="0 0 24 24"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
-            Feature Flags
+      <!-- Features -->
+      <section class="settings-card">
+        <div class="settings-card-header">
+          <div class="settings-card-icon coal">
+            <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          </div>
+          <div>
+            <div class="settings-card-title">Features</div>
+            <div class="settings-card-sub">Turn optional features on or off</div>
           </div>
         </div>
-        <div class="card-body">
+        <div class="settings-card-body">
 
           <div class="setting-row">
             <div class="setting-info">
-              <div class="setting-label">AI Recommendations</div>
-              <div class="setting-desc">Suggest templates based on employee data patterns.</div>
+              <div class="setting-label">Smart template suggestions</div>
+              <div class="setting-desc">Automatically recommend the best contract template based on the employee's role.</div>
             </div>
             <label class="toggle-switch">
-              <input type="checkbox" onchange="showToast('AI Recommendations toggled.','info')">
+              <input type="checkbox" onchange="showToast('Smart suggestions toggled.','info')">
               <span class="toggle-track"><span class="toggle-thumb"></span></span>
             </label>
           </div>
@@ -250,11 +312,11 @@
 
           <div class="setting-row">
             <div class="setting-info">
-              <div class="setting-label">Digital Signatures</div>
-              <div class="setting-desc">Enable e-signature workflow for contract finalisation.</div>
+              <div class="setting-label">Electronic signatures</div>
+              <div class="setting-desc">Allow contracts to be signed digitally, without printing.</div>
             </div>
             <label class="toggle-switch">
-              <input type="checkbox" onchange="showToast('Digital Signatures toggled.','info')">
+              <input type="checkbox" onchange="showToast('Electronic signatures toggled.','info')">
               <span class="toggle-track"><span class="toggle-thumb"></span></span>
             </label>
           </div>
@@ -263,11 +325,11 @@
 
           <div class="setting-row">
             <div class="setting-info">
-              <div class="setting-label">Batch Import</div>
-              <div class="setting-desc">Import multiple employee records from CSV at once.</div>
+              <div class="setting-label">Bulk employee import</div>
+              <div class="setting-desc">Upload a spreadsheet to add many employees at once instead of one by one.</div>
             </div>
             <label class="toggle-switch">
-              <input type="checkbox" checked onchange="showToast('Batch Import toggled.','info')">
+              <input type="checkbox" checked onchange="showToast('Bulk import toggled.','info')">
               <span class="toggle-track"><span class="toggle-thumb"></span></span>
             </label>
           </div>
@@ -276,11 +338,11 @@
 
           <div class="setting-row">
             <div class="setting-info">
-              <div class="setting-label">Advanced Reporting</div>
-              <div class="setting-desc">Unlock analytics dashboards and exportable reports.</div>
+              <div class="setting-label">Reports &amp; analytics</div>
+              <div class="setting-desc">Access contract trends, approval times, and exportable reports.</div>
             </div>
             <label class="toggle-switch">
-              <input type="checkbox" onchange="showToast('Advanced Reporting toggled.','info')">
+              <input type="checkbox" onchange="showToast('Reports toggled.','info')">
               <span class="toggle-track"><span class="toggle-thumb"></span></span>
             </label>
           </div>

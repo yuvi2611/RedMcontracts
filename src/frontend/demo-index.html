@@ -34,10 +34,23 @@
     <div class="login-stage">
       <div class="login-card-panel">
         <form id="loginForm" class="login-form" autocomplete="on">
-          <div class="login-logo-mark">RM</div>
+          <div class="login-brand-row">
+            <img src="demo/assets/templates/RedMPS-Logo_Black.png" alt="RedMPS" class="login-brand-logo">
+            <div class="login-brand-sub">
+              <span>ContractIQ</span>
+              <span>Secure HR contract workspace</span>
+            </div>
+          </div>
           <div class="login-copy">
+            <span class="login-eyebrow">Internal access</span>
             <h1>Welcome back</h1>
-            <p>Enter your ContractIQ account details</p>
+            <p>Sign in to generate, review, approve, and export RedMPS employment contracts.</p>
+          </div>
+
+          <div class="login-security-strip">
+            <span>Role-based access</span>
+            <span>Audit trail enabled</span>
+            <span>POPIA aware</span>
           </div>
 
           <div class="form-group">
@@ -67,24 +80,51 @@
           </div>
 
           <button class="login-submit" type="submit">Sign in</button>
-          <div class="login-admin-note">No registration is available. A superuser must create your account.</div>
+          <button class="login-demo-fill" type="button" onclick="fillDemoLogin()">Use demo administrator</button>
+          <div class="login-admin-note">No public registration. A superuser must create and activate your account.</div>
         </form>
 
         <aside class="login-assurance-panel">
-          <div class="assurance-notch"></div>
-          <div class="assurance-quote">"</div>
-          <h2>Contracts generated with control, speed, and audit confidence.</h2>
-          <p>ContractIQ helps HR teams select the correct template, resolve missing data, validate compliance, and route approvals without technical work.</p>
+          <nav class="login-landing-nav" aria-label="Login page highlights">
+            <span>ContractIQ</span>
+          </nav>
+          <div class="login-hero-copy">
+            <span class="login-hero-eyebrow">RedMPS HR automation</span>
+            <h2>Contracts move from draft to approval with control.</h2>
+            <p>Generate compliant agreements, validate every schedule field, route approvals, and export on the correct RedMPS letterhead.</p>
+          </div>
+          <div class="login-workspace-preview">
+            <div class="login-preview-head">
+              <span>Inside ContractIQ</span>
+              <strong>Guided workflow</strong>
+            </div>
+            <div class="login-preview-flow">
+              <span class="done">Capture</span>
+              <span class="done">Validate</span>
+              <span class="active">Approve</span>
+              <span>Export</span>
+            </div>
+            <p class="login-preview-note">A contract studio with validation, approval routing, and letterhead-ready exports waiting after sign in.</p>
+          </div>
+          <div class="login-hero-stack">
+            <div class="login-stack-card primary">
+              <span>Contract generation</span>
+              <strong>From employee details to polished agreement</strong>
+            </div>
+            <div class="login-stack-card">
+              <span>Approval experience</span>
+              <strong>Review, return, approve, and sign with context</strong>
+            </div>
+          </div>
           <div class="assurance-author">
             <strong>RedMPS HR Operations</strong>
-            <span>Secure internal access</span>
+            <span>Secure internal access - Audit trail active</span>
           </div>
-          <div class="assurance-star" aria-hidden="true"></div>
         </aside>
 
         <div class="login-floating-card">
-          <strong>Approved users only</strong>
-          <span>Accounts are manually provisioned by a ContractIQ superuser and protected by role-based permissions.</span>
+          <strong>Private workspace</strong>
+          <span>Sign in to open the contract studio, approval queue, and export tools.</span>
           <div class="login-avatar-stack">
             <i>RED</i> <i>MPS</i>
           </div>
@@ -97,7 +137,7 @@
     <div class="reset-stage">
       <form id="resetRequestForm" class="reset-card" autocomplete="on">
         <button class="reset-back" type="button" onclick="navigateTo('login')" aria-label="Back to sign in">Back to Sign In</button>
-        <div class="login-logo-mark">RM</div>
+        <img src="demo/assets/templates/RedMPS-Logo_Black.png" alt="RedMPS" class="reset-brand-logo">
         <div class="login-copy">
           <h1>Reset password</h1>
           <p>Request a reset code for your ContractIQ account.</p>
@@ -119,7 +159,7 @@
 
       <form id="resetConfirmForm" class="reset-card hidden" autocomplete="off">
         <button class="reset-back" type="button" onclick="showResetRequest()" aria-label="Back to request code">Back</button>
-        <div class="login-logo-mark">RM</div>
+        <img src="demo/assets/templates/RedMPS-Logo_Black.png" alt="RedMPS" class="reset-brand-logo">
         <div class="login-copy">
           <h1>Set new password</h1>
           <p>Enter the reset code and choose a new password.</p>
@@ -157,7 +197,7 @@
       </form>
 
       <div id="resetSuccessPanel" class="reset-card hidden">
-        <div class="reset-success-mark">OK</div>
+        <div class="reset-success-mark" aria-hidden="true">&#10003;</div>
         <div class="login-copy">
           <h1>Password updated</h1>
           <p>Your password has been reset. You can now sign in with the new password.</p>
@@ -182,10 +222,11 @@
   <div class="app-shell hidden" id="appShell">
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-logo">
-        <div class="logo-mark">RM</div>
+        <div class="sidebar-logo-img-wrap">
+          <img src="demo/assets/templates/RedMPS-Logo_Black.png" alt="RedMPS" class="sidebar-brand-logo">
+        </div>
         <div class="logo-text">
-          <div class="logo-text-main">RedMPS</div>
-          <div class="logo-text-sub">ContractIQ</div>
+          <div class="logo-text-sub" style="font-size:10px;letter-spacing:.8px;text-transform:uppercase;opacity:.7;">ContractIQ</div>
         </div>
         <button class="sidebar-toggle" type="button" onclick="toggleSidebar()" aria-label="Collapse sidebar" aria-expanded="true" data-tooltip="Collapse sidebar">
           <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
@@ -268,13 +309,38 @@
         <div class="topbar-spacer"></div>
         <div class="topbar-search">
           <svg width="14" height="14" fill="none" stroke="#b0b0c8" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <input type="text" placeholder="Search contracts, employees...">
+          <input id="globalSearchInput" type="text" placeholder="Search contracts, employees..." oninput="updateGlobalSearch(this.value)" onfocus="openGlobalSearch()" onkeydown="handleGlobalSearchKey(event)">
         </div>
-        <button class="icon-btn tooltip" aria-label="Notifications">
+        <section class="global-search-panel hidden" id="globalSearchPanel" aria-label="Global search results">
+          <div class="global-search-head">
+            <strong>Quick Search</strong>
+            <span>Find contracts, employees, templates, and approvals</span>
+          </div>
+          <div class="global-search-results" id="globalSearchResults"></div>
+        </section>
+        <button class="icon-btn tooltip" aria-label="Notifications" id="notificationButton" onclick="toggleNotificationPanel()" aria-expanded="false" aria-controls="notificationPanel">
           <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
           <div class="notif-dot"></div>
           <span class="tooltip-text">Notifications</span>
         </button>
+        <section class="notification-panel hidden" id="notificationPanel" aria-label="Notifications">
+          <div class="notification-head">
+            <strong>Notifications</strong>
+            <button type="button" onclick="markNotificationsRead()">Mark read</button>
+          </div>
+          <button class="notification-item" type="button" onclick="routeTo('approvals')">
+            <span class="notification-dot warning"></span>
+            <div><strong>2 approvals need director review</strong><small>Approval queue</small></div>
+          </button>
+          <button class="notification-item" type="button" onclick="routeTo('templates')">
+            <span class="notification-dot info"></span>
+            <div><strong>Permanent template requires review</strong><small>Template library</small></div>
+          </button>
+          <button class="notification-item" type="button" onclick="routeTo('audit')">
+            <span class="notification-dot success"></span>
+            <div><strong>No critical POPIA findings today</strong><small>Audit log</small></div>
+          </button>
+        </section>
         <button class="icon-btn tooltip ai-chat-topbar-btn" aria-label="Open Contracta" onclick="toggleFaqChat()">
           <svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.9" viewBox="0 0 24 24"><path d="M12 3l1.6 4.4L18 9l-4.4 1.6L12 15l-1.6-4.4L6 9l4.4-1.6L12 3z"/><path d="M5 15l.9 2.1L8 18l-2.1.9L5 21l-.9-2.1L2 18l2.1-.9L5 15z"/><path d="M19 14l.8 1.8L22 17l-2.2.8L19 20l-.8-2.2L16 17l2.2-.8L19 14z"/></svg>
           <span class="tooltip-text">Contracta</span>
@@ -322,7 +388,7 @@
               <button type="button" onclick="routeTo('templates')">Manage templates</button>
             </div>
             <div class="profile-blog-row">
-              <div class="profile-blog-logo">RM</div>
+              <div class="profile-blog-logo"><img src="demo/assets/templates/RedMPS-Logo_Black.png" alt="RedMPS" style="width:56px;height:auto;display:block;"></div>
               <div>
                 <strong>RedMPS ContractIQ</strong>
                 <span>Internal HR automation workspace</span>
@@ -404,7 +470,8 @@
       'demo/scripts/navigation.js',
       'demo/scripts/auth.js',
       'demo/scripts/contract.js',
-      'demo/scripts/app.js'
+      'demo/scripts/app.js',
+      'demo/scripts/api.js'
     ].forEach(src => {
       document.write(`<script src="${src}?dev=${window.CONTRACTIQ_ASSET_VERSION}"><\/script>`);
     });

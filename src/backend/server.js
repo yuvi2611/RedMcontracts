@@ -1,6 +1,8 @@
 const http = require('http');
+const crypto = require('crypto');
 const { URL } = require('url');
 const { Pool } = require('pg');
+const notifications = require('./services/notificationService');
 
 const env = loadEnv();
 const PORT = Number(env.API_PORT || 5000);
@@ -23,18 +25,64 @@ const pool = new Pool({
     : false,
 });
 
+// token → { userId, email, firstName, expiresAt }
+const resetTokens = new Map();
+
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
 
   if (req.method === 'OPTIONS') return send(res, 204);
 
   try {
-    if (req.method === 'GET' && url.pathname === '/health') return health(res);
-    if (req.method === 'POST' && url.pathname === '/api/auth/login') return login(req, res);
-    if (req.method === 'POST' && url.pathname === '/api/auth/password-reset/request') return requestPasswordReset(req, res);
-    if (req.method === 'POST' && url.pathname === '/api/auth/password-reset/confirm') return confirmPasswordReset(req, res);
-    if (req.method === 'POST' && url.pathname === '/api/users') return createUser(req, res);
-    if (req.method === 'POST' && url.pathname === '/api/audit') return audit(req, res);
+    const p = url.pathname;
+    const m = req.method;
+
+    // ── Auth ────────────────────────────────────────────────────────
+    if (m === 'GET'  && p === '/health')                              return health(res);
+    if (m === 'POST' && p === '/api/auth/login')                      return login(req, res);
+    if (m === 'POST' && p === '/api/auth/password-reset/request')     return requestPasswordReset(req, res);
+    if (m === 'POST' && p === '/api/auth/password-reset/confirm')     return confirmPasswordReset(req, res);
+
+    // ── Users ───────────────────────────────────────────────────────
+    if (m === 'POST' && p === '/api/users')                           return createUser(req, res);
+
+    // ── Dashboard ───────────────────────────────────────────────────
+    if (m === 'GET'  && p === '/api/dashboard')                       return getDashboard(res);
+
+    // ── Employees ───────────────────────────────────────────────────
+    if (m === 'GET'  && p === '/api/employees')                       return listEmployees(req, res);
+    if (m === 'POST' && p === '/api/employees')                       return createEmployee(req, res);
+    if (m === 'GET'  && p.match(/^\/api\/employees\/[^/]+$/))         return getEmployee(req, res, p.split('/')[3]);
+
+    // ── Contracts ───────────────────────────────────────────────────
+    if (m === 'GET'  && p === '/api/contracts')                       return listContracts(req, res);
+    if (m === 'POST' && p === '/api/contracts')                       return createContract(req, res);
+    if (m === 'GET'  && p.match(/^\/api\/contracts\/[^/]+$/))         return getContract(req, res, p.split('/')[3]);
+    if (m === 'PUT'  && p.match(/^\/api\/contracts\/[^/]+\/submit$/)) return submitContract(req, res, p.split('/')[3]);
+    if (m === 'PUT'  && p.match(/^\/api\/contracts\/[^/]+\/status$/)) return updateContractStatus(req, res, p.split('/')[3]);
+
+    // ── Approvals ───────────────────────────────────────────────────
+    if (m === 'GET'  && p === '/api/approvals')                       return listApprovals(req, res);
+    if (m === 'POST' && p.match(/^\/api\/approvals\/[^/]+\/approve$/)) return approveWorkflow(req, res, p.split('/')[3]);
+    if (m === 'POST' && p.match(/^\/api\/approvals\/[^/]+\/reject$/))  return rejectWorkflow(req, res, p.split('/')[3]);
+
+    // ── Templates ───────────────────────────────────────────────────
+    if (m === 'GET'  && p === '/api/templates')                       return listTemplates(res);
+
+    // ── Analytics ───────────────────────────────────────────────────
+    if (m === 'GET'  && p === '/api/analytics')                       return getAnalytics(res);
+
+    // ── Audit ───────────────────────────────────────────────────────
+    if (m === 'GET'  && p === '/api/audit-logs')                      return listAuditLogs(req, res);
+    if (m === 'POST' && p === '/api/audit')                           return audit(req, res);
+
+    // ── Notifications ───────────────────────────────────────────────
+    if (m === 'GET'  && p === '/api/notifications')                   return listNotifications(req, res);
+    if (m === 'PUT'  && p === '/api/notifications/read')              return markNotificationsRead(req, res);
+
+    // ── Departments ─────────────────────────────────────────────────
+    if (m === 'GET'  && p === '/api/departments')                     return listDepartments(res);
+
     return send(res, 404, { message: 'Not found' });
   } catch (error) {
     const mapped = mapPgError(error);
@@ -102,35 +150,49 @@ async function login(req, res) {
 
 async function requestPasswordReset(req, res) {
   const body = await readJson(req);
-  const email = String(body.email || '').trim().toLowerCase();
-  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+  const emailAddr = String(body.email || '').trim().toLowerCase();
+  if (!emailAddr || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailAddr)) {
     throw httpError(400, 'A valid email address is required.');
   }
 
   const result = await pool.query(
-    `select id from users where lower(email) = lower($1) and is_active = true limit 1`,
-    [email]
+    `select id, email, first_name from users where lower(email) = lower($1) and is_active = true limit 1`,
+    [emailAddr]
   );
   if (!result.rows[0]) throw httpError(404, 'No active account found for that email address.');
 
-  send(res, 200, {
-    status: 'reset_code_issued',
-    code: 'RESET-2026',
-    message: 'Development reset code issued.',
+  const user = result.rows[0];
+  const token = crypto.randomBytes(32).toString('hex');
+  resetTokens.set(token, {
+    userId: user.id,
+    email: user.email,
+    firstName: user.first_name,
+    expiresAt: Date.now() + 60 * 60 * 1000, // 1 hour
   });
+
+  await notifications.notifyPasswordReset(pool, {
+    userId: user.id,
+    userEmail: user.email,
+    firstName: user.first_name,
+    resetToken: token,
+  });
+
+  send(res, 200, { status: 'reset_email_sent', message: 'Password reset email sent.' });
 }
 
 async function confirmPasswordReset(req, res) {
   const body = await readJson(req);
-  const email = String(body.email || '').trim().toLowerCase();
-  const code = String(body.code || '').trim();
+  const token = String(body.token || '').trim();
   const password = String(body.password || '');
 
-  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    throw httpError(400, 'A valid email address is required.');
-  }
-  if (code !== 'RESET-2026') throw httpError(400, 'Invalid reset code.');
+  if (!token) throw httpError(400, 'Reset token is required.');
   if (password.length < 12) throw httpError(400, 'New password must be at least 12 characters.');
+
+  const entry = resetTokens.get(token);
+  if (!entry || Date.now() > entry.expiresAt) {
+    resetTokens.delete(token);
+    throw httpError(400, 'Reset token is invalid or has expired.');
+  }
 
   const result = await pool.query(
     `update users
@@ -140,13 +202,14 @@ async function confirmPasswordReset(req, res) {
          locked_until = null,
          password_changed_at = current_timestamp,
          updated_at = current_timestamp
-     where lower(email) = lower($1)
+     where id = $1
        and is_active = true
      returning id, email`,
-    [email, password]
+    [entry.userId, password]
   );
-  if (!result.rows[0]) throw httpError(404, 'No active account found for that email address.');
+  if (!result.rows[0]) throw httpError(404, 'No active account found.');
 
+  resetTokens.delete(token);
   send(res, 200, { status: 'password_updated' });
 }
 
@@ -219,7 +282,539 @@ async function createUser(req, res) {
     [result.rows[0].id]
   );
 
-  send(res, 201, toClientUser(created.rows[0]));
+  const newUser = toClientUser(created.rows[0]);
+
+  await notifications.notifyWelcome(pool, {
+    user: { id: newUser.id, email: newUser.email, firstName: newUser.firstName, first_name: newUser.firstName },
+    tempPassword: body.temp_password,
+  });
+
+  send(res, 201, newUser);
+}
+
+// ── Dashboard ────────────────────────────────────────────────────────────────
+
+async function getDashboard(res) {
+  const [summary, pending, recent, employees] = await Promise.all([
+    pool.query(`SELECT * FROM v_contract_summary`),
+    pool.query(`SELECT COUNT(*) as count FROM approval_workflows WHERE status = 'Pending'`),
+    pool.query(`
+      SELECT c.contract_number, c.title, c.status, c.created_at, c.salary,
+             e.first_name, e.last_name
+      FROM contracts c
+      JOIN employees e ON e.id = c.employee_id
+      ORDER BY c.created_at DESC LIMIT 5
+    `),
+    pool.query(`SELECT COUNT(*) as count FROM employees WHERE is_active = true AND employment_status = 'Active'`),
+  ]);
+  const s = summary.rows[0] || {};
+  send(res, 200, {
+    totalContracts: Number(s.total_contracts || 0),
+    draftCount: Number(s.draft_count || 0),
+    reviewCount: Number(s.review_count || 0),
+    approvedCount: Number(s.approved_count || 0),
+    signedCount: Number(s.signed_count || 0),
+    avgProcessingDays: parseFloat(s.avg_processing_days || 0).toFixed(1),
+    pendingApprovals: Number(pending.rows[0].count),
+    activeEmployees: Number(employees.rows[0].count),
+    recentContracts: recent.rows.map(toClientContract),
+  });
+}
+
+// ── Employees ────────────────────────────────────────────────────────────────
+
+async function listEmployees(req, res) {
+  const url = new URL(req.url, `http://localhost`);
+  const search = url.searchParams.get('search') || '';
+  const status = url.searchParams.get('status') || '';
+  const dept   = url.searchParams.get('department') || '';
+  const page   = Math.max(1, Number(url.searchParams.get('page') || 1));
+  const limit  = Math.min(100, Number(url.searchParams.get('limit') || 50));
+  const offset = (page - 1) * limit;
+
+  const conditions = ['e.is_active = true'];
+  const params = [];
+  if (search) { params.push(`%${search}%`); conditions.push(`(e.first_name ILIKE $${params.length} OR e.last_name ILIKE $${params.length} OR e.email ILIKE $${params.length} OR e.employee_id ILIKE $${params.length})`); }
+  if (status) { params.push(status); conditions.push(`e.employment_status = $${params.length}`); }
+  if (dept)   { params.push(dept);   conditions.push(`d.name ILIKE $${params.length}`); }
+
+  const where = conditions.join(' AND ');
+  params.push(limit, offset);
+
+  const [rows, total] = await Promise.all([
+    pool.query(`
+      SELECT e.id, e.employee_id, e.first_name, e.last_name, e.email, e.phone,
+             e.job_title, e.employment_type, e.employment_status, e.hire_date,
+             d.name as department,
+             (SELECT COUNT(*) FROM contracts c WHERE c.employee_id = e.id) as contract_count
+      FROM employees e
+      LEFT JOIN departments d ON d.id = e.department_id
+      WHERE ${where}
+      ORDER BY e.first_name, e.last_name
+      LIMIT $${params.length - 1} OFFSET $${params.length}
+    `, params),
+    pool.query(`SELECT COUNT(*) as count FROM employees e LEFT JOIN departments d ON d.id = e.department_id WHERE ${where}`, params.slice(0, -2)),
+  ]);
+
+  send(res, 200, {
+    data: rows.rows.map(toClientEmployee),
+    total: Number(total.rows[0].count),
+    page, limit,
+  });
+}
+
+async function getEmployee(req, res, id) {
+  const result = await pool.query(`
+    SELECT e.*, d.name as department_name,
+           (SELECT COUNT(*) FROM contracts c WHERE c.employee_id = e.id) as contract_count
+    FROM employees e
+    LEFT JOIN departments d ON d.id = e.department_id
+    WHERE e.id = $1
+  `, [id]);
+  if (!result.rows[0]) throw httpError(404, 'Employee not found.');
+  send(res, 200, toClientEmployee(result.rows[0]));
+}
+
+async function createEmployee(req, res) {
+  const body = await readJson(req);
+  const required = ['first_name', 'last_name', 'email', 'job_title', 'employment_type'];
+  for (const f of required) {
+    if (!String(body[f] || '').trim()) throw httpError(400, `${f} is required.`);
+  }
+
+  const lastEmp = await pool.query(`SELECT employee_id FROM employees ORDER BY employee_id DESC LIMIT 1`);
+  const lastNum = lastEmp.rows[0] ? parseInt(lastEmp.rows[0].employee_id.replace('EMP-', ''), 10) : 0;
+  const newEmpId = `EMP-${String(lastNum + 1).padStart(3, '0')}`;
+
+  const deptId = body.department_id ? await resolveDepartmentId(body.department_id) : null;
+
+  const result = await pool.query(`
+    INSERT INTO employees (employee_id, first_name, last_name, email, phone,
+      date_of_birth, id_number, job_title, employment_type, employment_status,
+      hire_date, department_id, address, city, province, country, nationality, created_by)
+    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'Active',$10,$11,$12,$13,$14,$15,'South African',$16)
+    RETURNING id
+  `, [newEmpId, body.first_name, body.last_name, body.email, body.phone || null,
+      body.date_of_birth || null, body.id_number || null, body.job_title, body.employment_type,
+      body.hire_date || new Date().toISOString().slice(0, 10),
+      deptId, body.address || null, body.city || null, body.province || null,
+      body.country || 'South Africa', body.created_by || null]);
+
+  const created = await pool.query(`
+    SELECT e.*, d.name as department_name FROM employees e
+    LEFT JOIN departments d ON d.id = e.department_id WHERE e.id = $1
+  `, [result.rows[0].id]);
+
+  send(res, 201, toClientEmployee(created.rows[0]));
+}
+
+// ── Contracts ────────────────────────────────────────────────────────────────
+
+async function listContracts(req, res) {
+  const url = new URL(req.url, `http://localhost`);
+  const search = url.searchParams.get('search') || '';
+  const status = url.searchParams.get('status') || '';
+  const page   = Math.max(1, Number(url.searchParams.get('page') || 1));
+  const limit  = Math.min(100, Number(url.searchParams.get('limit') || 50));
+  const offset = (page - 1) * limit;
+
+  const conditions = ['c.is_active = true'];
+  const params = [];
+  if (search) { params.push(`%${search}%`); conditions.push(`(c.contract_number ILIKE $${params.length} OR c.title ILIKE $${params.length} OR e.first_name ILIKE $${params.length} OR e.last_name ILIKE $${params.length})`); }
+  if (status) { params.push(status); conditions.push(`c.status = $${params.length}`); }
+
+  const where = conditions.join(' AND ');
+  params.push(limit, offset);
+
+  const [rows, total] = await Promise.all([
+    pool.query(`
+      SELECT c.id, c.contract_number, c.title, c.status, c.salary, c.currency,
+             c.employment_type, c.start_date, c.end_date, c.created_at, c.submitted_at,
+             c.approved_at, c.signed_at,
+             e.first_name, e.last_name, e.employee_id, e.job_title,
+             ct.name as contract_type
+      FROM contracts c
+      JOIN employees e ON e.id = c.employee_id
+      JOIN contract_types ct ON ct.id = c.contract_type_id
+      WHERE ${where}
+      ORDER BY c.created_at DESC
+      LIMIT $${params.length - 1} OFFSET $${params.length}
+    `, params),
+    pool.query(`
+      SELECT COUNT(*) as count FROM contracts c
+      JOIN employees e ON e.id = c.employee_id
+      WHERE ${where}
+    `, params.slice(0, -2)),
+  ]);
+
+  send(res, 200, {
+    data: rows.rows.map(toClientContract),
+    total: Number(total.rows[0].count),
+    page, limit,
+  });
+}
+
+async function getContract(req, res, id) {
+  const result = await pool.query(`
+    SELECT c.*, e.first_name, e.last_name, e.employee_id as emp_code, e.email as emp_email,
+           ct.name as contract_type, t.name as template_name
+    FROM contracts c
+    JOIN employees e ON e.id = c.employee_id
+    JOIN contract_types ct ON ct.id = c.contract_type_id
+    JOIN templates t ON t.id = c.template_id
+    WHERE c.id = $1
+  `, [id]);
+  if (!result.rows[0]) throw httpError(404, 'Contract not found.');
+
+  const details = await pool.query(`SELECT field_name, field_value FROM contract_details WHERE contract_id = $1`, [id]);
+  const approvals = await pool.query(`
+    SELECT aw.*, u.first_name, u.last_name, u.email
+    FROM approval_workflows aw
+    JOIN users u ON u.id = aw.approver_id
+    WHERE aw.contract_id = $1
+    ORDER BY aw.step_number
+  `, [id]);
+
+  const row = result.rows[0];
+  send(res, 200, {
+    ...toClientContract(row),
+    templateName: row.template_name,
+    details: Object.fromEntries(details.rows.map(d => [d.field_name, d.field_value])),
+    approvalWorkflow: approvals.rows.map(a => ({
+      id: a.id, step: a.step_number, status: a.status,
+      approver: `${a.first_name} ${a.last_name}`, approverEmail: a.email,
+      comment: a.comment, decidedAt: a.decision_date,
+    })),
+  });
+}
+
+async function createContract(req, res) {
+  const body = await readJson(req);
+  const required = ['employee_id', 'contract_type_id', 'template_id', 'start_date', 'salary', 'employment_type', 'created_by'];
+  for (const f of required) {
+    if (!body[f]) throw httpError(400, `${f} is required.`);
+  }
+
+  const lastC = await pool.query(`SELECT contract_number FROM contracts ORDER BY created_at DESC LIMIT 1`);
+  const year = new Date().getFullYear();
+  const lastNum = lastC.rows[0] ? parseInt(lastC.rows[0].contract_number.split('-')[2] || '0') : 0;
+  const num = `RMP-${year}-${String(lastNum + 1).padStart(3, '0')}`;
+
+  const result = await pool.query(`
+    INSERT INTO contracts (contract_number, employee_id, contract_type_id, template_id,
+      title, status, salary, employment_type, start_date, end_date,
+      probation_period_months, notice_period_days, created_by)
+    VALUES ($1,$2,$3,$4,$5,'Draft',$6,$7,$8,$9,$10,$11,$12)
+    RETURNING id
+  `, [num, body.employee_id, body.contract_type_id, body.template_id,
+      body.title || null, body.salary, body.employment_type,
+      body.start_date, body.end_date || null,
+      body.probation_period_months || 3, body.notice_period_days || 30,
+      body.created_by]);
+
+  const created = await getContractRow(result.rows[0].id);
+  send(res, 201, toClientContract(created));
+}
+
+async function submitContract(req, res, id) {
+  const result = await pool.query(`
+    UPDATE contracts SET status = 'Review', submitted_at = NOW(), updated_at = NOW()
+    WHERE id = $1 AND status = 'Draft' RETURNING id, contract_number, title
+  `, [id]);
+  if (!result.rows[0]) throw httpError(400, 'Contract must be in Draft status to submit.');
+  send(res, 200, { status: 'submitted', contractNumber: result.rows[0].contract_number });
+}
+
+async function updateContractStatus(req, res, id) {
+  const body = await readJson(req);
+  if (!body.status) throw httpError(400, 'status is required.');
+  const valid = ['Draft', 'Review', 'Approved', 'Signed', 'Executed', 'Rejected', 'Archived'];
+  if (!valid.includes(body.status)) throw httpError(400, `Invalid status. Must be one of: ${valid.join(', ')}`);
+
+  const result = await pool.query(`
+    UPDATE contracts SET status = $1, updated_at = NOW() WHERE id = $2 RETURNING id
+  `, [body.status, id]);
+  if (!result.rows[0]) throw httpError(404, 'Contract not found.');
+  send(res, 200, { status: body.status });
+}
+
+async function getContractRow(id) {
+  const r = await pool.query(`
+    SELECT c.*, e.first_name, e.last_name, e.employee_id as emp_code,
+           ct.name as contract_type
+    FROM contracts c
+    JOIN employees e ON e.id = c.employee_id
+    JOIN contract_types ct ON ct.id = c.contract_type_id
+    WHERE c.id = $1
+  `, [id]);
+  return r.rows[0];
+}
+
+// ── Approvals ────────────────────────────────────────────────────────────────
+
+async function listApprovals(req, res) {
+  const url = new URL(req.url, `http://localhost`);
+  const status = url.searchParams.get('status') || 'Pending';
+
+  const result = await pool.query(`
+    SELECT aw.id, aw.step_number, aw.status, aw.comment, aw.created_at, aw.decision_date,
+           c.id as contract_id, c.contract_number, c.title, c.status as contract_status,
+           c.employment_type, c.salary,
+           e.first_name, e.last_name, e.employee_id as emp_code,
+           u.first_name as approver_first, u.last_name as approver_last, u.email as approver_email
+    FROM approval_workflows aw
+    JOIN contracts c ON c.id = aw.contract_id
+    JOIN employees e ON e.id = c.employee_id
+    JOIN users u ON u.id = aw.approver_id
+    WHERE ($1 = 'all' OR aw.status = $1)
+    ORDER BY aw.created_at DESC
+    LIMIT 100
+  `, [status]);
+
+  send(res, 200, { data: result.rows.map(toClientApproval) });
+}
+
+async function approveWorkflow(req, res, id) {
+  const body = await readJson(req);
+  const result = await pool.query(`
+    UPDATE approval_workflows
+    SET status = 'Approved', comment = $1, decision_date = NOW(), updated_at = NOW()
+    WHERE id = $2 AND status = 'Pending'
+    RETURNING contract_id, step_number
+  `, [body.comment || null, id]);
+  if (!result.rows[0]) throw httpError(404, 'Approval workflow item not found or already actioned.');
+
+  const { contract_id, step_number } = result.rows[0];
+
+  // Check if there's a next step; if not, advance contract status
+  const nextStep = await pool.query(`
+    SELECT id FROM approval_workflows WHERE contract_id = $1 AND step_number = $2 AND status = 'Pending'
+  `, [contract_id, step_number + 1]);
+
+  if (!nextStep.rows[0]) {
+    await pool.query(`UPDATE contracts SET status = 'Approved', approved_at = NOW() WHERE id = $1`, [contract_id]);
+  }
+
+  send(res, 200, { status: 'approved' });
+}
+
+async function rejectWorkflow(req, res, id) {
+  const body = await readJson(req);
+  const result = await pool.query(`
+    UPDATE approval_workflows
+    SET status = 'Rejected', comment = $1, decision_date = NOW(), updated_at = NOW()
+    WHERE id = $2 AND status = 'Pending'
+    RETURNING contract_id
+  `, [body.comment || 'Rejected by reviewer.', id]);
+  if (!result.rows[0]) throw httpError(404, 'Approval workflow item not found or already actioned.');
+
+  await pool.query(`UPDATE contracts SET status = 'Rejected' WHERE id = $1`, [result.rows[0].contract_id]);
+  send(res, 200, { status: 'rejected' });
+}
+
+// ── Templates ────────────────────────────────────────────────────────────────
+
+async function listTemplates(res) {
+  const result = await pool.query(`
+    SELECT t.id, t.name, t.description, t.version, t.is_active, t.created_at, t.updated_at,
+           ct.name as contract_type, ct.code as contract_type_code
+    FROM templates t
+    JOIN contract_types ct ON ct.id = t.contract_type_id
+    ORDER BY t.name
+  `);
+  send(res, 200, { data: result.rows });
+}
+
+// ── Analytics ────────────────────────────────────────────────────────────────
+
+async function getAnalytics(res) {
+  const [byStatus, byType, byMonth, topEmployees, sla] = await Promise.all([
+    pool.query(`SELECT status, COUNT(*) as count FROM contracts GROUP BY status ORDER BY count DESC`),
+    pool.query(`
+      SELECT ct.name, COUNT(c.id) as count, ROUND(AVG(c.salary)::numeric, 0) as avg_salary
+      FROM contracts c JOIN contract_types ct ON ct.id = c.contract_type_id
+      GROUP BY ct.name ORDER BY count DESC
+    `),
+    pool.query(`
+      SELECT TO_CHAR(DATE_TRUNC('month', created_at), 'Mon YYYY') as month,
+             COUNT(*) as count
+      FROM contracts
+      WHERE created_at >= NOW() - INTERVAL '12 months'
+      GROUP BY DATE_TRUNC('month', created_at)
+      ORDER BY DATE_TRUNC('month', created_at)
+    `),
+    pool.query(`
+      SELECT e.first_name, e.last_name, COUNT(c.id) as contract_count
+      FROM employees e JOIN contracts c ON c.employee_id = e.id
+      GROUP BY e.id, e.first_name, e.last_name
+      ORDER BY contract_count DESC LIMIT 5
+    `),
+    pool.query(`
+      SELECT ROUND(AVG(EXTRACT(EPOCH FROM (approved_at - submitted_at)) / 3600)::numeric, 1) as avg_approval_hours,
+             COUNT(*) FILTER (WHERE approved_at IS NOT NULL) as approved_total,
+             COUNT(*) FILTER (WHERE status = 'Rejected') as rejected_total
+      FROM contracts WHERE submitted_at IS NOT NULL
+    `),
+  ]);
+
+  send(res, 200, {
+    byStatus: byStatus.rows,
+    byType: byType.rows,
+    byMonth: byMonth.rows,
+    topEmployees: topEmployees.rows,
+    sla: sla.rows[0],
+  });
+}
+
+// ── Audit logs ───────────────────────────────────────────────────────────────
+
+async function listAuditLogs(req, res) {
+  const url = new URL(req.url, `http://localhost`);
+  const type   = url.searchParams.get('type') || '';
+  const page   = Math.max(1, Number(url.searchParams.get('page') || 1));
+  const limit  = Math.min(100, Number(url.searchParams.get('limit') || 50));
+  const offset = (page - 1) * limit;
+
+  const params = [];
+  const conditions = [];
+  if (type) { params.push(type); conditions.push(`al.entity_type = $${params.length}`); }
+  const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+  params.push(limit, offset);
+
+  const [rows, total] = await Promise.all([
+    pool.query(`
+      SELECT al.id, al.entity_type, al.action, al.new_values, al.change_reason,
+             al.created_at, u.first_name, u.last_name, u.email
+      FROM audit_logs al
+      JOIN users u ON u.id = al.changed_by
+      ${where}
+      ORDER BY al.created_at DESC
+      LIMIT $${params.length - 1} OFFSET $${params.length}
+    `, params),
+    pool.query(`SELECT COUNT(*) as count FROM audit_logs al ${where}`, params.slice(0, -2)),
+  ]);
+
+  send(res, 200, {
+    data: rows.rows.map(r => ({
+      id: r.id,
+      entityType: r.entity_type,
+      action: r.action,
+      details: r.change_reason || (r.new_values?.message) || '',
+      actor: `${r.first_name} ${r.last_name}`,
+      actorEmail: r.email,
+      createdAt: r.created_at,
+    })),
+    total: Number(total.rows[0].count),
+    page, limit,
+  });
+}
+
+// ── Notifications ────────────────────────────────────────────────────────────
+
+async function listNotifications(req, res) {
+  const url = new URL(req.url, `http://localhost`);
+  const userId = url.searchParams.get('user_id');
+  if (!userId) throw httpError(400, 'user_id is required.');
+
+  const result = await pool.query(`
+    SELECT id, notification_type, title, message, is_read, created_at,
+           related_entity_type, related_entity_id
+    FROM notifications WHERE recipient_id = $1
+    ORDER BY created_at DESC LIMIT 50
+  `, [userId]);
+
+  send(res, 200, { data: result.rows });
+}
+
+async function markNotificationsRead(req, res) {
+  const body = await readJson(req);
+  if (!body.user_id) throw httpError(400, 'user_id is required.');
+  await pool.query(`
+    UPDATE notifications SET is_read = true, read_at = NOW()
+    WHERE recipient_id = $1 AND is_read = false
+  `, [body.user_id]);
+  send(res, 200, { status: 'marked_read' });
+}
+
+// ── Departments ──────────────────────────────────────────────────────────────
+
+async function listDepartments(res) {
+  const result = await pool.query(`SELECT id, name, code, description FROM departments WHERE is_active = true ORDER BY name`);
+  send(res, 200, { data: result.rows });
+}
+
+// ── Client mappers ───────────────────────────────────────────────────────────
+
+function toClientContract(row) {
+  return {
+    id: row.id,
+    contractNumber: row.contract_number,
+    title: row.title,
+    status: row.status,
+    salary: row.salary,
+    currency: row.currency || 'ZAR',
+    employmentType: row.employment_type,
+    startDate: row.start_date,
+    endDate: row.end_date,
+    createdAt: row.created_at,
+    submittedAt: row.submitted_at,
+    approvedAt: row.approved_at,
+    signedAt: row.signed_at,
+    contractType: row.contract_type,
+    employee: row.first_name ? {
+      name: `${row.first_name} ${row.last_name}`,
+      firstName: row.first_name,
+      lastName: row.last_name,
+      employeeId: row.employee_id || row.emp_code,
+      jobTitle: row.job_title,
+    } : null,
+  };
+}
+
+function toClientEmployee(row) {
+  return {
+    id: row.id,
+    employeeId: row.employee_id,
+    firstName: row.first_name,
+    lastName: row.last_name,
+    name: `${row.first_name} ${row.last_name}`,
+    initials: `${row.first_name?.[0] || ''}${row.last_name?.[0] || ''}`.toUpperCase(),
+    email: row.email,
+    phone: row.phone,
+    jobTitle: row.job_title,
+    department: row.department_name || row.department,
+    employmentType: row.employment_type,
+    employmentStatus: row.employment_status,
+    hireDate: row.hire_date,
+    contractCount: Number(row.contract_count || 0),
+  };
+}
+
+function toClientApproval(row) {
+  return {
+    id: row.id,
+    step: row.step_number,
+    status: row.status,
+    comment: row.comment,
+    createdAt: row.created_at,
+    decidedAt: row.decision_date,
+    contract: {
+      id: row.contract_id,
+      contractNumber: row.contract_number,
+      title: row.title,
+      status: row.contract_status,
+      employmentType: row.employment_type,
+      salary: row.salary,
+    },
+    employee: {
+      name: `${row.first_name} ${row.last_name}`,
+      employeeId: row.emp_code,
+    },
+    approver: {
+      name: `${row.approver_first} ${row.approver_last}`,
+      email: row.approver_email,
+    },
+  };
 }
 
 async function audit(req, res) {

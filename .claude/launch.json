@@ -3,9 +3,10 @@
   "configurations": [
     {
       "name": "contractiq-demo",
-      "runtimeExecutable": "C:\\Users\\USER-PC\\AppData\\Local\\Microsoft\\WindowsApps\\python.exe",
-      "runtimeArgs": ["-m", "http.server", "8000", "--directory", "src/frontend"],
-      "port": 8000
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["serve", "src/frontend", "--listen", "8080", "--no-clipboard"],
+      "port": 8080,
+      "autoPort": false
     }
   ]
 }

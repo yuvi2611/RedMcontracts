@@ -19,8 +19,8 @@
         <div><span class="review-dot good"></span>BCEA probation wording present</div>
         <div><span class="review-dot warn"></span>Salary requires manager acknowledgement</div>
       </div>
-      <button class="btn-primary full-width">Submit for Approval</button>
-      <button class="btn-secondary full-width">Save Draft</button>
+      <button class="btn-primary full-width" type="button" onclick="submitCurrentContractForApproval()">Submit for Approval</button>
+      <button class="btn-secondary full-width" type="button" onclick="saveCurrentContractDraft()">Save Draft</button>
     </aside>
 
     <div>
@@ -74,7 +74,7 @@
           <p class="doc-p">2.3 the position of Employee shall be as set out in item 3 of the above table.</p>
         </div>
 
-        <div class="doc-section">
+        <div class="doc-section" data-preview-scope="fixed-term">
           <div class="doc-section-title">3. Fixed-Term Employment</div>
           <p class="doc-p">3.1 The Employer undertakes to employee the Employee for a fixed-term period as set out in item 4 of the above table.</p>
           <p class="doc-p">3.2 This Agreement will therefore automatically terminate on the date or automatically terminate on occurrence of a specific event as set out in item 6 of the above table.</p>
@@ -91,6 +91,13 @@
             <li>employed in a position which is funded by an external source for a limited period</li>
             <li>has reached the normal or agreed retirement age applicable in the employer's business.</li>
           </ul>
+        </div>
+
+        <div class="doc-section is-hidden" data-preview-scope="permanent">
+          <div class="doc-section-title">3. Permanent Employment</div>
+          <p class="doc-p">3.1 The Employer appoints the Employee on a permanent basis from the commencement date set out in item 5 of the above table.</p>
+          <p class="doc-p">3.2 The employment relationship is indefinite and will continue until terminated by either Party in accordance with this Agreement, applicable legislation, and the Employer's lawful policies and procedures.</p>
+          <p class="doc-p">3.3 The Employee acknowledges that continued employment remains subject to satisfactory performance, operational requirements, compliance with workplace rules, and the terms recorded in this Agreement.</p>
         </div>
 
         <div class="doc-section">
@@ -136,7 +143,7 @@
           <p class="doc-p clause-indent">5.2.8 fails to disclose relevant personal information, or disclose materially incorrect, intentionally vague or false personal information in relation to the Employee's employment application;</p>
           <p class="doc-p clause-indent">5.2.9 fails to carry out duties in a fit and proper manner; and / or</p>
           <p class="doc-p clause-indent">5.2.10 is guilty of any other conduct that would justify summary dismissal.</p>
-          <p class="doc-p clause-indent">5.2.11 In the event that the Client elects not to proceed with, cancel, or materially delay the project to which the Employee has been assigned, the Employer reserves the right to discontinue the Employee's fixed-term engagement. In such circumstances, the Employer shall provide the Employee with thirty (30) days' notice of non-continuation.</p>
+          <p class="doc-p clause-indent" data-preview-scope="fixed-term">5.2.11 In the event that the Client elects not to proceed with, cancel, or materially delay the project to which the Employee has been assigned, the Employer reserves the right to discontinue the Employee's fixed-term engagement. In such circumstances, the Employer shall provide the Employee with thirty (30) days' notice of non-continuation.</p>
         </div>
 
         <div class="doc-section">
@@ -328,9 +335,9 @@
       </div>
 
       <div class="preview-actions">
-        <button class="btn-primary">Download PDF</button>
-        <button class="btn-secondary">Download DOCX</button>
-        <button class="btn-secondary">Send for Signature</button>
+        <button class="btn-primary" type="button" onclick="downloadContractPdf()">Download PDF</button>
+        <button class="btn-secondary" type="button" onclick="downloadContractWord()">Download Word</button>
+        <button class="btn-secondary" type="button" onclick="sendCurrentContractForSignature()">Send for Signature</button>
       </div>
     </div>
   </div>

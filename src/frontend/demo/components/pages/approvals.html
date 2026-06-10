@@ -5,193 +5,83 @@
       <p class="page-subtitle">Review routed contracts, exceptions, and pending decisions.</p>
     </div>
     <div style="display:flex;gap:10px;">
-      <button class="btn-secondary" onclick="showToast('Exporting approval queue…','info')" type="button">Export Queue</button>
-      <button class="btn-primary" onclick="showToast('Approval reminder sent to all pending reviewers.','success')" type="button">Remind All</button>
+      <button class="btn-secondary" onclick="exportApprovalQueue()" type="button">Export Queue</button>
+      <button class="btn-primary" onclick="remindPendingApprovers()" type="button">Remind All</button>
     </div>
   </div>
 
   <!-- Approval Stats -->
   <div class="approval-stats animate-in animate-delay-1">
     <div class="apstat">
-      <div class="apstat-num" style="color:var(--amber)">5</div>
+      <div class="apstat-num" id="apstat-awaiting" style="color:var(--amber)">—</div>
       <div class="apstat-label">Awaiting Decision</div>
     </div>
     <div class="apstat-div"></div>
     <div class="apstat">
-      <div class="apstat-num" style="color:var(--info)">2</div>
+      <div class="apstat-num" id="apstat-director" style="color:var(--info)">—</div>
       <div class="apstat-label">Director Review</div>
     </div>
     <div class="apstat-div"></div>
     <div class="apstat">
-      <div class="apstat-num" style="color:var(--success)">1</div>
+      <div class="apstat-num" id="apstat-signature" style="color:var(--success)">—</div>
       <div class="apstat-label">Signature Ready</div>
     </div>
     <div class="apstat-div"></div>
     <div class="apstat">
-      <div class="apstat-num" style="color:var(--coal-400)">18</div>
+      <div class="apstat-num" id="apstat-approved-month" style="color:var(--coal-400)">—</div>
       <div class="apstat-label">Approved This Month</div>
     </div>
   </div>
 
   <!-- Filter Tabs -->
   <div class="filter-tabs animate-in animate-delay-2" style="margin-bottom:20px" id="approvalsTabs">
-    <button class="filter-tab active" onclick="setApprovalsTab(this,'all')">All <span class="tab-count">5</span></button>
-    <button class="filter-tab" onclick="setApprovalsTab(this,'manager')">Manager Review <span class="tab-count">2</span></button>
-    <button class="filter-tab" onclick="setApprovalsTab(this,'director')">Director <span class="tab-count">2</span></button>
-    <button class="filter-tab" onclick="setApprovalsTab(this,'signature')">Signature Ready <span class="tab-count">1</span></button>
+    <button class="filter-tab active" onclick="setApprovalsTab(this,'all')">All <span class="tab-count">—</span></button>
+    <button class="filter-tab" onclick="setApprovalsTab(this,'manager')">Manager Review <span class="tab-count">—</span></button>
+    <button class="filter-tab" onclick="setApprovalsTab(this,'director')">Director <span class="tab-count">—</span></button>
+    <button class="filter-tab" onclick="setApprovalsTab(this,'signature')">Signature Ready <span class="tab-count">—</span></button>
+    <button class="filter-tab" onclick="setApprovalsTab(this,'revision')">Returned <span class="tab-count">—</span></button>
   </div>
 
-  <!-- Approval Cards -->
+  <!-- Approval Cards — populated by initApprovalsFromApi() -->
   <div class="approvals-list animate-in animate-delay-3" id="approvalsList">
-
-    <div class="approval-card" data-route="manager">
-      <div class="approval-card-left">
-        <div class="emp-avatar" style="background:var(--red-600);width:44px;height:44px;font-size:15px;flex-shrink:0">YP</div>
-        <div class="approval-card-info">
-          <div class="approval-card-name">Yuvaan Pather</div>
-          <div class="approval-card-doc">Fixed-Term Employment Agreement <span class="ref-chip">RMP-2026-006</span></div>
-          <div class="approval-card-route">
-            <span class="route-step done">Generated</span>
-            <span class="route-arrow">→</span>
-            <span class="route-step active">HR Manager</span>
-            <span class="route-arrow">→</span>
-            <span class="route-step">Director</span>
-            <span class="route-arrow">→</span>
-            <span class="route-step">Signature</span>
-          </div>
-        </div>
-      </div>
-      <div class="approval-card-right">
-        <div class="approval-meta">
-          <span class="status-badge review">Manager Review</span>
-          <span class="approval-age">2h ago</span>
-        </div>
-        <div class="approval-actions-row">
-          <button class="btn-approve" onclick="approveItem(this,'Yuvaan Pather')">Approve</button>
-          <button class="btn-flag" onclick="showToast('Flagged for revision — Yuvaan Pather','warning')">Flag</button>
-          <button class="row-btn" onclick="showToast('Opening contract preview…','info')">View</button>
-        </div>
-      </div>
-    </div>
-
-    <div class="approval-card" data-route="director">
-      <div class="approval-card-left">
-        <div class="emp-avatar" style="background:var(--coal-700);width:44px;height:44px;font-size:15px;flex-shrink:0">AN</div>
-        <div class="approval-card-info">
-          <div class="approval-card-name">Aisha Naidoo</div>
-          <div class="approval-card-doc">Offer Letter <span class="ref-chip">RMP-2026-002</span></div>
-          <div class="approval-card-route">
-            <span class="route-step done">Generated</span>
-            <span class="route-arrow">→</span>
-            <span class="route-step done">HR Manager</span>
-            <span class="route-arrow">→</span>
-            <span class="route-step active">Director</span>
-            <span class="route-arrow">→</span>
-            <span class="route-step">Signature</span>
-          </div>
-        </div>
-      </div>
-      <div class="approval-card-right">
-        <div class="approval-meta">
-          <span class="status-badge approved">Ready for Director</span>
-          <span class="approval-age">5h ago</span>
-        </div>
-        <div class="approval-actions-row">
-          <button class="btn-approve" onclick="approveItem(this,'Aisha Naidoo')">Approve</button>
-          <button class="btn-flag" onclick="showToast('Flagged for revision — Aisha Naidoo','warning')">Flag</button>
-          <button class="row-btn" onclick="showToast('Opening contract preview…','info')">View</button>
-        </div>
-      </div>
-    </div>
-
-    <div class="approval-card" data-route="signature">
-      <div class="approval-card-left">
-        <div class="emp-avatar" style="background:var(--info);width:44px;height:44px;font-size:15px;flex-shrink:0">MK</div>
-        <div class="approval-card-info">
-          <div class="approval-card-name">Mandla Khumalo</div>
-          <div class="approval-card-doc">Fixed-Term Employment Agreement <span class="ref-chip">RMP-2026-003</span></div>
-          <div class="approval-card-route">
-            <span class="route-step done">Generated</span>
-            <span class="route-arrow">→</span>
-            <span class="route-step done">HR Manager</span>
-            <span class="route-arrow">→</span>
-            <span class="route-step done">Director</span>
-            <span class="route-arrow">→</span>
-            <span class="route-step active">Signature</span>
-          </div>
-        </div>
-      </div>
-      <div class="approval-card-right">
-        <div class="approval-meta">
-          <span class="status-badge signed">Signature Ready</span>
-          <span class="approval-age">1d ago</span>
-        </div>
-        <div class="approval-actions-row">
-          <button class="btn-approve" onclick="showToast('Sending for e-signature — Mandla Khumalo','success')">Send for Signature</button>
-          <button class="row-btn" onclick="showToast('Opening contract preview…','info')">View</button>
-        </div>
-      </div>
-    </div>
-
-    <div class="approval-card" data-route="manager">
-      <div class="approval-card-left">
-        <div class="emp-avatar" style="background:#b45309;width:44px;height:44px;font-size:15px;flex-shrink:0">SN</div>
-        <div class="approval-card-info">
-          <div class="approval-card-name">Sipho Ndlovu</div>
-          <div class="approval-card-doc">Offer Letter <span class="ref-chip">RMP-2026-006</span></div>
-          <div class="approval-card-route">
-            <span class="route-step done">Generated</span>
-            <span class="route-arrow">→</span>
-            <span class="route-step active">HR Manager</span>
-            <span class="route-arrow">→</span>
-            <span class="route-step">Director</span>
-            <span class="route-arrow">→</span>
-            <span class="route-step">Signature</span>
-          </div>
-        </div>
-      </div>
-      <div class="approval-card-right">
-        <div class="approval-meta">
-          <span class="status-badge review">Manager Review</span>
-          <span class="approval-age">3h ago</span>
-        </div>
-        <div class="approval-actions-row">
-          <button class="btn-approve" onclick="approveItem(this,'Sipho Ndlovu')">Approve</button>
-          <button class="btn-flag" onclick="showToast('Flagged for revision — Sipho Ndlovu','warning')">Flag</button>
-          <button class="row-btn" onclick="showToast('Opening contract preview…','info')">View</button>
-        </div>
-      </div>
-    </div>
-
-    <div class="approval-card" data-route="director">
-      <div class="approval-card-left">
-        <div class="emp-avatar" style="background:#059669;width:44px;height:44px;font-size:15px;flex-shrink:0">FA</div>
-        <div class="approval-card-info">
-          <div class="approval-card-name">Fatima Ally</div>
-          <div class="approval-card-doc">Permanent Employment Contract <span class="ref-chip">RMP-2026-008</span></div>
-          <div class="approval-card-route">
-            <span class="route-step done">Generated</span>
-            <span class="route-arrow">→</span>
-            <span class="route-step done">HR Manager</span>
-            <span class="route-arrow">→</span>
-            <span class="route-step active">Director</span>
-            <span class="route-arrow">→</span>
-            <span class="route-step">Signature</span>
-          </div>
-        </div>
-      </div>
-      <div class="approval-card-right">
-        <div class="approval-meta">
-          <span class="status-badge approved">Ready for Director</span>
-          <span class="approval-age">6h ago</span>
-        </div>
-        <div class="approval-actions-row">
-          <button class="btn-approve" onclick="approveItem(this,'Fatima Ally')">Approve</button>
-          <button class="btn-flag" onclick="showToast('Flagged for revision — Fatima Ally','warning')">Flag</button>
-          <button class="row-btn" onclick="showToast('Opening contract preview…','info')">View</button>
-        </div>
-      </div>
-    </div>
-
   </div>
+
+  <aside class="approval-detail-panel hidden" id="approvalDetailPanel" aria-live="polite">
+    <div class="approval-detail-head">
+      <div>
+        <div class="approval-detail-eyebrow" id="approvalDetailStage">Approval</div>
+        <h2 id="approvalDetailName">Contract review</h2>
+        <p id="approvalDetailDoc">Select an approval item to inspect routing, notes, and history.</p>
+      </div>
+      <button class="icon-btn" type="button" onclick="closeApprovalDetail()" aria-label="Close approval detail">x</button>
+    </div>
+    <div class="approval-detail-grid">
+      <div>
+        <span>Reference</span>
+        <strong id="approvalDetailRef">-</strong>
+      </div>
+      <div>
+        <span>Submitted by</span>
+        <strong id="approvalDetailSubmitter">-</strong>
+      </div>
+      <div>
+        <span>Submitted</span>
+        <strong id="approvalDetailSubmitted">-</strong>
+      </div>
+      <div>
+        <span>Current owner</span>
+        <strong id="approvalDetailOwner">-</strong>
+      </div>
+    </div>
+    <div class="approval-comment-box">
+      <label for="approvalCommentInput">Review note</label>
+      <textarea id="approvalCommentInput" rows="3" placeholder="Add an approval note or return reason"></textarea>
+    </div>
+    <div class="approval-detail-actions">
+      <button class="btn-primary" id="approvalDetailApprove" type="button" onclick="approveSelectedApproval()">Approve Stage</button>
+      <button class="btn-secondary" id="approvalDetailReturn" type="button" onclick="returnSelectedApproval()">Return for Revision</button>
+      <button class="btn-secondary" id="approvalDetailOpen" type="button" onclick="openSelectedApprovalPreview()">Open Preview</button>
+    </div>
+    <div class="approval-history" id="approvalDetailHistory"></div>
+  </aside>
 </div>
