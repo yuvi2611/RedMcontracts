@@ -4,8 +4,8 @@
     {
       "name": "contractiq-demo",
       "runtimeExecutable": "npx",
-      "runtimeArgs": ["serve", "src/frontend", "--listen", "8080", "--no-clipboard"],
-      "port": 8080,
+      "runtimeArgs": ["serve", "src/frontend", "--listen", "8200", "--no-clipboard"],
+      "port": 8200,
       "autoPort": false
     }
   ]

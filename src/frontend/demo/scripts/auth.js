@@ -1,6 +1,9 @@
 const AUTH_STORAGE_KEY = 'contractiq.session';
 const AUTH_API_BASE = window.CONTRACTIQ_API_BASE || 'http://localhost:5000';
 
+// Random per-session reset code — not guessable across page loads
+const DEMO_RESET_CODE = 'RESET-' + Math.random().toString(36).slice(2, 8).toUpperCase();
+
 const DEMO_USERS = [
   {
     email: 'admin@redmps.com',
@@ -229,7 +232,7 @@ function bindPasswordReset() {
     submit?.classList.remove('is-loading');
     if (error) error.style.display = 'none';
     sessionStorage.setItem('contractiq.resetEmail', email);
-    document.getElementById('resetCodeNote').textContent = `Reset code prepared for ${email}. Demo code: RESET-2026`;
+    document.getElementById('resetCodeNote').textContent = `Reset code prepared for ${email}. Demo code: ${DEMO_RESET_CODE}`;
     showResetConfirm();
   });
 
@@ -267,7 +270,7 @@ function bindPasswordReset() {
       }
     } catch (resetError) {
       const demoUser = DEMO_USERS.find(user => user.email === email);
-      if (!demoUser || code !== 'RESET-2026') {
+      if (!demoUser || code !== DEMO_RESET_CODE) {
         fail(resetError.message || 'Invalid reset code or account email.');
         submit?.classList.remove('is-loading');
         return;

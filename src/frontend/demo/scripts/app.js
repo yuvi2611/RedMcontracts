@@ -26,19 +26,35 @@ async function loadPages() {
   const container = document.getElementById('pages-container');
   if (!container) return;
 
-  for (const [name, url] of Object.entries(PAGE_FILES)) {
-    const res = await fetch(url + CACHE_BUST);
-    const html = await res.text();
+  // Pre-create wrappers in declaration order so page DOM order is stable
+  const entries = Object.entries(PAGE_FILES);
+  const wrappers = entries.map(([name]) => {
     const wrapper = document.createElement('div');
     wrapper.className = 'page';
     wrapper.id = 'page-' + name;
-    wrapper.innerHTML = html;
     container.appendChild(wrapper);
-  }
+    return wrapper;
+  });
+
+  // Fetch all pages in parallel
+  await Promise.all(entries.map(async ([, url], i) => {
+    const res = await fetch(url + CACHE_BUST);
+    wrappers[i].innerHTML = await res.text();
+  }));
 }
 
 async function initApp() {
   await loadPages();
+
+  // Reveal app: fade out the startup loader, then show the login screen
+  const overlay = document.getElementById('appLoadingOverlay');
+  const login   = document.getElementById('loginScreen');
+  if (overlay) {
+    overlay.classList.add('fade-out');
+    overlay.addEventListener('transitionend', () => overlay.remove(), { once: true });
+  }
+  login?.classList.remove('hidden');
+
   initToastContainer();
   initShellControls();
   bindContractForm();
@@ -613,98 +629,328 @@ function sendCurrentContractForSignature() {
 }
 
 const FAQ_ANSWERS = [
+
+  // ── Contract creation ────────────────────────────────────────────────────────
   {
-    keywords: ['create', 'new contract', 'contract', 'generate', 'wizard'],
-    answer: 'I can help with that. Open New Contract, complete the guided fields, validate the form, then generate the preview. ContractIQ matches the approved template and prepares the approval route.',
+    keywords: ['create', 'new contract', 'generate', 'wizard', 'start contract', 'make contract', 'new employment'],
+    answer: 'To create a contract: open New Contract, select the contract type (Fixed-Term or Permanent), fill in the employee details, set salary, dates, and probation, then click Generate Preview. ContractIQ validates every field before allowing you to proceed.',
     route: 'wizard',
     label: 'Open New Contract'
   },
   {
-    keywords: ['approval', 'approve', 'director', 'manager', 'queue'],
-    answer: 'Approvals are routed by policy. HR prepares the draft, managers or directors review depending on the route, and the queue shows age, priority, and action buttons for each item.',
+    keywords: ['fixed term', 'fixed-term', 'fixed term contract', 'temporary contract', 'term contract'],
+    answer: 'Fixed-Term contracts require a start date, end date, and fixed-term period (e.g. "1 (One) Year"). The contract automatically terminates on the termination date. Select "Fixed-Term Employment Agreement" in the contract type dropdown to use this template.',
+    route: 'wizard',
+    label: 'Open New Contract'
+  },
+  {
+    keywords: ['permanent', 'permanent contract', 'permanent employment', 'indefinite', 'full time'],
+    answer: 'Permanent contracts have no end date — the employee is appointed on an indefinite basis. Select "Permanent Employment Contract" in the contract type dropdown. The fixed-term period and termination date fields will be hidden automatically.',
+    route: 'wizard',
+    label: 'Open New Contract'
+  },
+  {
+    keywords: ['required fields', 'mandatory', 'fields', 'what do i need', 'missing field', 'form field'],
+    answer: 'Required fields for all contracts: contract type, first name, last name, ID or passport number, role/job title, salary, address, probation period, work hours, and notice period. Fixed-term also requires start date, end date, and term period. All are checked before preview unlocks.',
+    route: 'wizard',
+    label: 'Open New Contract'
+  },
+  {
+    keywords: ['salary', 'pay', 'remuneration', 'compensation', 'monthly salary', 'wage'],
+    answer: 'Enter the gross monthly salary in Rands (numbers only). ContractIQ converts it automatically to the formal format, e.g. R 25 000 (Twenty-Five Thousand Rand). Salaries above R 1 000 000/month are flagged for confirmation.',
+    route: 'wizard',
+    label: 'Open New Contract'
+  },
+  {
+    keywords: ['probation', 'probationary', 'probation period', 'probation months'],
+    answer: 'Probation period is entered in whole months, between 0 and 12. Enter 0 for no probation. ContractIQ formats it as "3 (Three) Months" in the contract automatically.',
+    route: 'wizard',
+    label: 'Open New Contract'
+  },
+  {
+    keywords: ['notice period', 'notice', 'resignation notice', 'notice days'],
+    answer: 'Notice period should include a number, e.g. "30 (Thirty) Days" or "1 (One) Calendar Month". This appears in the contract termination clause and must comply with BCEA minimums for the employee\'s salary band.',
+    route: 'wizard',
+    label: 'Open New Contract'
+  },
+  {
+    keywords: ['work hours', 'hours of work', 'working hours', 'shift', 'start time', 'end time'],
+    answer: 'Enter work hours as a time range, e.g. "08:00 – 17:00". This appears in the employment terms clause. The format must include a recognisable time range — ContractIQ validates it before allowing preview.',
+    route: 'wizard',
+    label: 'Open New Contract'
+  },
+  {
+    keywords: ['id number', 'identity', 'south african id', 'id validation', 'passport', 'foreign national'],
+    answer: 'Select "South African ID" for a 13-digit SA ID number — ContractIQ validates the Luhn checksum and date of birth automatically. Select "Passport" for foreign nationals; passport numbers must be 6–20 alphanumeric characters.',
+    route: 'wizard',
+    label: 'Open New Contract'
+  },
+  {
+    keywords: ['address', 'residential address', 'home address', 'postal address'],
+    answer: 'Enter the employee\'s full residential address. This appears in both the schedule table and the postal address field of the generated contract. At least 5 characters are required.',
+    route: 'wizard',
+    label: 'Open New Contract'
+  },
+  {
+    keywords: ['duties', 'job duties', 'responsibilities', 'job description', 'scope of work'],
+    answer: 'Duties are optional but recommended. If left blank, the contract will read "As per job description." For more precise contracts, describe the key responsibilities in the duties field — this appears in the Duties clause.',
+    route: 'wizard',
+    label: 'Open New Contract'
+  },
+  {
+    keywords: ['restraint', 'restraint of trade', 'non compete', 'competition clause'],
+    answer: 'Restraint of trade is optional. Enter the geographical area (e.g. "Gauteng") and the restraint period (e.g. "12 (Twelve) Months"). If left blank, a default Gauteng / 12-month restraint is used in the contract.',
+    route: 'wizard',
+    label: 'Open New Contract'
+  },
+  {
+    keywords: ['arbitration', 'dispute', 'arbitration city', 'dispute resolution'],
+    answer: 'The arbitration city is used in the dispute resolution clause. Default is Gauteng. Enter the city where disputes would be resolved if the parties cannot reach agreement.',
+    route: 'wizard',
+    label: 'Open New Contract'
+  },
+  {
+    keywords: ['draft', 'autosave', 'save draft', 'lost my work', 'restore', 'continue'],
+    answer: 'ContractIQ autosaves your form as a draft in the browser as you type. If you navigate away and return to New Contract, your draft is restored automatically. Click "Clear Draft" to start fresh.',
+    route: 'wizard',
+    label: 'Open New Contract'
+  },
+
+  // ── Preview & export ─────────────────────────────────────────────────────────
+  {
+    keywords: ['preview', 'review contract', 'view contract', 'see contract', 'contract preview'],
+    answer: 'Preview opens after all required fields are validated. It shows the exact formatted contract with RedMPS letterhead, all schedule fields, clauses, and signature blocks. You can export to Word or PDF, submit for approval, or save a draft from this screen.',
+    route: 'preview',
+    label: 'Open Preview'
+  },
+  {
+    keywords: ['download', 'export', 'word', 'doc', 'docx', 'editable'],
+    answer: 'Click "Download Word" on the Preview page to get a .doc file with the full RedMPS letterhead. This is an editable format — useful for minor manual corrections. For the official signed copy, use the PDF flow instead.',
+    route: 'preview',
+    label: 'Open Preview'
+  },
+  {
+    keywords: ['pdf', 'print', 'save as pdf', 'print to pdf', 'letterhead', 'redmps format'],
+    answer: 'Click "Download PDF" on Preview. A print window opens with the RedMPS cover page and letterhead. Choose "Save as PDF" in your browser\'s print dialog. The contract includes the RedMPS address (145 Western Service Road, Woodmead) and contact details.',
+    route: 'preview',
+    label: 'Open Preview'
+  },
+  {
+    keywords: ['mistake', 'wrong', 'error in contract', 'fix contract', 'incorrect', 'change field'],
+    answer: 'If a field is wrong, go back to New Contract, correct the field, and regenerate the preview — this keeps the schedule and clauses consistent. For a minor wording tweak after approval, download the Word version and edit manually.',
+    route: 'wizard',
+    label: 'Open New Contract'
+  },
+  {
+    keywords: ['sign', 'signature', 'sign contract', 'signature block', 'witness'],
+    answer: 'The generated contract includes signature blocks for the Employee and for RedM Professional Services (the employer). Once the contract is approved and sent to the employee, they sign the physical or emailed document. Digital signatures are a planned feature.',
+    route: 'preview',
+    label: 'Open Preview'
+  },
+
+  // ── Approval workflow ────────────────────────────────────────────────────────
+  {
+    keywords: ['approval', 'approve', 'approval queue', 'pending approval', 'awaiting approval'],
+    answer: 'The approval flow is: HR generates the contract → submits it → the CEO/Director receives an automatic email → approves in the Approvals queue → HR receives an approval email → HR clicks "Send to Employee" → the employee receives their contract by email.',
     route: 'approvals',
     label: 'View Approvals'
   },
   {
-    keywords: ['template', 'templates', 'publish', 'placeholder', 'clause'],
-    answer: 'Templates control clauses, placeholders, and publishing status. Published templates can be used immediately; draft templates should be reviewed before they generate contracts.',
-    route: 'templates',
-    label: 'Manage Templates'
+    keywords: ['submit for approval', 'send for approval', 'submit contract', 'how to submit'],
+    answer: 'On the Preview page, click "Submit for Approval". This sets the contract to Review status and automatically emails the Director (Kogiela Reddy) to action it. You do not need to manually notify anyone.',
+    route: 'preview',
+    label: 'Open Preview'
   },
   {
-    keywords: ['user', 'users', 'account', 'superuser', 'create user'],
-    answer: 'Public registration is disabled. Only active superusers can create accounts, assign roles, choose departments, and force a password change on first login.',
-    route: 'create-user',
-    label: 'Create User'
+    keywords: ['reject', 'returned', 'revision', 'send back', 'declined', 'not approved'],
+    answer: 'If a contract is rejected in the Approvals queue, HR receives an automatic email with the reason. The contract status changes to Rejected. Go to New Contract, correct the flagged issue, regenerate, and resubmit.',
+    route: 'approvals',
+    label: 'View Approvals'
   },
   {
-    keywords: ['password', 'reset', 'forgot', 'login', 'sign in'],
-    answer: 'Use Forgot Password on the sign-in screen. In the local demo, the reset code is RESET-2026. In production, resets should be issued only for provisioned accounts.',
-    route: 'reset-password',
-    label: 'Reset Password'
+    keywords: ['send to employee', 'send contract', 'email employee', 'deliver contract', 'employee receives'],
+    answer: 'Once a contract is Approved, a "Send to Employee" button appears in the Approvals queue. Click it — ContractIQ emails the contract to the employee\'s email address on record and marks the contract as Signed automatically.',
+    route: 'approvals',
+    label: 'View Approvals'
   },
   {
-    keywords: ['audit', 'log', 'history', 'trace', 'activity'],
-    answer: 'The Audit Log traces contract, user, template, and approval activity. Use it to confirm who changed what, when it happened, and which workspace action created the event.',
-    route: 'audit',
-    label: 'Open Audit Log'
+    keywords: ['approved', 'contract approved', 'what happens after approval', 'after approved'],
+    answer: 'After the Director approves, HR receives an email notification and the contract moves to Approved status. The "Send to Employee" button then appears in the Approvals page. One click emails the contract to the employee.',
+    route: 'approvals',
+    label: 'View Approvals'
   },
   {
-    keywords: ['settings', 'security', 'policy', 'configuration', 'configure'],
-    answer: 'Settings controls security, document generation, approval policies, retention, and feature toggles. Superuser permissions are required for the most sensitive controls.',
-    route: 'settings',
-    label: 'Open Settings'
+    keywords: ['who approves', 'who can approve', 'approval permission', 'ceo approve', 'director approve'],
+    answer: 'Only users with the Director role (or superuser) can approve contracts. Currently that is Kogiela Reddy (CEO). HR Managers like Tiara Ramouthar can create contracts but cannot action the approval queue.',
+    route: 'approvals',
+    label: 'View Approvals'
   },
+
+  // ── Email & notifications ────────────────────────────────────────────────────
   {
-    keywords: ['dashboard', 'summary', 'workspace', 'overview', 'status'],
-    answer: 'Workspace summary: 142 contracts generated, 5 pending approvals, 4.8 minute average processing, and 87% automation coverage. The highest-value next step is clearing pending approvals.',
+    keywords: ['email', 'notification', 'email sent', 'did email send', 'automatic email', 'notify'],
+    answer: 'ContractIQ sends automatic emails at every lifecycle stage: when a contract is submitted (approver notified), when approved or rejected (HR notified), and when sent to the employee (employee notified). Emails use the Resend service and come from the configured FROM address.',
     route: 'dashboard',
     label: 'Open Dashboard'
   },
   {
-    keywords: ['employee', 'employees', 'directory', 'staff'],
-    answer: 'The Employees area is for browsing employee records and contract history. Use it when you need reusable employee data before starting a contract.',
+    keywords: ['email not received', 'email not sent', 'no email', 'email failed', 'resend'],
+    answer: 'If an email was not received: check the spam/junk folder first. Email failures are logged but do not block the workflow — the in-app notification still lands. Check the Audit Log for the send event, or ask your administrator to verify the Resend API key in the .env file.',
+    route: 'audit',
+    label: 'Open Audit Log'
+  },
+
+  // ── Employees ────────────────────────────────────────────────────────────────
+  {
+    keywords: ['employee', 'employees', 'staff', 'directory', 'people', 'find employee'],
+    answer: 'The Employees page lists all active staff with job title, department, hire date, and contract count. Use "Use in Contract" on any employee card to pre-fill the contract wizard with their name, email, phone, and job title automatically.',
     route: 'employees',
     label: 'Open Employees'
   },
   {
-    keywords: ['preview', 'export', 'download', 'sign', 'signature'],
-    answer: 'Preview opens after the contract is validated. From there you can review the exact generated agreement, download a Word-editable copy, open the PDF print flow, submit for approval, or prepare for signature after approval is complete.',
-    route: 'preview',
-    label: 'Open Preview'
+    keywords: ['add employee', 'new employee', 'create employee', 'register employee'],
+    answer: 'New employees can be added via the API (POST /api/employees) or by your administrator. Once added, they appear in the Employees directory and can be selected with "Use in Contract" to auto-fill the wizard.',
+    route: 'employees',
+    label: 'Open Employees'
   },
   {
-    keywords: ['word', 'doc', 'docx', 'edit', 'editable', 'wrong', 'fix', 'mistake'],
-    answer: 'If the generated contract needs a correction, download the Word version from Preview, make the manual fix, and keep the saved draft/audit trail. If a field value is wrong, go back to New Contract and regenerate so the schedule and clauses stay consistent.',
-    route: 'preview',
-    label: 'Open Preview'
+    keywords: ['use in contract', 'prefill', 'pre-fill', 'auto fill', 'employee to contract'],
+    answer: 'On the Employees page, click "Use in Contract" on any employee card. ContractIQ pre-fills the contract wizard with that employee\'s name, email address, phone number, and job title. You only need to fill in salary, dates, and probation.',
+    route: 'employees',
+    label: 'Open Employees'
+  },
+
+  // ── Users & roles ────────────────────────────────────────────────────────────
+  {
+    keywords: ['user', 'users', 'account', 'superuser', 'create user', 'add user'],
+    answer: 'Only superusers can create accounts. There are currently 3 users: admin@redmps.com (Administrator), tiara.ramouthar@redmps.com (HR Manager), and kogiela.reddy@redmps.com (Director/CEO). New users are given a temporary password and must change it on first login.',
+    route: 'create-user',
+    label: 'Create User'
   },
   {
-    keywords: ['pdf', 'letterhead', 'redmps format', 'format', 'print'],
-    answer: 'Contract exports use the RedMPS letterhead details: RedM Professional Services, 145 Western Service Road, Woodmead, +27 10 300 9025, and www.redmps.com. Download PDF opens a print-ready contract where you choose Save as PDF.',
-    route: 'preview',
-    label: 'Open Preview'
+    keywords: ['tiara', 'hr manager', 'hr officer', 'hr user', 'tiara ramouthar'],
+    answer: 'Tiara Ramouthar (tiara.ramouthar@redmps.com) is the HR Manager. She can create contracts, manage employees, view templates, analytics, and the audit log. She cannot action the approval queue — that is reserved for the Director role.',
+    route: 'dashboard',
+    label: 'Open Dashboard'
   },
   {
-    keywords: ['approval flow', 'send for approval', 'send approval', 'privilege', 'privileges'],
-    answer: 'The approval flow is HR generation, HR Manager review, Director review, then Signature. Only admins, managers, directors, or superusers with the matching stage permission can approve. Flagging an item sends it back to the responsible party for correction.',
+    keywords: ['kogiela', 'ceo', 'director', 'kogiela reddy', 'chief executive'],
+    answer: 'Kogiela Reddy (kogiela.reddy@redmps.com) is the CEO and Director. She has full system access including the approval queue. When HR submits a contract, Kogiela receives an automatic email and can approve or reject directly in the Approvals page.',
     route: 'approvals',
     label: 'View Approvals'
+  },
+  {
+    keywords: ['role', 'roles', 'permissions', 'access', 'what can i do', 'access level'],
+    answer: 'There are three active roles: Administrator (full access + user management), HR Manager (contracts, employees, templates, analytics, audit — no approvals), and Director (full access including approvals). Roles are assigned when a user account is created.',
+    route: 'create-user',
+    label: 'Create User'
+  },
+  {
+    keywords: ['password', 'reset', 'forgot', 'forgot password', 'change password', 'login problem'],
+    answer: 'Click "Forgot Password" on the sign-in screen and enter your email. A reset link is emailed to you. Temporary passwords for the current accounts are in the migration file. All three current users are set to force a password change on first login.',
+    route: null,
+    label: null
+  },
+
+  // ── Templates ────────────────────────────────────────────────────────────────
+  {
+    keywords: ['template', 'templates', 'contract template', 'published', 'draft template'],
+    answer: 'Templates define the structure and clauses of each contract type. Published templates can generate contracts immediately. Draft templates are under review. The two active templates are "RedMPS Fixed-Term Employment Agreement v1" and the Permanent Employment Contract.',
+    route: 'templates',
+    label: 'Manage Templates'
+  },
+  {
+    keywords: ['bcea', 'compliance', 'popia', 'labour law', 'legal', 'act', 'regulation'],
+    answer: 'ContractIQ contracts are built to comply with the Basic Conditions of Employment Act (BCEA) 1997 and POPIA. Fixed-term contracts include mandatory fixed-term reason, probation, and notice clauses. The compliance checklist in the wizard shows coverage before you generate.',
+    route: 'wizard',
+    label: 'Open New Contract'
+  },
+
+  // ── Analytics ────────────────────────────────────────────────────────────────
+  {
+    keywords: ['analytics', 'reporting', 'report', 'statistics', 'trends', 'volume', 'performance'],
+    answer: 'Analytics shows contract volume by month, breakdown by type, average approval time (SLA), top employees by contract count, and bottleneck analysis (how many contracts are stuck in Review, Approved, or Rejected). Great for monthly HR reporting.',
+    route: 'analytics',
+    label: 'Open Analytics'
+  },
+  {
+    keywords: ['sla', 'processing time', 'how long', 'average time', 'turnaround'],
+    answer: 'The SLA panel in Analytics shows the average hours from submission to approval. A fast turnaround means the Director is actioning approvals promptly. If SLA is high, check the Approvals queue for contracts that have been pending more than a day.',
+    route: 'analytics',
+    label: 'Open Analytics'
+  },
+
+  // ── Audit log ────────────────────────────────────────────────────────────────
+  {
+    keywords: ['audit', 'log', 'history', 'trace', 'activity', 'who changed', 'what happened'],
+    answer: 'The Audit Log shows a full timeline of every action: contracts created, submitted, approved, or rejected; user accounts created; and system events. Each entry shows the actor, action, and timestamp. Use it to investigate any discrepancy.',
+    route: 'audit',
+    label: 'Open Audit Log'
+  },
+
+  // ── Dashboard ────────────────────────────────────────────────────────────────
+  {
+    keywords: ['dashboard', 'home', 'overview', 'summary', 'main page'],
+    answer: 'The Dashboard shows live counts of total contracts, pending approvals, active employees, and signed contracts. The recent contracts table lists the last 5 created. It is the best starting point to understand the current workload at a glance.',
+    route: 'dashboard',
+    label: 'Open Dashboard'
+  },
+
+  // ── Settings ─────────────────────────────────────────────────────────────────
+  {
+    keywords: ['settings', 'configuration', 'configure', 'security settings', 'feature flags'],
+    answer: 'Settings covers security policy (session timeout, MFA), document generation options, approval workflow configuration, data retention, and feature toggles. Most sensitive settings require superuser access. Changes take effect on next API restart.',
+    route: 'settings',
+    label: 'Open Settings'
+  },
+
+  // ── Contracts list ───────────────────────────────────────────────────────────
+  {
+    keywords: ['contracts list', 'all contracts', 'view all', 'contract status', 'search contracts'],
+    answer: 'The Contracts page lists all contracts with status, salary, employee name, and dates. Filter by status (Draft, Review, Approved, Signed, Rejected) using the tabs, or use the search bar to find by contract number, employee name, or title.',
+    route: 'contracts',
+    label: 'View Contracts'
+  },
+  {
+    keywords: ['contract number', 'reference', 'rmp', 'contract ref', 'contract id'],
+    answer: 'Contract numbers follow the format RMP-YYYY-NNN (e.g. RMP-2026-001). They are assigned automatically when the contract is created and appear on the document cover page, in emails, and in all audit entries.',
+    route: 'contracts',
+    label: 'View Contracts'
+  },
+  {
+    keywords: ['status', 'draft', 'review', 'signed', 'executed', 'rejected', 'archived', 'contract status'],
+    answer: 'Contract statuses: Draft (being prepared), Review (submitted, awaiting approval), Approved (approved by Director, ready to send), Signed (sent to employee), Executed (fully complete), Rejected (returned for changes), Archived (closed). Each transition triggers an automatic email.',
+    route: 'contracts',
+    label: 'View Contracts'
+  },
+
+  // ── General help ─────────────────────────────────────────────────────────────
+  {
+    keywords: ['help', 'how do i', 'what is', 'explain', 'how does', 'guide', 'instructions'],
+    answer: 'I am Contracta — ContractIQ\'s built-in assistant. I can explain any feature, walk you through the contract workflow, answer questions about roles and permissions, or navigate you to any page. Just ask in plain language.',
+    route: null,
+    label: null
+  },
+  {
+    keywords: ['what can you do', 'what can contracta do', 'capabilities', 'commands', 'options'],
+    answer: 'I can: explain any page or feature, walk through the full contract-to-employee workflow, answer questions about roles, emails, compliance, and statuses, navigate to any page ("open approvals"), collapse or expand the sidebar, summarise the workspace, and clear this chat.',
+    route: null,
+    label: null
   }
 ];
 
 const FAQ_ROUTE_GUIDE = {
-  dashboard: 'You are on Dashboard. Use it to monitor volume, approval pressure, automation readiness, and priority queues.',
-  contracts: 'You are on Contracts. Search, filter, switch list/grid views, and inspect contract statuses from here.',
-  wizard: 'You are in New Contract. Complete the required employee and contract fields, then validate to unlock preview.',
-  preview: 'You are on Preview. Review generated content, schedule details, and export options before signing.',
-  employees: 'You are on Employees. Use it to find employee records and reuse master data for contracts.',
-  templates: 'You are on Templates. Review placeholder coverage, versions, publishing state, and compliance readiness.',
-  approvals: 'You are on Approvals. Filter by route and process pending manager, director, or signature tasks.',
-  analytics: 'You are on Analytics. Use this for trends, compliance signals, and operational reporting.',
-  audit: 'You are on Audit Log. Trace user, contract, template, and approval actions.',
-  settings: 'You are on Settings. Configure security, document generation, approval policy, and feature toggles.',
-  'create-user': 'You are on Create User. Superusers can provision accounts, assign roles, and enforce first-login password changes.'
+  dashboard: 'You are on the Dashboard. It shows live counts of total contracts, pending approvals, active employees, and signed contracts, plus a recent contracts table. Good starting point to see today\'s workload.',
+  contracts: 'You are on Contracts. All contracts are listed here with status, employee, salary, and dates. Use the tabs to filter by status, or the search bar to find a specific contract. Switch between list and grid view with the icons at the top right.',
+  wizard: 'You are in New Contract (the contract wizard). Select a contract type, fill in employee details, salary, dates, and probation, then click Generate Preview. All required fields must be complete before the preview button unlocks.',
+  preview: 'You are on Preview & Export. This shows the fully formatted contract. From here you can: download Word, download PDF, submit for approval, or save a draft. Once approved, the "Send to Employee" button appears in the Approvals page.',
+  employees: 'You are on Employees. This lists all active staff. Click "Use in Contract" on any card to auto-fill the contract wizard with that person\'s details — saves re-typing name, email, phone, and job title.',
+  templates: 'You are on Templates. Published templates are ready to use; draft templates are pending review. The two active templates are Fixed-Term Employment Agreement and Permanent Employment Contract.',
+  approvals: 'You are on Approvals. Pending contracts waiting for the Director\'s approval appear here. Approved contracts show a "Send to Employee" button. Only Director-role users (Kogiela Reddy) can approve or reject.',
+  analytics: 'You are on Analytics. See contract volume by month, breakdown by type, average approval time, and bottleneck analysis. Useful for monthly HR reporting and identifying slow approval stages.',
+  audit: 'You are on the Audit Log. Every action in the system is recorded here — contract creation, approvals, rejections, user changes, and emails. Use it to trace any discrepancy.',
+  settings: 'You are on Settings. Configure security policy, document generation, approval routing, data retention, and feature flags. Most changes require superuser access and an API restart.',
+  'create-user': 'You are on Create User. Only superusers can create accounts. Enter the name, email, role (HR Manager or Director), department, and a temporary password — the user is forced to change it on first login.'
 };
 
 const FAQ_ROUTE_ALIASES = {
@@ -728,6 +974,51 @@ const FAQ_ROUTE_ALIASES = {
   'create user': 'create-user'
 };
 
+const CONTRACTA_SUGGESTIONS = {
+  dashboard:    ['What do the numbers on the dashboard mean?', 'Why are there pending approvals?', 'How do I create a contract?'],
+  wizard:       ['What fields are required?', 'What is probation period?', 'Whats the difference between fixed-term and permanent?', 'How do I enter the salary?'],
+  preview:      ['How do I download a PDF?', 'How do I submit for approval?', 'Can I fix a mistake in the contract?', 'How do I get a Word version?'],
+  approvals:    ['Who can approve a contract?', 'How do I send the contract to the employee?', 'What happens when I reject a contract?', 'Why cant I see an approve button?'],
+  employees:    ['How do I use an employee in a contract?', 'What does Use in Contract do?', 'How do I add a new employee?'],
+  contracts:    ['What do the contract statuses mean?', 'How do I find a specific contract?', 'What does Review status mean?'],
+  templates:    ['What is the difference between published and draft?', 'Which template should I use for a fixed-term contract?'],
+  analytics:    ['What does the SLA number mean?', 'How do I see this months contract volume?'],
+  audit:        ['How do I find out who approved a contract?', 'What events are tracked in the audit log?'],
+  settings:     ['Who can change settings?', 'What does force password change mean?'],
+  'create-user':['What roles can I assign?', 'What is a superuser?', 'What is a temporary password?'],
+  _default:     ['How do I create a contract?', 'What is the approval process?', 'How does the employee receive their contract?', 'What can Contracta help me with?']
+};
+
+const CONTRACTA_PLACEHOLDERS = [
+  'e.g. How do I create a contract?',
+  'e.g. Who approves contracts?',
+  'e.g. How does the employee get the contract?',
+  'e.g. What is probation period?',
+  'e.g. What do contract statuses mean?',
+  'e.g. How do I download a PDF?',
+  'e.g. What can Tiara do in the system?',
+  'e.g. How do I fix a mistake in a contract?',
+];
+let _placeholderIndex = 0;
+let _placeholderTimer = null;
+
+function rotatePlaceholder() {
+  const input = document.getElementById('faqChatInput');
+  if (!input || document.activeElement === input) return;
+  _placeholderIndex = (_placeholderIndex + 1) % CONTRACTA_PLACEHOLDERS.length;
+  input.placeholder = CONTRACTA_PLACEHOLDERS[_placeholderIndex];
+}
+
+function renderContractaSuggestions() {
+  const el = document.getElementById('faqChatSuggestions');
+  if (!el) return;
+  const route = getCurrentContractaRoute();
+  const questions = CONTRACTA_SUGGESTIONS[route] || CONTRACTA_SUGGESTIONS._default;
+  el.innerHTML = questions.map(q =>
+    `<button type="button" onclick="askFaqSuggestion(${JSON.stringify(q)})">${q}</button>`
+  ).join('');
+}
+
 function toggleFaqChat(forceOpen = null) {
   const panel = document.getElementById('faqChatPanel');
   const fab = document.querySelector('.ai-chat-fab');
@@ -739,7 +1030,14 @@ function toggleFaqChat(forceOpen = null) {
   topbarButton?.setAttribute('aria-expanded', String(open));
   if (open) {
     closeProfileMenu();
+    renderContractaSuggestions();
     setTimeout(() => document.getElementById('faqChatInput')?.focus(), 50);
+    if (!_placeholderTimer) {
+      _placeholderTimer = setInterval(rotatePlaceholder, 3000);
+    }
+  } else {
+    clearInterval(_placeholderTimer);
+    _placeholderTimer = null;
   }
 }
 
@@ -765,16 +1063,21 @@ function resolveContractaIntent(question) {
   const directCommand = handleContractaCommand(normalized);
   if (directCommand) return directCommand;
 
+  const words = normalized.split(/\s+/);
   const scored = FAQ_ANSWERS
     .map(item => ({
       item,
-      score: item.keywords.reduce((total, keyword) => total + (normalized.includes(keyword) ? 1 : 0), 0)
+      score: item.keywords.reduce((total, keyword) => {
+        if (normalized.includes(keyword)) return total + keyword.split(' ').length + 1;
+        if (words.some(w => keyword.includes(w) && w.length > 3)) return total + 0.5;
+        return total;
+      }, 0)
     }))
     .sort((a, b) => b.score - a.score);
 
   if (scored[0]?.score > 0) return scored[0].item;
   return {
-    answer: 'I am Contracta. I can answer FAQs, explain the current page, navigate to app areas, summarize the workspace, clear this chat, open your profile, or collapse and expand the sidebar. Try "what can I do here?", "open templates", or "summarize my workspace".',
+    answer: 'I\'m not sure about that one. Try asking about: creating a contract, the approval flow, sending to an employee, roles and permissions, emails, salary, probation, templates, or any specific page. You can also say "open [page name]" to navigate.',
     route: null,
     label: null
   };
@@ -853,9 +1156,10 @@ function clearFaqChat() {
   if (!messages) return;
   messages.innerHTML = `
     <div class="ai-message bot">
-      <span>Contracta is ready. Ask for page help, workflow guidance, navigation, or a workspace summary.</span>
+      <span>Hi, I'm Contracta — tap any question below to get started, or type your own.</span>
     </div>
   `;
+  renderContractaSuggestions();
 }
 
 function appendFaqTyping(match) {
@@ -923,12 +1227,22 @@ function showToast(message, type = 'info', duration = 3000) {
 
   const toast = document.createElement('div');
   toast.className = `toast ${type}`;
-  toast.innerHTML = `
-    <div class="toast-icon">${TOAST_ICONS[type] || 'i'}</div>
-    <span>${message}</span>
-    <button class="toast-close" onclick="dismissToast(this.parentElement)">×</button>
-  `;
 
+  const icon = document.createElement('div');
+  icon.className = 'toast-icon';
+  icon.textContent = TOAST_ICONS[type] || 'i';
+
+  const msg = document.createElement('span');
+  msg.textContent = message; // textContent prevents XSS — never use innerHTML here
+
+  const closeBtn = document.createElement('button');
+  closeBtn.className = 'toast-close';
+  closeBtn.textContent = '×';
+  closeBtn.addEventListener('click', () => dismissToast(toast));
+
+  toast.appendChild(icon);
+  toast.appendChild(msg);
+  toast.appendChild(closeBtn);
   container.appendChild(toast);
 
   setTimeout(() => dismissToast(toast), duration);
@@ -1513,6 +1827,11 @@ function initCreateUser() {
     form.removeEventListener('submit', cuHandleSubmit);
     form.addEventListener('submit', cuHandleSubmit);
   }
+
+  // Focus first name field so the user can start typing immediately
+  requestAnimationFrame(() => {
+    document.getElementById('cuFirstName')?.focus();
+  });
 }
 
 /* ── Build the two-column grid and inject the info panel ──
@@ -1850,43 +2169,78 @@ async function cuHandleSubmit(e) {
   }
 
   if (detailEl) {
-    detailEl.innerHTML = `
-      <div style="display:grid;gap:0;">
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--coal-100);">
-          <span style="color:var(--coal-500);font-size:13px;font-weight:500;">Name</span>
-          <strong style="color:var(--coal-900);font-size:13px;">${data.firstName} ${data.lastName}</strong>
-        </div>
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--coal-100);">
-          <span style="color:var(--coal-500);font-size:13px;font-weight:500;">Email (username)</span>
-          <div style="display:flex;align-items:center;gap:8px;">
-            <strong style="color:var(--coal-900);font-size:13px;">${data.email}</strong>
-            <button class="cu-copy-btn" onclick="cuCopyText('${data.email}','Email')" title="Copy email">
-              <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-            </button>
-          </div>
-        </div>
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--coal-100);">
-          <span style="color:var(--coal-500);font-size:13px;font-weight:500;">Temporary password</span>
-          <div style="display:flex;align-items:center;gap:8px;">
-            <code style="font-family:'Courier New',monospace;font-size:13px;font-weight:700;color:var(--coal-900);background:rgba(212,0,42,.07);padding:3px 8px;border-radius:6px;letter-spacing:.5px;">${data.password}</code>
-            <button class="cu-copy-btn" onclick="cuCopyText('${data.password}','Password')" title="Copy password">
-              <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-            </button>
-          </div>
-        </div>
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--coal-100);">
-          <span style="color:var(--coal-500);font-size:13px;font-weight:500;">Role</span>
-          <strong style="color:var(--coal-900);font-size:13px;">${CU_ROLE_LABELS[data.roleId] || data.roleId}</strong>
-        </div>
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;">
-          <span style="color:var(--coal-500);font-size:13px;font-weight:500;">Must set own password?</span>
-          <strong style="color:var(--coal-900);font-size:13px;">${data.forceChange ? 'Yes — on first login' : 'No'}</strong>
-        </div>
-      </div>
-      <div style="display:flex;align-items:center;gap:8px;margin-top:14px;padding:10px 12px;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.22);border-radius:8px;">
-        <svg width="14" height="14" fill="none" stroke="#b45309" stroke-width="2" viewBox="0 0 24 24" style="flex-shrink:0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-        <span style="font-size:12px;color:#92400e;font-weight:600;">Share these credentials securely. The password above will not be shown again.</span>
-      </div>`;
+    // Build the success detail using DOM API so user-controlled values
+    // (name, email, password) can never be interpreted as HTML or JS.
+    detailEl.innerHTML = '';
+
+    const makeRow = (labelText, valueNode, borderBottom = true) => {
+      const row = document.createElement('div');
+      row.style.cssText = `display:flex;align-items:center;justify-content:space-between;padding:10px 0;${borderBottom ? 'border-bottom:1px solid var(--coal-100);' : ''}`;
+      const lbl = document.createElement('span');
+      lbl.style.cssText = 'color:var(--coal-500);font-size:13px;font-weight:500;';
+      lbl.textContent = labelText;
+      row.appendChild(lbl);
+      row.appendChild(valueNode);
+      return row;
+    };
+
+    const makeCopyRow = (labelText, value, copyLabel) => {
+      const wrap = document.createElement('div');
+      wrap.style.cssText = 'display:flex;align-items:center;gap:8px;';
+      const strong = document.createElement('strong');
+      strong.style.cssText = 'color:var(--coal-900);font-size:13px;';
+      strong.textContent = value; // textContent — safe
+      const btn = document.createElement('button');
+      btn.className = 'cu-copy-btn';
+      btn.title = `Copy ${copyLabel}`;
+      btn.innerHTML = '<svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+      btn.addEventListener('click', () => cuCopyText(value, copyLabel)); // closure — no inline JS
+      wrap.appendChild(strong);
+      wrap.appendChild(btn);
+      return wrap;
+    };
+
+    const grid = document.createElement('div');
+    grid.style.cssText = 'display:grid;gap:0;';
+
+    const nameStrong = document.createElement('strong');
+    nameStrong.style.cssText = 'color:var(--coal-900);font-size:13px;';
+    nameStrong.textContent = `${data.firstName} ${data.lastName}`;
+
+    const roleStrong = document.createElement('strong');
+    roleStrong.style.cssText = 'color:var(--coal-900);font-size:13px;';
+    roleStrong.textContent = CU_ROLE_LABELS[data.roleId] || data.roleId;
+
+    const pwStrong = document.createElement('strong');
+    pwStrong.style.cssText = 'color:var(--coal-900);font-size:13px;';
+    pwStrong.textContent = data.forceChange ? 'Yes — on first login' : 'No';
+
+    // Password shown as <code> for styling — still set via textContent
+    const pwCode = document.createElement('div');
+    pwCode.style.cssText = 'display:flex;align-items:center;gap:8px;';
+    const code = document.createElement('code');
+    code.style.cssText = "font-family:'Courier New',monospace;font-size:13px;font-weight:700;color:var(--coal-900);background:rgba(212,0,42,.07);padding:3px 8px;border-radius:6px;letter-spacing:.5px;";
+    code.textContent = data.password; // textContent — safe
+    const pwCopyBtn = document.createElement('button');
+    pwCopyBtn.className = 'cu-copy-btn';
+    pwCopyBtn.title = 'Copy password';
+    pwCopyBtn.innerHTML = '<svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+    pwCopyBtn.addEventListener('click', () => cuCopyText(data.password, 'Password'));
+    pwCode.appendChild(code);
+    pwCode.appendChild(pwCopyBtn);
+
+    grid.appendChild(makeRow('Name', nameStrong));
+    grid.appendChild(makeRow('Email (username)', makeCopyRow('Email (username)', data.email, 'Email')));
+    grid.appendChild(makeRow('Temporary password', pwCode));
+    grid.appendChild(makeRow('Role', roleStrong));
+    grid.appendChild(makeRow('Must set own password?', pwStrong, false));
+
+    const warning = document.createElement('div');
+    warning.style.cssText = 'display:flex;align-items:center;gap:8px;margin-top:14px;padding:10px 12px;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.22);border-radius:8px;';
+    warning.innerHTML = '<svg width="14" height="14" fill="none" stroke="#b45309" stroke-width="2" viewBox="0 0 24 24" style="flex-shrink:0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><span style="font-size:12px;color:#92400e;font-weight:600;">Share these credentials securely. The password above will not be shown again.</span>';
+
+    detailEl.appendChild(grid);
+    detailEl.appendChild(warning);
   }
 
   document.getElementById('cuSuccessPanel')?.classList.remove('hidden');
@@ -1989,6 +2343,46 @@ function cuAcknowledgeCreatedUser() {
 /* ═══════════════════════════════════════════
    AUDIT PAGE INTERACTIONS
 ═══════════════════════════════════════════ */
+
+function downloadAuditCsv() {
+  const rows = [['Type', 'Actor / Action', 'Details', 'Time']];
+  document.querySelectorAll('#auditTimeline .audit-entry').forEach(entry => {
+    if (entry.style.display === 'none') return;
+    const type = entry.dataset.type || '';
+    const title = entry.querySelector('.audit-title')?.textContent?.trim() || '';
+    const detail = entry.querySelector('.audit-detail')?.textContent?.trim() || '';
+    const time = entry.querySelector('.audit-time')?.textContent?.trim() || '';
+    rows.push([type, title, detail, time]);
+  });
+  const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+  downloadBlob(new Blob(['﻿', csv], { type: 'text/csv;charset=utf-8' }), `audit-log-${new Date().toISOString().slice(0,10)}.csv`);
+  showToast('Audit log downloaded.', 'success');
+}
+
+function exportAnalyticsSnapshot() {
+  const sla = document.getElementById('analytics-sla-hours')?.textContent || '—';
+  const approved = document.getElementById('analytics-approved-total')?.textContent || '—';
+  const total = document.getElementById('analytics-total-contracts')?.textContent || '—';
+  const rows = [
+    ['Metric', 'Value'],
+    ['Avg Approval Time', sla],
+    ['Total Approved', approved],
+    ['Total Contracts', total],
+  ];
+  document.querySelectorAll('#page-analytics .insight-list div').forEach(item => {
+    const label = item.querySelector('strong')?.textContent || '';
+    const value = item.querySelector('span')?.textContent || '';
+    if (label) rows.push([label, value]);
+  });
+  document.querySelectorAll('#page-analytics .analytics-type-list div').forEach(item => {
+    const label = item.querySelector('span')?.textContent || '';
+    const value = item.querySelector('strong')?.textContent || '';
+    if (label) rows.push(['Template: ' + label, value]);
+  });
+  const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+  downloadBlob(new Blob(['﻿', csv], { type: 'text/csv;charset=utf-8' }), `analytics-snapshot-${new Date().toISOString().slice(0,10)}.csv`);
+  showToast('Analytics snapshot downloaded.', 'success');
+}
 
 function setAuditTab(btn, filter) {
   document.querySelectorAll('#auditTabs .filter-tab').forEach(t => t.classList.remove('active'));

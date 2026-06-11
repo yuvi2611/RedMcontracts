@@ -115,9 +115,9 @@ function renderRoute(routeName = getRouteFromHash()) {
   const breadcrumb = document.getElementById('topbar-breadcrumb');
   if (breadcrumb) breadcrumb.textContent = routeName === DEFAULT_AUTH_ROUTE ? '' : '/ ' + route.title;
 
-  window.scrollTo(0, 0);
-
   if (route.page === 'wizard'       && typeof bindContractForm === 'function') bindContractForm();
+  if (route.page === 'wizard'       && typeof applyWizardPrefillIfPresent === 'function') setTimeout(applyWizardPrefillIfPresent, 100);
+  if (typeof renderContractaSuggestions === 'function') renderContractaSuggestions();
   if (route.page === 'create-user'  && typeof initCreateUser   === 'function') initCreateUser();
   if (route.page === 'approvals'    && typeof initApprovals    === 'function') initApprovals();
 

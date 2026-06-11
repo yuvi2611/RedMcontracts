@@ -21,11 +21,13 @@
 }
 
 .sidebar-logo {
-  padding: 20px 22px 18px;
+  height: var(--header-h);
+  padding: 0 14px 0 18px;
   border-bottom: 1px solid rgba(255,255,255,.07);
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
+  flex-shrink: 0;
 }
 
 .sidebar-toggle {
@@ -229,10 +231,12 @@
 }
 
 .app-shell.sidebar-collapsed .sidebar-logo {
+  height: auto;
   flex-direction: column;
   justify-content: center;
+  align-items: center;
   gap: 10px;
-  padding: 16px 12px 14px;
+  padding: 18px 10px 14px;
 }
 
 .app-shell.sidebar-collapsed .logo-text,

@@ -5,7 +5,7 @@
       <p class="page-subtitle">Generated, drafted, and archived employment agreements.</p>
     </div>
     <div style="display:flex;gap:10px;">
-      <button class="btn-secondary" onclick="showToast('Exporting contracts...','info')" type="button">Export CSV</button>
+      <button class="btn-secondary" onclick="exportContractsCsv()" type="button">Export CSV</button>
       <button class="btn-primary" onclick="routeTo('wizard')" type="button">+ New Contract</button>
     </div>
   </div>
@@ -77,7 +77,7 @@
             <td>Operations Associate</td>
             <td>01 Mar 2026</td>
             <td><span class="status-badge signed">Signed</span></td>
-            <td><div class="row-actions"><button class="row-btn" onclick="showToast('Opening contract preview…','info')">View</button><button class="row-btn" onclick="showToast('Downloading PDF…','success')">PDF</button></div></td>
+            <td><div class="row-actions"><button class="row-btn" onclick="routeTo('preview')">View</button><button class="row-btn" onclick="showToast('Start the backend server to download PDFs.','info')">PDF</button></div></td>
           </tr>
           <tr class="contract-row" data-status="pending" data-search="aisha naidoo offer letter rmp-2026-002">
             <td><div class="employee-cell"><div class="emp-avatar" style="background:var(--coal-700)">AN</div><div><div class="emp-name">Aisha Naidoo</div><div class="emp-dept">RMP-2026-002</div></div></div></td>
@@ -85,7 +85,7 @@
             <td>Senior HR Analyst</td>
             <td>15 Mar 2026</td>
             <td><span class="status-badge review">Pending</span></td>
-            <td><div class="row-actions"><button class="row-btn" onclick="showToast('Opening contract preview…','info')">View</button><button class="row-btn" onclick="showToast('Approval reminder sent.','success')">Remind</button></div></td>
+            <td><div class="row-actions"><button class="row-btn" onclick="routeTo('preview')">View</button><button class="row-btn" onclick="showToast('Approval reminder sent to reviewer.','success')">Remind</button></div></td>
           </tr>
           <tr class="contract-row" data-status="active" data-search="mandla khumalo fixed-term rmp-2026-003">
             <td><div class="employee-cell"><div class="emp-avatar" style="background:var(--info)">MK</div><div><div class="emp-name">Mandla Khumalo</div><div class="emp-dept">RMP-2026-003</div></div></div></td>
@@ -93,7 +93,7 @@
             <td>Logistics Coordinator</td>
             <td>01 Apr 2026</td>
             <td><span class="status-badge approved">Active</span></td>
-            <td><div class="row-actions"><button class="row-btn" onclick="showToast('Opening contract preview…','info')">View</button><button class="row-btn" onclick="showToast('Downloading PDF…','success')">PDF</button></div></td>
+            <td><div class="row-actions"><button class="row-btn" onclick="routeTo('preview')">View</button><button class="row-btn" onclick="showToast('Start the backend server to download PDFs.','info')">PDF</button></div></td>
           </tr>
           <tr class="contract-row" data-status="signed" data-search="yuvaan pather permanent rmp-2026-004">
             <td><div class="employee-cell"><div class="emp-avatar" style="background:#7c3aed">YP</div><div><div class="emp-name">Yuvaan Pather</div><div class="emp-dept">RMP-2026-004</div></div></div></td>
@@ -101,7 +101,7 @@
             <td>Finance Manager</td>
             <td>15 Jan 2026</td>
             <td><span class="status-badge signed">Signed</span></td>
-            <td><div class="row-actions"><button class="row-btn" onclick="showToast('Opening contract preview…','info')">View</button><button class="row-btn" onclick="showToast('Downloading PDF…','success')">PDF</button></div></td>
+            <td><div class="row-actions"><button class="row-btn" onclick="routeTo('preview')">View</button><button class="row-btn" onclick="showToast('Start the backend server to download PDFs.','info')">PDF</button></div></td>
           </tr>
           <tr class="contract-row" data-status="active" data-search="nomsa dlamini fixed-term rmp-2026-005">
             <td><div class="employee-cell"><div class="emp-avatar" style="background:#0891b2">ND</div><div><div class="emp-name">Nomsa Dlamini</div><div class="emp-dept">RMP-2026-005</div></div></div></td>
@@ -109,7 +109,7 @@
             <td>Administrative Officer</td>
             <td>01 May 2026</td>
             <td><span class="status-badge approved">Active</span></td>
-            <td><div class="row-actions"><button class="row-btn" onclick="showToast('Opening contract preview…','info')">View</button><button class="row-btn" onclick="showToast('Downloading PDF…','success')">PDF</button></div></td>
+            <td><div class="row-actions"><button class="row-btn" onclick="routeTo('preview')">View</button><button class="row-btn" onclick="showToast('Start the backend server to download PDFs.','info')">PDF</button></div></td>
           </tr>
           <tr class="contract-row" data-status="pending" data-search="sipho ndlovu offer letter rmp-2026-006">
             <td><div class="employee-cell"><div class="emp-avatar" style="background:#b45309">SN</div><div><div class="emp-name">Sipho Ndlovu</div><div class="emp-dept">RMP-2026-006</div></div></div></td>
@@ -117,7 +117,7 @@
             <td>IT Systems Analyst</td>
             <td>01 Jun 2026</td>
             <td><span class="status-badge review">Pending</span></td>
-            <td><div class="row-actions"><button class="row-btn" onclick="showToast('Opening contract preview…','info')">View</button><button class="row-btn" onclick="showToast('Approval reminder sent.','success')">Remind</button></div></td>
+            <td><div class="row-actions"><button class="row-btn" onclick="routeTo('preview')">View</button><button class="row-btn" onclick="showToast('Approval reminder sent to reviewer.','success')">Remind</button></div></td>
           </tr>
           <tr class="contract-row" data-status="signed" data-search="fatima ally permanent rmp-2025-089">
             <td><div class="employee-cell"><div class="emp-avatar" style="background:#059669">FA</div><div><div class="emp-name">Fatima Ally</div><div class="emp-dept">RMP-2025-089</div></div></div></td>
@@ -125,7 +125,7 @@
             <td>Compliance Officer</td>
             <td>01 Sep 2025</td>
             <td><span class="status-badge signed">Signed</span></td>
-            <td><div class="row-actions"><button class="row-btn" onclick="showToast('Opening contract preview…','info')">View</button><button class="row-btn" onclick="showToast('Downloading PDF…','success')">PDF</button></div></td>
+            <td><div class="row-actions"><button class="row-btn" onclick="routeTo('preview')">View</button><button class="row-btn" onclick="showToast('Start the backend server to download PDFs.','info')">PDF</button></div></td>
           </tr>
           <tr class="contract-row" data-status="active" data-search="keegan botha fixed-term rmp-2026-007">
             <td><div class="employee-cell"><div class="emp-avatar" style="background:#dc2626">KB</div><div><div class="emp-name">Keegan Botha</div><div class="emp-dept">RMP-2026-007</div></div></div></td>
@@ -133,19 +133,14 @@
             <td>Marketing Coordinator</td>
             <td>01 Jun 2026</td>
             <td><span class="status-badge approved">Active</span></td>
-            <td><div class="row-actions"><button class="row-btn" onclick="showToast('Opening contract preview…','info')">View</button><button class="row-btn" onclick="showToast('Downloading PDF…','success')">PDF</button></div></td>
+            <td><div class="row-actions"><button class="row-btn" onclick="routeTo('preview')">View</button><button class="row-btn" onclick="showToast('Start the backend server to download PDFs.','info')">PDF</button></div></td>
           </tr>
         </tbody>
       </table>
       <div class="table-footer">
         <span class="table-count" id="contractsCount">Showing 8 of 142 contracts</span>
-        <div class="pagination">
-          <button class="page-btn active" onclick="showToast('Page 1 of 18','info')">1</button>
-          <button class="page-btn" onclick="showToast('Loading page 2…','info')">2</button>
-          <button class="page-btn" onclick="showToast('Loading page 3…','info')">3</button>
-          <span class="page-ellipsis">…</span>
-          <button class="page-btn" onclick="showToast('Loading page 18…','info')">18</button>
-          <button class="page-btn-next" onclick="showToast('Loading next page…','info')">Next →</button>
+        <div class="pagination" id="contractsPagination">
+          <button class="page-btn active" onclick="loadContractsPage(1)">1</button>
         </div>
       </div>
     </section>
@@ -155,7 +150,7 @@
   <div id="contractsGridView" style="display:none">
     <div class="contracts-grid animate-in">
 
-      <div class="contract-card" data-status="signed" onclick="showToast('Opening Thabo Mokoena contract…','info')">
+      <div class="contract-card" data-status="signed" onclick="routeTo('preview')">
         <div class="contract-card-body">
           <div class="contract-card-header">
             <div class="contract-card-avatar" style="background:var(--red-600)">TM</div>
@@ -166,12 +161,12 @@
           <div class="contract-card-meta"><span class="type-chip fixed">Fixed-Term</span><span class="contract-card-ref">RMP-2026-001</span></div>
           <div class="contract-card-footer">
             <span class="contract-card-date"><svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> 01 Mar 2026</span>
-            <button class="contract-card-action" onclick="event.stopPropagation();showToast('Opening preview…','info')">View →</button>
+            <button class="contract-card-action" onclick="event.stopPropagation();routeTo('preview')">View →</button>
           </div>
         </div>
       </div>
 
-      <div class="contract-card" data-status="review" onclick="showToast('Opening Aisha Naidoo contract…','info')">
+      <div class="contract-card" data-status="review" onclick="routeTo('approvals')">
         <div class="contract-card-body">
           <div class="contract-card-header">
             <div class="contract-card-avatar" style="background:var(--coal-700)">AN</div>
@@ -182,12 +177,12 @@
           <div class="contract-card-meta"><span class="type-chip offer">Offer Letter</span><span class="contract-card-ref">RMP-2026-002</span></div>
           <div class="contract-card-footer">
             <span class="contract-card-date"><svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> 15 Mar 2026</span>
-            <button class="contract-card-action" onclick="event.stopPropagation();showToast('Reminder sent.','success')">Remind →</button>
+            <button class="contract-card-action" onclick="event.stopPropagation();routeTo('approvals')">Remind →</button>
           </div>
         </div>
       </div>
 
-      <div class="contract-card" data-status="approved" onclick="showToast('Opening Mandla Khumalo contract…','info')">
+      <div class="contract-card" data-status="approved" onclick="routeTo('preview')">
         <div class="contract-card-body">
           <div class="contract-card-header">
             <div class="contract-card-avatar" style="background:var(--info)">MK</div>
@@ -198,12 +193,12 @@
           <div class="contract-card-meta"><span class="type-chip fixed">Fixed-Term</span><span class="contract-card-ref">RMP-2026-003</span></div>
           <div class="contract-card-footer">
             <span class="contract-card-date"><svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> 01 Apr 2026</span>
-            <button class="contract-card-action" onclick="event.stopPropagation();showToast('Opening preview…','info')">View →</button>
+            <button class="contract-card-action" onclick="event.stopPropagation();routeTo('preview')">View →</button>
           </div>
         </div>
       </div>
 
-      <div class="contract-card" data-status="signed" onclick="showToast('Opening Yuvaan Pather contract…','info')">
+      <div class="contract-card" data-status="signed" onclick="routeTo('preview')">
         <div class="contract-card-body">
           <div class="contract-card-header">
             <div class="contract-card-avatar" style="background:#7c3aed">YP</div>
@@ -214,12 +209,12 @@
           <div class="contract-card-meta"><span class="type-chip perm">Permanent</span><span class="contract-card-ref">RMP-2026-004</span></div>
           <div class="contract-card-footer">
             <span class="contract-card-date"><svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> 15 Jan 2026</span>
-            <button class="contract-card-action" onclick="event.stopPropagation();showToast('Opening preview…','info')">View →</button>
+            <button class="contract-card-action" onclick="event.stopPropagation();routeTo('preview')">View →</button>
           </div>
         </div>
       </div>
 
-      <div class="contract-card" data-status="approved" onclick="showToast('Opening Nomsa Dlamini contract…','info')">
+      <div class="contract-card" data-status="approved" onclick="routeTo('preview')">
         <div class="contract-card-body">
           <div class="contract-card-header">
             <div class="contract-card-avatar" style="background:#0891b2">ND</div>
@@ -230,12 +225,12 @@
           <div class="contract-card-meta"><span class="type-chip fixed">Fixed-Term</span><span class="contract-card-ref">RMP-2026-005</span></div>
           <div class="contract-card-footer">
             <span class="contract-card-date"><svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> 01 May 2026</span>
-            <button class="contract-card-action" onclick="event.stopPropagation();showToast('Opening preview…','info')">View →</button>
+            <button class="contract-card-action" onclick="event.stopPropagation();routeTo('preview')">View →</button>
           </div>
         </div>
       </div>
 
-      <div class="contract-card" data-status="review" onclick="showToast('Opening Sipho Ndlovu contract…','info')">
+      <div class="contract-card" data-status="review" onclick="routeTo('approvals')">
         <div class="contract-card-body">
           <div class="contract-card-header">
             <div class="contract-card-avatar" style="background:#b45309">SN</div>
@@ -246,7 +241,7 @@
           <div class="contract-card-meta"><span class="type-chip offer">Offer Letter</span><span class="contract-card-ref">RMP-2026-006</span></div>
           <div class="contract-card-footer">
             <span class="contract-card-date"><svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> 01 Jun 2026</span>
-            <button class="contract-card-action" onclick="event.stopPropagation();showToast('Reminder sent.','success')">Remind →</button>
+            <button class="contract-card-action" onclick="event.stopPropagation();routeTo('approvals')">Remind →</button>
           </div>
         </div>
       </div>

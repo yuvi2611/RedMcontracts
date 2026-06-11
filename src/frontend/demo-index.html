@@ -1,8 +1,10 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-Content-Type-Options" content="nosniff">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
   <title>RedMPS ContractIQ - HR Contract Automation</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
@@ -30,7 +32,16 @@
   </script>
 </head>
 <body>
-  <section id="loginScreen" class="login-screen">
+  <!-- App startup loader — visible until all page HTML has been fetched -->
+  <div id="appLoadingOverlay" aria-hidden="true" aria-label="Loading ContractIQ">
+    <div class="app-loader-inner">
+      <div class="app-loader-logo">CI</div>
+      <div class="app-loader-spinner" role="status"></div>
+      <p class="app-loader-text">ContractIQ</p>
+    </div>
+  </div>
+
+  <section id="loginScreen" class="login-screen hidden">
     <div class="login-stage">
       <div class="login-card-panel">
         <form id="loginForm" class="login-form" autocomplete="on">
@@ -91,7 +102,7 @@
           <div class="login-hero-copy">
             <span class="login-hero-eyebrow">RedMPS HR automation</span>
             <h2>Contracts move from draft to approval with control.</h2>
-            <p>Generate compliant agreements, validate every schedule field, route approvals, and export on the correct RedMPS letterhead.</p>
+            <p>Generate compliant agreements, validate every schedule field, route approvals, and export, the RedMPS Way.</p>
           </div>
           <div class="login-workspace-preview">
             <div class="login-preview-head">
@@ -222,11 +233,10 @@
   <div class="app-shell hidden" id="appShell">
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-logo">
-        <div class="sidebar-logo-img-wrap">
-          <img src="demo/assets/templates/RedMPS-Logo_Black.png" alt="RedMPS" class="sidebar-brand-logo">
-        </div>
+        <div class="logo-mark" aria-hidden="true">RM</div>
         <div class="logo-text">
-          <div class="logo-text-sub" style="font-size:10px;letter-spacing:.8px;text-transform:uppercase;opacity:.7;">ContractIQ</div>
+          <div class="logo-text-main">RedMPS</div>
+          <div class="logo-text-sub">ContractIQ</div>
         </div>
         <button class="sidebar-toggle" type="button" onclick="toggleSidebar()" aria-label="Collapse sidebar" aria-expanded="true" data-tooltip="Collapse sidebar">
           <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
@@ -342,7 +352,21 @@
           </button>
         </section>
         <button class="icon-btn tooltip ai-chat-topbar-btn" aria-label="Open Contracta" onclick="toggleFaqChat()">
-          <svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.9" viewBox="0 0 24 24"><path d="M12 3l1.6 4.4L18 9l-4.4 1.6L12 15l-1.6-4.4L6 9l4.4-1.6L12 3z"/><path d="M5 15l.9 2.1L8 18l-2.1.9L5 21l-.9-2.1L2 18l2.1-.9L5 15z"/><path d="M19 14l.8 1.8L22 17l-2.2.8L19 20l-.8-2.2L16 17l2.2-.8L19 14z"/></svg>
+          <svg width="17" height="17" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <line x1="20" y1="2" x2="20" y2="7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+            <circle cx="20" cy="1.4" r="2" fill="currentColor"/>
+            <rect x="5" y="8" width="30" height="22" rx="5" fill="currentColor" fill-opacity=".18" stroke="currentColor" stroke-width="2"/>
+            <rect x="2" y="14" width="3" height="7" rx="1.5" fill="currentColor" fill-opacity=".7"/>
+            <rect x="35" y="14" width="3" height="7" rx="1.5" fill="currentColor" fill-opacity=".7"/>
+            <circle cx="14" cy="18" r="3.5" fill="currentColor"/>
+            <circle cx="26" cy="18" r="3.5" fill="currentColor"/>
+            <circle cx="15.2" cy="16.8" r="1.2" fill="white"/>
+            <circle cx="27.2" cy="16.8" r="1.2" fill="white"/>
+            <rect x="12" y="24" width="16" height="3.5" rx="1.75" stroke="currentColor" stroke-width="1.6"/>
+            <line x1="17" y1="24" x2="17" y2="27.5" stroke="currentColor" stroke-width="1.4"/>
+            <line x1="20" y1="24" x2="20" y2="27.5" stroke="currentColor" stroke-width="1.4"/>
+            <line x1="23" y1="24" x2="23" y2="27.5" stroke="currentColor" stroke-width="1.4"/>
+          </svg>
           <span class="tooltip-text">Contracta</span>
         </button>
         <button class="icon-btn tooltip" aria-label="My profile" id="profileMenuButton" onclick="toggleProfileMenu()" aria-expanded="false" aria-controls="profileMenu">
@@ -427,11 +451,42 @@
 
   <section class="ai-chat-widget" id="faqChatWidget" aria-label="Contracta assistant">
     <button class="ai-chat-fab" type="button" onclick="toggleFaqChat()" aria-label="Open Contracta" aria-expanded="false" aria-controls="faqChatPanel">
-      <svg width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.9" viewBox="0 0 24 24"><path d="M12 3l1.6 4.4L18 9l-4.4 1.6L12 15l-1.6-4.4L6 9l4.4-1.6L12 3z"/><path d="M5 15l.9 2.1L8 18l-2.1.9L5 21l-.9-2.1L2 18l2.1-.9L5 15z"/><path d="M19 14l.8 1.8L22 17l-2.2.8L19 20l-.8-2.2L16 17l2.2-.8L19 14z"/></svg>
+      <!-- Robot face -->
+      <svg width="26" height="26" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <line x1="20" y1="2" x2="20" y2="7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+        <circle cx="20" cy="1.4" r="2" fill="currentColor"/>
+        <rect x="5" y="8" width="30" height="22" rx="5" fill="currentColor" fill-opacity=".18" stroke="currentColor" stroke-width="2"/>
+        <rect x="2" y="14" width="3" height="7" rx="1.5" fill="currentColor" fill-opacity=".7"/>
+        <rect x="35" y="14" width="3" height="7" rx="1.5" fill="currentColor" fill-opacity=".7"/>
+        <circle cx="14" cy="18" r="3.5" fill="currentColor"/>
+        <circle cx="26" cy="18" r="3.5" fill="currentColor"/>
+        <circle cx="15.2" cy="16.8" r="1.2" fill="white"/>
+        <circle cx="27.2" cy="16.8" r="1.2" fill="white"/>
+        <rect x="12" y="24" width="16" height="3.5" rx="1.75" stroke="currentColor" stroke-width="1.6"/>
+        <line x1="17" y1="24" x2="17" y2="27.5" stroke="currentColor" stroke-width="1.4"/>
+        <line x1="20" y1="24" x2="20" y2="27.5" stroke="currentColor" stroke-width="1.4"/>
+        <line x1="23" y1="24" x2="23" y2="27.5" stroke="currentColor" stroke-width="1.4"/>
+      </svg>
     </button>
     <div class="ai-chat-panel hidden" id="faqChatPanel">
       <div class="ai-chat-header">
-        <div class="ai-chat-avatar">CA</div>
+        <div class="ai-chat-avatar">
+          <svg width="22" height="22" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <line x1="20" y1="2" x2="20" y2="7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+            <circle cx="20" cy="1.4" r="2" fill="currentColor"/>
+            <rect x="5" y="8" width="30" height="22" rx="5" fill="currentColor" fill-opacity=".18" stroke="currentColor" stroke-width="2"/>
+            <rect x="2" y="14" width="3" height="7" rx="1.5" fill="currentColor" fill-opacity=".7"/>
+            <rect x="35" y="14" width="3" height="7" rx="1.5" fill="currentColor" fill-opacity=".7"/>
+            <circle cx="14" cy="18" r="3.5" fill="currentColor"/>
+            <circle cx="26" cy="18" r="3.5" fill="currentColor"/>
+            <circle cx="15.2" cy="16.8" r="1.2" fill="white"/>
+            <circle cx="27.2" cy="16.8" r="1.2" fill="white"/>
+            <rect x="12" y="24" width="16" height="3.5" rx="1.75" stroke="currentColor" stroke-width="1.6"/>
+            <line x1="17" y1="24" x2="17" y2="27.5" stroke="currentColor" stroke-width="1.4"/>
+            <line x1="20" y1="24" x2="20" y2="27.5" stroke="currentColor" stroke-width="1.4"/>
+            <line x1="23" y1="24" x2="23" y2="27.5" stroke="currentColor" stroke-width="1.4"/>
+          </svg>
+        </div>
         <div>
           <strong>Contracta</strong>
           <span>FAQ help, page guidance, and workflow shortcuts</span>
@@ -447,17 +502,12 @@
       </div>
       <div class="ai-chat-messages" id="faqChatMessages" aria-live="polite">
         <div class="ai-message bot">
-          <span>Hi, I am Contracta. Ask me about workflows, or try commands like “what can I do here?”, “open approvals”, “collapse sidebar”, or “clear chat”.</span>
+          <span>Hi, I'm Contracta — tap any question below to get started, or type your own.</span>
         </div>
       </div>
-      <div class="ai-chat-suggestions" id="faqChatSuggestions">
-        <button type="button" onclick="askFaqSuggestion('What can I do here?')">This page</button>
-        <button type="button" onclick="askFaqSuggestion('How do I create a new contract?')">Create contract</button>
-        <button type="button" onclick="askFaqSuggestion('Show pending approvals')">Approvals</button>
-        <button type="button" onclick="askFaqSuggestion('Summarize my workspace')">Summary</button>
-      </div>
+      <div class="ai-chat-suggestions" id="faqChatSuggestions"></div>
       <form class="ai-chat-form" id="faqChatForm" onsubmit="submitFaqQuestion(event)">
-        <input id="faqChatInput" type="text" placeholder="Ask Contracta..." autocomplete="off" aria-label="Ask Contracta">
+        <input id="faqChatInput" type="text" placeholder="e.g. How do I create a contract?" autocomplete="off" aria-label="Ask Contracta">
         <button type="submit" aria-label="Send question">
           <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>
         </button>

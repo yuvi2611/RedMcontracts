@@ -60,6 +60,7 @@ const server = http.createServer(async (req, res) => {
     if (m === 'GET'  && p.match(/^\/api\/contracts\/[^/]+$/))         return getContract(req, res, p.split('/')[3]);
     if (m === 'PUT'  && p.match(/^\/api\/contracts\/[^/]+\/submit$/)) return submitContract(req, res, p.split('/')[3]);
     if (m === 'PUT'  && p.match(/^\/api\/contracts\/[^/]+\/status$/)) return updateContractStatus(req, res, p.split('/')[3]);
+    if (m === 'POST' && p.match(/^\/api\/contracts\/[^/]+\/send-to-employee$/)) return sendContractToEmployee(req, res, p.split('/')[3]);
 
     // ── Approvals ───────────────────────────────────────────────────
     if (m === 'GET'  && p === '/api/approvals')                       return listApprovals(req, res);
@@ -517,12 +518,55 @@ async function createContract(req, res) {
 }
 
 async function submitContract(req, res, id) {
+  const body = await readJson(req);
   const result = await pool.query(`
     UPDATE contracts SET status = 'Review', submitted_at = NOW(), updated_at = NOW()
-    WHERE id = $1 AND status = 'Draft' RETURNING id, contract_number, title
+    WHERE id = $1 AND status = 'Draft'
+    RETURNING id, contract_number, title, created_by, employee_id
   `, [id]);
   if (!result.rows[0]) throw httpError(400, 'Contract must be in Draft status to submit.');
-  send(res, 200, { status: 'submitted', contractNumber: result.rows[0].contract_number });
+  const contract = result.rows[0];
+
+  // Ensure at least one approval workflow step exists; if not, create one for the first director
+  const existing = await pool.query(
+    `SELECT id FROM approval_workflows WHERE contract_id = $1 LIMIT 1`, [id]
+  );
+  if (!existing.rows[0]) {
+    const director = await pool.query(
+      `SELECT u.id FROM users u JOIN roles r ON r.id = u.role_id
+       WHERE r.name ILIKE '%director%' AND u.is_active = true LIMIT 1`
+    );
+    if (director.rows[0]) {
+      await pool.query(
+        `INSERT INTO approval_workflows (contract_id, approver_id, step_number, status)
+         VALUES ($1, $2, 1, 'Pending')`,
+        [id, director.rows[0].id]
+      );
+    }
+  }
+
+  // Notify all pending approvers
+  const approvers = await pool.query(
+    `SELECT aw.id, u.id as user_id, u.email, u.first_name, u.last_name
+     FROM approval_workflows aw
+     JOIN users u ON u.id = aw.approver_id
+     WHERE aw.contract_id = $1 AND aw.status = 'Pending'
+     ORDER BY aw.step_number`,
+    [id]
+  );
+
+  const submitter = body.submitted_by_name || 'HR';
+  await Promise.all(approvers.rows.map(a =>
+    notifications.notifyApprovalRequested(pool, {
+      approverId: a.user_id,
+      approverEmail: a.email,
+      approverName: `${a.first_name} ${a.last_name}`,
+      contract: { id, title: contract.title, reference: contract.contract_number },
+      submittedByName: submitter,
+    })
+  ));
+
+  send(res, 200, { status: 'submitted', contractNumber: contract.contract_number });
 }
 
 async function updateContractStatus(req, res, id) {
@@ -536,6 +580,67 @@ async function updateContractStatus(req, res, id) {
   `, [body.status, id]);
   if (!result.rows[0]) throw httpError(404, 'Contract not found.');
   send(res, 200, { status: body.status });
+}
+
+async function sendContractToEmployee(req, res, id) {
+  const body = await readJson(req);
+
+  const result = await pool.query(`
+    SELECT c.id, c.title, c.contract_number, c.status,
+           e.id as employee_id, e.email as emp_email, e.first_name as emp_first, e.last_name as emp_last,
+           u.id as creator_id, u.email as creator_email, u.first_name as hr_first, u.last_name as hr_last
+    FROM contracts c
+    JOIN employees e ON e.id = c.employee_id
+    JOIN users u ON u.id = c.created_by
+    WHERE c.id = $1
+  `, [id]);
+  if (!result.rows[0]) throw httpError(404, 'Contract not found.');
+
+  const r = result.rows[0];
+  if (!['Approved', 'Signed'].includes(r.status)) {
+    throw httpError(400, 'Contract must be Approved before sending to the employee.');
+  }
+  if (!r.emp_email) throw httpError(400, 'Employee has no email address on record.');
+
+  // Mark as Signed
+  await pool.query(
+    `UPDATE contracts SET status = 'Signed', signed_at = NOW(), updated_at = NOW() WHERE id = $1`,
+    [id]
+  );
+
+  const senderName = body.sender_name || `${r.hr_first} ${r.hr_last}`;
+
+  // Notify employee
+  await notifications.notifyContractSent(pool, {
+    recipientId: r.employee_id,
+    recipientEmail: r.emp_email,
+    recipientName: `${r.emp_first} ${r.emp_last}`,
+    contract: {
+      id,
+      title: r.title,
+      reference: r.contract_number,
+      senderName,
+    },
+  });
+
+  // Also notify HR that the send succeeded
+  await notifications.notifyContractApproved(pool, {
+    recipientId: r.creator_id,
+    recipientEmail: r.creator_email,
+    recipientName: `${r.hr_first} ${r.hr_last}`,
+    contract: {
+      id,
+      title: r.title,
+      reference: r.contract_number,
+      approverName: `${r.emp_first} ${r.emp_last} (employee)`,
+    },
+  });
+
+  send(res, 200, {
+    status: 'sent',
+    sentTo: r.emp_email,
+    contractNumber: r.contract_number,
+  });
 }
 
 async function getContractRow(id) {
@@ -593,6 +698,35 @@ async function approveWorkflow(req, res, id) {
 
   if (!nextStep.rows[0]) {
     await pool.query(`UPDATE contracts SET status = 'Approved', approved_at = NOW() WHERE id = $1`, [contract_id]);
+
+    // Notify the HR officer who created the contract
+    const contractRow = await pool.query(`
+      SELECT c.title, c.contract_number, u.id as creator_id, u.email as creator_email,
+             u.first_name, u.last_name, aw2.first_name as approver_first, aw2.last_name as approver_last
+      FROM contracts c
+      JOIN users u ON u.id = c.created_by
+      LEFT JOIN (
+        SELECT aw.contract_id, u2.first_name, u2.last_name
+        FROM approval_workflows aw JOIN users u2 ON u2.id = aw.approver_id
+        WHERE aw.id = $1
+      ) aw2 ON aw2.contract_id = c.id
+      WHERE c.id = $2
+    `, [id, contract_id]);
+
+    if (contractRow.rows[0]) {
+      const r = contractRow.rows[0];
+      await notifications.notifyContractApproved(pool, {
+        recipientId: r.creator_id,
+        recipientEmail: r.creator_email,
+        recipientName: `${r.first_name} ${r.last_name}`,
+        contract: {
+          id: contract_id,
+          title: r.title,
+          reference: r.contract_number,
+          approverName: r.approver_first ? `${r.approver_first} ${r.approver_last}` : 'Approver',
+        },
+      });
+    }
   }
 
   send(res, 200, { status: 'approved' });
@@ -600,15 +734,45 @@ async function approveWorkflow(req, res, id) {
 
 async function rejectWorkflow(req, res, id) {
   const body = await readJson(req);
+  const reason = body.comment || 'Rejected by reviewer.';
   const result = await pool.query(`
     UPDATE approval_workflows
     SET status = 'Rejected', comment = $1, decision_date = NOW(), updated_at = NOW()
     WHERE id = $2 AND status = 'Pending'
     RETURNING contract_id
-  `, [body.comment || 'Rejected by reviewer.', id]);
+  `, [reason, id]);
   if (!result.rows[0]) throw httpError(404, 'Approval workflow item not found or already actioned.');
 
-  await pool.query(`UPDATE contracts SET status = 'Rejected' WHERE id = $1`, [result.rows[0].contract_id]);
+  const contract_id = result.rows[0].contract_id;
+  await pool.query(`UPDATE contracts SET status = 'Rejected' WHERE id = $1`, [contract_id]);
+
+  // Notify the HR officer who created the contract
+  const contractRow = await pool.query(`
+    SELECT c.title, c.contract_number, u.id as creator_id, u.email as creator_email,
+           u.first_name, u.last_name, u2.first_name as approver_first, u2.last_name as approver_last
+    FROM contracts c
+    JOIN users u ON u.id = c.created_by
+    LEFT JOIN approval_workflows aw ON aw.id = $1
+    LEFT JOIN users u2 ON u2.id = aw.approver_id
+    WHERE c.id = $2
+  `, [id, contract_id]);
+
+  if (contractRow.rows[0]) {
+    const r = contractRow.rows[0];
+    await notifications.notifyContractRejected(pool, {
+      recipientId: r.creator_id,
+      recipientEmail: r.creator_email,
+      recipientName: `${r.first_name} ${r.last_name}`,
+      contract: {
+        id: contract_id,
+        title: r.title,
+        reference: r.contract_number,
+        approverName: r.approver_first ? `${r.approver_first} ${r.approver_last}` : 'Approver',
+      },
+      reason,
+    });
+  }
+
   send(res, 200, { status: 'rejected' });
 }
 
@@ -874,7 +1038,7 @@ function toClientUser(row) {
 function send(res, status, body = null) {
   res.statusCode = status;
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization');
   if (body === null) return res.end();
   res.setHeader('Content-Type', 'application/json');
