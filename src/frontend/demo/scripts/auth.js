@@ -13,6 +13,15 @@ const DEMO_USERS = [
     role: 'Administrator',
     isSuperuser: true,
     forcePasswordChange: true
+  },
+  {
+    email: 'yuvi.pather@gmail.com',
+    password: 'ChangeMe!2026',
+    name: 'Yuvaan Pather',
+    initials: 'YP',
+    role: 'Administrator',
+    isSuperuser: true,
+    forcePasswordChange: false
   }
 ];
 

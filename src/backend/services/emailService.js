@@ -1,43 +1,77 @@
 'use strict';
 
-const { Resend } = require('resend');
+const https = require('https');
 
-let _client = null;
-function client() {
-  if (!_client) _client = new Resend(process.env.RESEND_API_KEY);
-  return _client;
+function config() {
+  return {
+    apiKey:    process.env.BREVO_API_KEY || process.env.SENDINBLUE_API_KEY || '',
+    fromEmail: process.env.EMAIL_FROM_ADDRESS || 'noreply@redmps.com',
+    fromName:  process.env.EMAIL_FROM_NAME   || 'ContractIQ',
+    replyTo:   process.env.EMAIL_REPLY_TO    || undefined,
+  };
 }
 
-function from() {
-  const name = process.env.EMAIL_FROM_NAME || 'ContractIQ';
-  const addr = process.env.EMAIL_FROM_ADDRESS || 'onboarding@resend.dev';
-  return `${name} <${addr}>`;
-}
-
-function replyTo() {
-  return process.env.EMAIL_REPLY_TO || undefined;
-}
-
-function subject(key, fallback) {
+function subjectKey(key, fallback) {
   return process.env[key] || fallback;
 }
 
-async function send({ to, subjectLine, html }) {
-  const payload = {
-    from: from(),
-    to: Array.isArray(to) ? to : [to],
-    subject: subjectLine,
-    html,
-  };
-  const rt = replyTo();
-  if (rt) payload.reply_to = rt;
+// ── Core send via Brevo REST API ─────────────────────────────────────────────
 
-  const { data, error } = await client().emails.send(payload);
-  if (error) throw Object.assign(new Error(`Resend: ${error.message}`), { resendError: error });
-  return data;
+function send({ to, subjectLine, html }) {
+  return new Promise((resolve, reject) => {
+    const cfg = config();
+    if (!cfg.apiKey) {
+      return reject(new Error('Brevo API key not set. Add BREVO_API_KEY to your .env file.'));
+    }
+
+    const recipients = (Array.isArray(to) ? to : [to]).map(addr =>
+      typeof addr === 'string' ? { email: addr } : addr
+    );
+
+    const body = JSON.stringify({
+      sender:      { name: cfg.fromName, email: cfg.fromEmail },
+      to:          recipients,
+      replyTo:     cfg.replyTo ? { email: cfg.replyTo } : undefined,
+      subject:     subjectLine,
+      htmlContent: html,
+    });
+
+    const options = {
+      hostname: 'api.brevo.com',
+      path:     '/v3/smtp/email',
+      method:   'POST',
+      headers: {
+        'api-key':       cfg.apiKey,
+        'Content-Type':  'application/json',
+        'Accept':        'application/json',
+        'Content-Length': Buffer.byteLength(body),
+      },
+    };
+
+    const req = https.request(options, res => {
+      let raw = '';
+      res.on('data', chunk => { raw += chunk; });
+      res.on('end', () => {
+        try {
+          const data = JSON.parse(raw);
+          if (res.statusCode >= 200 && res.statusCode < 300) {
+            resolve(data);
+          } else {
+            reject(new Error(`Brevo ${res.statusCode}: ${data.message || raw}`));
+          }
+        } catch {
+          reject(new Error(`Brevo returned non-JSON (${res.statusCode}): ${raw}`));
+        }
+      });
+    });
+
+    req.on('error', reject);
+    req.write(body);
+    req.end();
+  });
 }
 
-// ── HTML layout helpers ──────────────────────────────────────────────────────
+// ── HTML layout ──────────────────────────────────────────────────────────────
 
 function layout(bodyHtml) {
   return `<!DOCTYPE html>
@@ -78,204 +112,187 @@ function layout(bodyHtml) {
 // ── User / account emails ────────────────────────────────────────────────────
 
 async function sendWelcomeEmail({ to, firstName, tempPassword }) {
-  const html = layout(`
-    <h2>Welcome to ContractIQ, ${firstName}!</h2>
-    <p>Your account has been created. Use the temporary credentials below to sign in for the first time.</p>
-    <div class="info-box">
-      <p><strong>Email:</strong> ${to}</p>
-      <p><strong>Temporary password:</strong> ${tempPassword}</p>
-    </div>
-    <p>You will be prompted to set a new password on first login. Keep this email confidential.</p>
-    <p>If you did not expect this account, please contact your HR administrator immediately.</p>
-  `);
   return send({
     to,
-    subjectLine: subject('EMAIL_SUBJECT_WELCOME', 'Welcome to ContractIQ'),
-    html,
+    subjectLine: subjectKey('EMAIL_SUBJECT_WELCOME', 'Welcome to ContractIQ'),
+    html: layout(`
+      <h2>Welcome to ContractIQ, ${firstName}!</h2>
+      <p>Your account has been created. Use the temporary credentials below to sign in for the first time.</p>
+      <div class="info-box">
+        <p><strong>Email:</strong> ${to}</p>
+        <p><strong>Temporary password:</strong> ${tempPassword}</p>
+      </div>
+      <p>You will be prompted to set a new password on first login. Keep this email confidential.</p>
+    `),
   });
 }
 
 async function sendUserInviteEmail({ to, firstName, invitedByName, tempPassword }) {
-  const html = layout(`
-    <h2>You've been invited to ContractIQ</h2>
-    <p>Hi ${firstName}, <strong>${invitedByName}</strong> has added you to ContractIQ, RedMPS's contract management platform.</p>
-    <div class="info-box">
-      <p><strong>Email:</strong> ${to}</p>
-      <p><strong>Temporary password:</strong> ${tempPassword}</p>
-    </div>
-    <p>Sign in and set your permanent password to get started.</p>
-  `);
   return send({
     to,
-    subjectLine: subject('EMAIL_SUBJECT_USER_INVITE', 'You have been invited to ContractIQ'),
-    html,
+    subjectLine: subjectKey('EMAIL_SUBJECT_USER_INVITE', 'You have been invited to ContractIQ'),
+    html: layout(`
+      <h2>You've been invited to ContractIQ</h2>
+      <p>Hi ${firstName}, <strong>${invitedByName}</strong> has added you to ContractIQ, RedMPS's contract management platform.</p>
+      <div class="info-box">
+        <p><strong>Email:</strong> ${to}</p>
+        <p><strong>Temporary password:</strong> ${tempPassword}</p>
+      </div>
+      <p>Sign in and set your permanent password to get started.</p>
+    `),
   });
 }
 
 async function sendPasswordResetEmail({ to, firstName, resetToken, resetUrl }) {
   const url = resetUrl || `${process.env.FRONTEND_URL || 'http://localhost:4200'}/reset-password?token=${resetToken}&email=${encodeURIComponent(to)}`;
-  const html = layout(`
-    <h2>Reset your password</h2>
-    <p>Hi ${firstName || 'there'}, we received a request to reset your ContractIQ password.</p>
-    <p>Click the button below to choose a new password. This link expires in <strong>1 hour</strong>.</p>
-    <a class="btn" href="${url}">Reset password</a>
-    <p>If the button doesn't work, copy and paste this URL into your browser:</p>
-    <div class="info-box"><p style="word-break:break-all">${url}</p></div>
-    <p>If you didn't request a password reset, you can safely ignore this email.</p>
-  `);
   return send({
     to,
-    subjectLine: subject('EMAIL_SUBJECT_PASSWORD_RESET', 'Reset your ContractIQ password'),
-    html,
+    subjectLine: subjectKey('EMAIL_SUBJECT_PASSWORD_RESET', 'Reset your ContractIQ password'),
+    html: layout(`
+      <h2>Reset your password</h2>
+      <p>Hi ${firstName || 'there'}, we received a request to reset your ContractIQ password.</p>
+      <p>Click the button below to choose a new password. This link expires in <strong>1 hour</strong>.</p>
+      <a class="btn" href="${url}">Reset password</a>
+      <p>If you didn't request a password reset, you can safely ignore this email.</p>
+    `),
   });
 }
 
 // ── Contract lifecycle emails ────────────────────────────────────────────────
 
 async function sendContractCreatedEmail({ to, recipientName, contract }) {
-  const html = layout(`
-    <h2>Contract created</h2>
-    <p>Hi ${recipientName}, a new contract has been created and is ready for processing.</p>
-    <div class="info-box">
-      <p><strong>Contract:</strong> ${contract.title}</p>
-      <p><strong>Employee:</strong> ${contract.employeeName || '—'}</p>
-      <p><strong>Type:</strong> ${contract.type || '—'}</p>
-      <p><strong>Created:</strong> ${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
-    </div>
-  `);
   return send({
     to,
-    subjectLine: subject('EMAIL_SUBJECT_CONTRACT_CREATED', 'Your contract has been created'),
-    html,
+    subjectLine: subjectKey('EMAIL_SUBJECT_CONTRACT_CREATED', 'Your contract has been created'),
+    html: layout(`
+      <h2>Contract created</h2>
+      <p>Hi ${recipientName}, a new contract has been created and is ready for processing.</p>
+      <div class="info-box">
+        <p><strong>Contract:</strong> ${contract.title}</p>
+        <p><strong>Reference:</strong> ${contract.reference || contract.id}</p>
+        <p><strong>Created:</strong> ${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+      </div>
+    `),
   });
 }
 
 async function sendContractSentEmail({ to, recipientName, contract }) {
-  const html = layout(`
-    <h2>A contract has been sent to you for review</h2>
-    <p>Hi ${recipientName}, the following contract requires your attention.</p>
-    <div class="info-box">
-      <p><strong>Contract:</strong> ${contract.title}</p>
-      <p><strong>Reference:</strong> ${contract.reference || contract.id}</p>
-      <p><strong>Sent by:</strong> ${contract.senderName || '—'}</p>
-    </div>
-    <p>Please log in to ContractIQ to review and respond.</p>
-  `);
   return send({
     to,
-    subjectLine: subject('EMAIL_SUBJECT_CONTRACT_SENT', 'A contract has been sent to you for review'),
-    html,
+    subjectLine: subjectKey('EMAIL_SUBJECT_CONTRACT_SENT', 'A contract has been sent to you for review'),
+    html: layout(`
+      <h2>A contract has been sent to you for review</h2>
+      <p>Hi ${recipientName}, the following contract requires your attention.</p>
+      <div class="info-box">
+        <p><strong>Contract:</strong> ${contract.title}</p>
+        <p><strong>Reference:</strong> ${contract.reference || contract.id}</p>
+        <p><strong>Sent by:</strong> ${contract.senderName || '—'}</p>
+      </div>
+      <p>Please log in to ContractIQ to review and respond.</p>
+    `),
   });
 }
 
 async function sendContractApprovedEmail({ to, recipientName, contract }) {
-  const html = layout(`
-    <h2>Contract approved</h2>
-    <p>Hi ${recipientName}, the following contract has been <strong style="color:#27ae60">approved</strong>.</p>
-    <div class="info-box">
-      <p><strong>Contract:</strong> ${contract.title}</p>
-      <p><strong>Reference:</strong> ${contract.reference || contract.id}</p>
-      <p><strong>Approved by:</strong> ${contract.approverName || '—'}</p>
-      <p><strong>Approved on:</strong> ${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
-    </div>
-  `);
   return send({
     to,
-    subjectLine: subject('EMAIL_SUBJECT_CONTRACT_APPROVED', 'Contract approved'),
-    html,
+    subjectLine: subjectKey('EMAIL_SUBJECT_CONTRACT_APPROVED', 'Contract approved'),
+    html: layout(`
+      <h2>Contract approved</h2>
+      <p>Hi ${recipientName}, the following contract has been <strong style="color:#27ae60">approved</strong>.</p>
+      <div class="info-box">
+        <p><strong>Contract:</strong> ${contract.title}</p>
+        <p><strong>Reference:</strong> ${contract.reference || contract.id}</p>
+        <p><strong>Approved by:</strong> ${contract.approverName || '—'}</p>
+        <p><strong>Approved on:</strong> ${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+      </div>
+    `),
   });
 }
 
 async function sendContractRejectedEmail({ to, recipientName, contract, reason }) {
-  const html = layout(`
-    <h2>Contract requires changes</h2>
-    <p>Hi ${recipientName}, the following contract has been <strong style="color:#e74c3c">returned</strong> for revision.</p>
-    <div class="info-box">
-      <p><strong>Contract:</strong> ${contract.title}</p>
-      <p><strong>Reference:</strong> ${contract.reference || contract.id}</p>
-      <p><strong>Reviewed by:</strong> ${contract.approverName || '—'}</p>
-      ${reason ? `<p><strong>Reason:</strong> ${reason}</p>` : ''}
-    </div>
-    <p>Please log in to ContractIQ to make the requested changes and resubmit.</p>
-  `);
   return send({
     to,
-    subjectLine: subject('EMAIL_SUBJECT_CONTRACT_REJECTED', 'Contract requires changes'),
-    html,
+    subjectLine: subjectKey('EMAIL_SUBJECT_CONTRACT_REJECTED', 'Contract requires changes'),
+    html: layout(`
+      <h2>Contract requires changes</h2>
+      <p>Hi ${recipientName}, the following contract has been <strong style="color:#e74c3c">returned</strong> for revision.</p>
+      <div class="info-box">
+        <p><strong>Contract:</strong> ${contract.title}</p>
+        <p><strong>Reference:</strong> ${contract.reference || contract.id}</p>
+        <p><strong>Reviewed by:</strong> ${contract.approverName || '—'}</p>
+        ${reason ? `<p><strong>Reason:</strong> ${reason}</p>` : ''}
+      </div>
+      <p>Please log in to ContractIQ to make the requested changes and resubmit.</p>
+    `),
   });
 }
 
 async function sendContractExpiringEmail({ to, recipientName, contract, daysUntilExpiry }) {
-  const html = layout(`
-    <h2>Contract expiring soon</h2>
-    <p>Hi ${recipientName}, the following contract will expire in <strong>${daysUntilExpiry} day${daysUntilExpiry !== 1 ? 's' : ''}</strong>.</p>
-    <div class="info-box">
-      <p><strong>Contract:</strong> ${contract.title}</p>
-      <p><strong>Reference:</strong> ${contract.reference || contract.id}</p>
-      <p><strong>Expiry date:</strong> ${contract.expiryDate}</p>
-    </div>
-    <p>Please log in to ContractIQ to review and take the necessary action before it expires.</p>
-  `);
   return send({
     to,
-    subjectLine: subject('EMAIL_SUBJECT_CONTRACT_EXPIRING', 'Contract expiring soon'),
-    html,
+    subjectLine: subjectKey('EMAIL_SUBJECT_CONTRACT_EXPIRING', 'Contract expiring soon'),
+    html: layout(`
+      <h2>Contract expiring soon</h2>
+      <p>Hi ${recipientName}, the following contract will expire in <strong>${daysUntilExpiry} day${daysUntilExpiry !== 1 ? 's' : ''}</strong>.</p>
+      <div class="info-box">
+        <p><strong>Contract:</strong> ${contract.title}</p>
+        <p><strong>Reference:</strong> ${contract.reference || contract.id}</p>
+        <p><strong>Expiry date:</strong> ${contract.expiryDate}</p>
+      </div>
+    `),
   });
 }
 
 async function sendContractExpiredEmail({ to, recipientName, contract }) {
-  const html = layout(`
-    <h2>Contract has expired</h2>
-    <p>Hi ${recipientName}, the following contract has now <strong style="color:#e74c3c">expired</strong>.</p>
-    <div class="info-box">
-      <p><strong>Contract:</strong> ${contract.title}</p>
-      <p><strong>Reference:</strong> ${contract.reference || contract.id}</p>
-      <p><strong>Expired on:</strong> ${contract.expiryDate}</p>
-    </div>
-    <p>Please log in to ContractIQ to renew or archive this contract.</p>
-  `);
   return send({
     to,
-    subjectLine: subject('EMAIL_SUBJECT_CONTRACT_EXPIRED', 'Contract has expired'),
-    html,
+    subjectLine: subjectKey('EMAIL_SUBJECT_CONTRACT_EXPIRED', 'Contract has expired'),
+    html: layout(`
+      <h2>Contract has expired</h2>
+      <p>Hi ${recipientName}, the following contract has now <strong style="color:#e74c3c">expired</strong>.</p>
+      <div class="info-box">
+        <p><strong>Contract:</strong> ${contract.title}</p>
+        <p><strong>Reference:</strong> ${contract.reference || contract.id}</p>
+        <p><strong>Expired on:</strong> ${contract.expiryDate}</p>
+      </div>
+    `),
   });
 }
 
 // ── Approval workflow emails ─────────────────────────────────────────────────
 
 async function sendApprovalRequestedEmail({ to, approverName, contract, submittedByName }) {
-  const html = layout(`
-    <h2>Action required: Contract approval</h2>
-    <p>Hi ${approverName}, a contract has been submitted and requires your approval.</p>
-    <div class="info-box">
-      <p><strong>Contract:</strong> ${contract.title}</p>
-      <p><strong>Reference:</strong> ${contract.reference || contract.id}</p>
-      <p><strong>Submitted by:</strong> ${submittedByName || '—'}</p>
-      <p><strong>Submitted on:</strong> ${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
-    </div>
-    <p>Please log in to ContractIQ to review and approve or return this contract.</p>
-  `);
   return send({
     to,
-    subjectLine: subject('EMAIL_SUBJECT_APPROVAL_REQUESTED', 'Action required: Contract approval request'),
-    html,
+    subjectLine: subjectKey('EMAIL_SUBJECT_APPROVAL_REQUESTED', 'Action required: Contract approval request'),
+    html: layout(`
+      <h2>Action required: Contract approval</h2>
+      <p>Hi ${approverName}, a contract has been submitted and requires your approval.</p>
+      <div class="info-box">
+        <p><strong>Contract:</strong> ${contract.title}</p>
+        <p><strong>Reference:</strong> ${contract.reference || contract.id}</p>
+        <p><strong>Submitted by:</strong> ${submittedByName || '—'}</p>
+        <p><strong>Submitted on:</strong> ${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+      </div>
+      <p>Please log in to ContractIQ to review and approve or return this contract.</p>
+    `),
   });
 }
 
 async function sendApprovalReminderEmail({ to, approverName, contract, pendingSinceDays }) {
-  const html = layout(`
-    <h2>Reminder: Pending contract approval</h2>
-    <p>Hi ${approverName}, a contract has been awaiting your approval for <strong>${pendingSinceDays} day${pendingSinceDays !== 1 ? 's' : ''}</strong>.</p>
-    <div class="info-box">
-      <p><strong>Contract:</strong> ${contract.title}</p>
-      <p><strong>Reference:</strong> ${contract.reference || contract.id}</p>
-    </div>
-    <p>Please log in to ContractIQ at your earliest convenience to action this request.</p>
-  `);
   return send({
     to,
-    subjectLine: subject('EMAIL_SUBJECT_APPROVAL_REMINDER', 'Reminder: Pending contract approval'),
-    html,
+    subjectLine: subjectKey('EMAIL_SUBJECT_APPROVAL_REMINDER', 'Reminder: Pending contract approval'),
+    html: layout(`
+      <h2>Reminder: Pending contract approval</h2>
+      <p>Hi ${approverName}, a contract has been awaiting your approval for <strong>${pendingSinceDays} day${pendingSinceDays !== 1 ? 's' : ''}</strong>.</p>
+      <div class="info-box">
+        <p><strong>Contract:</strong> ${contract.title}</p>
+        <p><strong>Reference:</strong> ${contract.reference || contract.id}</p>
+      </div>
+      <p>Please log in to ContractIQ at your earliest convenience to action this request.</p>
+    `),
   });
 }
 

@@ -5,6 +5,8 @@ const { Pool } = require('pg');
 const notifications = require('./services/notificationService');
 
 const env = loadEnv();
+// Push .env values into process.env so all services (emailService, etc.) can read them
+Object.entries(env).forEach(([k, v]) => { if (!(k in process.env)) process.env[k] = v; });
 const PORT = Number(env.API_PORT || 5000);
 const ROLE_MAP = {
   hr_officer: 'HR Officer',
@@ -38,51 +40,52 @@ const server = http.createServer(async (req, res) => {
     const m = req.method;
 
     // ── Auth ────────────────────────────────────────────────────────
-    if (m === 'GET'  && p === '/health')                              return health(res);
-    if (m === 'POST' && p === '/api/auth/login')                      return login(req, res);
-    if (m === 'POST' && p === '/api/auth/password-reset/request')     return requestPasswordReset(req, res);
-    if (m === 'POST' && p === '/api/auth/password-reset/confirm')     return confirmPasswordReset(req, res);
+    if (m === 'GET'  && p === '/health')                              return await health(res);
+    if (m === 'POST' && p === '/api/auth/login')                      return await login(req, res);
+    if (m === 'POST' && p === '/api/auth/password-reset/request')     return await requestPasswordReset(req, res);
+    if (m === 'POST' && p === '/api/auth/password-reset/confirm')     return await confirmPasswordReset(req, res);
 
     // ── Users ───────────────────────────────────────────────────────
-    if (m === 'POST' && p === '/api/users')                           return createUser(req, res);
+    if (m === 'POST' && p === '/api/users')                           return await createUser(req, res);
 
     // ── Dashboard ───────────────────────────────────────────────────
-    if (m === 'GET'  && p === '/api/dashboard')                       return getDashboard(res);
+    if (m === 'GET'  && p === '/api/dashboard')                       return await getDashboard(res);
 
     // ── Employees ───────────────────────────────────────────────────
-    if (m === 'GET'  && p === '/api/employees')                       return listEmployees(req, res);
-    if (m === 'POST' && p === '/api/employees')                       return createEmployee(req, res);
-    if (m === 'GET'  && p.match(/^\/api\/employees\/[^/]+$/))         return getEmployee(req, res, p.split('/')[3]);
+    if (m === 'GET'  && p === '/api/employees')                       return await listEmployees(req, res);
+    if (m === 'POST' && p === '/api/employees')                       return await createEmployee(req, res);
+    if (m === 'GET'  && p.match(/^\/api\/employees\/[^/]+$/))         return await getEmployee(req, res, p.split('/')[3]);
 
     // ── Contracts ───────────────────────────────────────────────────
-    if (m === 'GET'  && p === '/api/contracts')                       return listContracts(req, res);
-    if (m === 'POST' && p === '/api/contracts')                       return createContract(req, res);
-    if (m === 'GET'  && p.match(/^\/api\/contracts\/[^/]+$/))         return getContract(req, res, p.split('/')[3]);
-    if (m === 'PUT'  && p.match(/^\/api\/contracts\/[^/]+\/submit$/)) return submitContract(req, res, p.split('/')[3]);
-    if (m === 'PUT'  && p.match(/^\/api\/contracts\/[^/]+\/status$/)) return updateContractStatus(req, res, p.split('/')[3]);
-    if (m === 'POST' && p.match(/^\/api\/contracts\/[^/]+\/send-to-employee$/)) return sendContractToEmployee(req, res, p.split('/')[3]);
+    if (m === 'GET'  && p === '/api/contracts')                       return await listContracts(req, res);
+    if (m === 'POST' && p === '/api/contracts')                       return await createContract(req, res);
+    if (m === 'GET'  && p.match(/^\/api\/contracts\/[^/]+$/))         return await getContract(req, res, p.split('/')[3]);
+    if (m === 'PUT'  && p.match(/^\/api\/contracts\/[^/]+\/submit$/)) return await submitContract(req, res, p.split('/')[3]);
+    if (m === 'PUT'  && p.match(/^\/api\/contracts\/[^/]+\/status$/)) return await updateContractStatus(req, res, p.split('/')[3]);
+    if (m === 'POST' && p.match(/^\/api\/contracts\/[^/]+\/send-to-employee$/)) return await sendContractToEmployee(req, res, p.split('/')[3]);
 
     // ── Approvals ───────────────────────────────────────────────────
-    if (m === 'GET'  && p === '/api/approvals')                       return listApprovals(req, res);
-    if (m === 'POST' && p.match(/^\/api\/approvals\/[^/]+\/approve$/)) return approveWorkflow(req, res, p.split('/')[3]);
-    if (m === 'POST' && p.match(/^\/api\/approvals\/[^/]+\/reject$/))  return rejectWorkflow(req, res, p.split('/')[3]);
+    if (m === 'GET'  && p === '/api/approvals')                       return await listApprovals(req, res);
+    if (m === 'POST' && p.match(/^\/api\/approvals\/[^/]+\/approve$/)) return await approveWorkflow(req, res, p.split('/')[3]);
+    if (m === 'POST' && p.match(/^\/api\/approvals\/[^/]+\/reject$/))  return await rejectWorkflow(req, res, p.split('/')[3]);
 
     // ── Templates ───────────────────────────────────────────────────
-    if (m === 'GET'  && p === '/api/templates')                       return listTemplates(res);
+    if (m === 'GET'  && p === '/api/templates')                       return await listTemplates(res);
 
     // ── Analytics ───────────────────────────────────────────────────
-    if (m === 'GET'  && p === '/api/analytics')                       return getAnalytics(res);
+    if (m === 'GET'  && p === '/api/analytics')                       return await getAnalytics(res);
 
     // ── Audit ───────────────────────────────────────────────────────
-    if (m === 'GET'  && p === '/api/audit-logs')                      return listAuditLogs(req, res);
-    if (m === 'POST' && p === '/api/audit')                           return audit(req, res);
+    if (m === 'GET'  && p === '/api/audit-logs')                      return await listAuditLogs(req, res);
+    if (m === 'POST' && p === '/api/audit')                           return await audit(req, res);
 
     // ── Notifications ───────────────────────────────────────────────
-    if (m === 'GET'  && p === '/api/notifications')                   return listNotifications(req, res);
-    if (m === 'PUT'  && p === '/api/notifications/read')              return markNotificationsRead(req, res);
+    if (m === 'GET'  && p === '/api/notifications')                   return await listNotifications(req, res);
+    if (m === 'PUT'  && p === '/api/notifications/read')              return await markNotificationsRead(req, res);
+    if (m === 'POST' && p === '/api/notify')                          return await sendDirectNotification(req, res);
 
     // ── Departments ─────────────────────────────────────────────────
-    if (m === 'GET'  && p === '/api/departments')                     return listDepartments(res);
+    if (m === 'GET'  && p === '/api/departments')                     return await listDepartments(res);
 
     return send(res, 404, { message: 'Not found' });
   } catch (error) {
@@ -871,6 +874,62 @@ async function listAuditLogs(req, res) {
     total: Number(total.rows[0].count),
     page, limit,
   });
+}
+
+// ── Direct notification (frontend-triggered emails) ──────────────────────────
+
+async function sendDirectNotification(req, res) {
+  const body = await readJson(req);
+  const { type, to, recipientName, contractTitle, contractRef, submittedBy, approverName, reason } = body;
+
+  if (!type || !to) throw httpError(400, 'type and to are required.');
+
+  const contract = {
+    id: contractRef || 'unknown',
+    title: contractTitle || 'Employment Contract',
+    reference: contractRef || 'unknown',
+    approverName: approverName || submittedBy || '—',
+    senderName: submittedBy || '—',
+  };
+
+  const emailService = require('./services/emailService');
+
+  const handlers = {
+    approval_requested: () => emailService.sendApprovalRequestedEmail({
+      to,
+      approverName: recipientName || to,
+      contract,
+      submittedByName: submittedBy || 'HR',
+    }),
+    contract_approved: () => emailService.sendContractApprovedEmail({
+      to,
+      recipientName: recipientName || to,
+      contract,
+    }),
+    contract_rejected: () => emailService.sendContractRejectedEmail({
+      to,
+      recipientName: recipientName || to,
+      contract,
+      reason: reason || 'Reviewer requested revisions.',
+    }),
+    contract_sent: () => emailService.sendContractSentEmail({
+      to,
+      recipientName: recipientName || to,
+      contract,
+    }),
+  };
+
+  const handler = handlers[type];
+  if (!handler) throw httpError(400, `Unknown notification type: ${type}`);
+
+  try {
+    await handler();
+    console.log(`[notify] ${type} → ${to}`);
+    send(res, 200, { status: 'sent', type, to });
+  } catch (err) {
+    console.error(`[notify] Failed to send ${type} to ${to}:`, err.message);
+    send(res, 500, { status: 'failed', error: err.message });
+  }
 }
 
 // ── Notifications ────────────────────────────────────────────────────────────

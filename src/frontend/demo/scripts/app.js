@@ -343,13 +343,87 @@ function userCanApproveStage(stage) {
   return false;
 }
 
+const APPROVAL_RECIPIENTS = [
+  {
+    key: 'tiara',
+    name: 'Tiara Ramouthar',
+    role: 'HR Manager',
+    email: 'tiara.ramouthar@redmps.com',
+    initials: 'TR',
+    color: '#0e7490'
+  },
+  {
+    key: 'kogie',
+    name: 'Kogiela Reddy',
+    role: 'Director / CEO',
+    email: 'kogiela.reddy@redmps.com',
+    initials: 'KR',
+    color: '#be123c'
+  }
+];
+
 function submitCurrentContractForApproval() {
   const generated = readGeneratedContract();
   if (!generated) {
     showToast('Generate a contract preview before submitting for approval.', 'warning');
     return;
   }
+  showApprovalRecipientModal(generated);
+}
 
+function showApprovalRecipientModal(generated) {
+  document.getElementById('approvalRecipientModal')?.remove();
+
+  const overlay = document.createElement('div');
+  overlay.id = 'approvalRecipientModal';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(15,20,40,.55);z-index:9999;display:flex;align-items:center;justify-content:center;padding:24px;';
+
+  const modal = document.createElement('div');
+  modal.style.cssText = 'background:#fff;border-radius:16px;width:100%;max-width:460px;box-shadow:0 24px 48px rgba(0,0,0,.18);overflow:hidden;animation:fadeInUp .2s ease;';
+
+  modal.innerHTML = `
+    <div style="padding:24px 24px 0;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+        <div style="font-size:16px;font-weight:700;color:#111827;">Submit for Approval</div>
+        <button id="approvalRecipientClose" style="background:none;border:none;cursor:pointer;color:#9ca3af;font-size:20px;line-height:1;padding:0 2px;" aria-label="Close">&times;</button>
+      </div>
+      <div style="font-size:13px;color:#6b7280;margin-bottom:20px;">Select who should receive this contract for review.</div>
+    </div>
+    <div style="padding:0 24px 24px;display:flex;flex-direction:column;gap:10px;" id="approvalRecipientList"></div>
+  `;
+
+  const list = modal.querySelector('#approvalRecipientList');
+
+  APPROVAL_RECIPIENTS.forEach(recipient => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.style.cssText = 'display:flex;align-items:center;gap:14px;padding:14px 16px;border:1.5px solid #e5e7eb;border-radius:12px;background:#fff;cursor:pointer;text-align:left;width:100%;transition:border-color .15s,background .15s;';
+    btn.innerHTML = `
+      <div style="width:40px;height:40px;border-radius:50%;background:${recipient.color};color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0;">${recipient.initials}</div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:14px;font-weight:600;color:#111827;">${recipient.name}</div>
+        <div style="font-size:12px;color:#6b7280;">${recipient.role}</div>
+        <div style="font-size:11.5px;color:#9ca3af;margin-top:1px;">${recipient.email}</div>
+      </div>
+      <svg width="16" height="16" fill="none" stroke="#d1d5db" stroke-width="2" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+    `;
+    btn.addEventListener('mouseenter', () => { btn.style.borderColor = recipient.color; btn.style.background = '#fafafa'; });
+    btn.addEventListener('mouseleave', () => { btn.style.borderColor = '#e5e7eb'; btn.style.background = '#fff'; });
+    btn.addEventListener('click', () => {
+      overlay.remove();
+      doSubmitForApproval(generated, recipient);
+    });
+    list.appendChild(btn);
+  });
+
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+  modal.querySelector('#approvalRecipientClose').addEventListener('click', () => overlay.remove());
+}
+
+function doSubmitForApproval(generated, recipient) {
   const queue = readApprovalQueue();
   const exportContext = getContractExportContext();
   if (!queue.some(item => item.ref === generated.ref)) {
@@ -366,10 +440,13 @@ function submitCurrentContractForApproval() {
       priority: 'normal',
       submittedAt: new Date().toISOString(),
       submittedBy: getSession?.()?.name || 'Current user',
-      currentOwner: 'HR Manager',
+      currentOwner: recipient.name,
+      recipientName: recipient.name,
+      recipientEmail: recipient.email,
+      recipientRole: recipient.role,
       notes: [],
       history: [
-        { at: new Date().toISOString(), action: 'Submitted for approval', by: getSession?.()?.name || 'Current user' }
+        { at: new Date().toISOString(), action: `Submitted for approval to ${recipient.name} (${recipient.role})`, by: getSession?.()?.name || 'Current user' }
       ]
     });
     writeApprovalQueue(queue);
@@ -380,8 +457,32 @@ function submitCurrentContractForApproval() {
   } catch {
     // Ignore storage failures in restricted browser modes.
   }
-  showToast(`${generated.fullName} sent to HR Manager approval.`, 'success');
+
+  // Email the selected approver
+  sendNotificationEmail({
+    type: 'approval_requested',
+    to: recipient.email,
+    recipientName: recipient.name,
+    contractTitle: generated.schemaLabel,
+    contractRef: generated.ref,
+    submittedBy: getSession?.()?.name || 'HR',
+  });
+
+  showToast(`${generated.fullName} sent to ${recipient.name} for approval.`, 'success');
   routeTo('approvals');
+}
+
+async function sendNotificationEmail(payload) {
+  try {
+    await fetch(`${API_BASE}/api/notify`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(8000),
+    });
+  } catch {
+    // API offline — email could not be sent; workflow continues unaffected.
+  }
 }
 
 function getContractExportContext() {
@@ -625,7 +726,25 @@ function sendCurrentContractForSignature() {
     return;
   }
 
-  showToast('Signature packet prepared for the approved contract.', 'success');
+  // Email the employee their contract
+  const employeeEmail = document.getElementById('doc-email-address')?.textContent?.split('/')?.[0]?.trim()
+    || generated.data?.email
+    || '';
+  const employeeName = generated.fullName || 'Employee';
+
+  if (employeeEmail) {
+    sendNotificationEmail({
+      type: 'contract_sent',
+      to: employeeEmail,
+      recipientName: employeeName,
+      contractTitle: generated.schemaLabel || 'Employment Contract',
+      contractRef: generated.ref || '',
+      submittedBy: getSession?.()?.name || 'HR',
+    });
+    showToast(`Contract emailed to ${employeeName} at ${employeeEmail}.`, 'success');
+  } else {
+    showToast('Signature packet prepared. No employee email on record to send to.', 'warning');
+  }
 }
 
 const FAQ_ANSWERS = [
@@ -1487,6 +1606,37 @@ function approveItem(btn, name) {
   btn.style.background = 'var(--success)';
   btn.style.pointerEvents = 'none';
 
+  // Email notifications at approval step
+  const queueItem = ref ? readApprovalQueue().find(e => e.ref === ref) : null;
+  const submitterSession = getSession?.() || {};
+
+  if (nextStage === 'approved') {
+    // Final approval — email HR/submitter that contract is fully approved
+    const hrEmail = submitterSession.email || 'admin@redmps.com';
+    sendNotificationEmail({
+      type: 'contract_approved',
+      to: hrEmail,
+      recipientName: submitterSession.name || 'HR',
+      contractTitle: queueItem?.documentType || 'Employment Contract',
+      contractRef: ref || '',
+      approverName: submitterSession.name || 'Approver',
+    });
+  } else if (queueItem?.recipientEmail) {
+    // Intermediate stage — email the next approver in the chain
+    const nextRecipient = APPROVAL_RECIPIENTS.find(r => r.email === queueItem.recipientEmail);
+    const nextApproverEmail = nextRecipient
+      ? (nextStage === 'director' ? 'kogiela.reddy@redmps.com' : nextRecipient.email)
+      : 'kogiela.reddy@redmps.com';
+    sendNotificationEmail({
+      type: 'approval_requested',
+      to: nextApproverEmail,
+      recipientName: nextApproverEmail.includes('kogiela') ? 'Kogiela Reddy' : 'Tiara Ramouthar',
+      contractTitle: queueItem?.documentType || 'Employment Contract',
+      contractRef: ref || '',
+      submittedBy: submitterSession.name || 'HR',
+    });
+  }
+
   setTimeout(() => {
     card.style.transition = 'opacity .4s ease, transform .4s ease, max-height .4s ease';
     card.style.opacity = '0';
@@ -1526,6 +1676,19 @@ function flagApprovalItem(btn, name) {
         item.notes.push({ at: new Date().toISOString(), by: getSession?.()?.name || 'Current user', text: note });
       }
       writeApprovalQueue(queue);
+
+      // Email HR/submitter that contract was returned for revision
+      const session = getSession?.() || {};
+      const hrEmail = session.email || 'admin@redmps.com';
+      sendNotificationEmail({
+        type: 'contract_rejected',
+        to: hrEmail,
+        recipientName: session.name || 'HR',
+        contractTitle: item.documentType || 'Employment Contract',
+        contractRef: item.ref || '',
+        approverName: session.name || 'Reviewer',
+        reason: note || 'Reviewer requested revisions.',
+      });
     }
     renderGeneratedApprovals();
     refreshApprovalActions();
