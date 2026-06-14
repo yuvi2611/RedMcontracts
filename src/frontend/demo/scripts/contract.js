@@ -650,14 +650,13 @@ function updatePreviewForSchema(schema) {
   });
 }
 
-function generateContractPreview() {
+async function generateContractPreview() {
   updateContractTypeUI();
   if (!validateContractForm()) return;
 
   const schema = getSchema();
   const data = getContractData();
   const fullName = data.firstName + ' ' + data.lastName;
-  const ref = 'RMP-' + new Date().getFullYear() + '-' + String(Math.floor(Math.random() * 900) + 100);
 
   const set = (id, value) => {
     const el = document.getElementById(id);
@@ -684,9 +683,55 @@ function generateContractPreview() {
   set('doc-restraint-area', data.restraintArea || 'Gauteng');
   set('doc-restraint-period', data.restraintPeriod || '12 (Twelve) Months');
   set('doc-sig-employee-name', fullName);
-  set('preview-subtitle', fullName + ' - ' + schema.label + ' - REF: ' + ref);
   updatePreviewForSchema(schema);
-  storeGeneratedContract?.({ ref, fullName, data, schemaKey: getContractKey(), schemaLabel: schema.label });
+
+  // Determine employment_type from contract type
+  const employmentTypeMap = {
+    'Fixed-Term Employment Agreement': 'Fixed-Term',
+    'Permanent Employment Contract': 'Permanent',
+    'Internship Agreement': 'Internship',
+    'Consultant Agreement': 'Contractor',
+    'Offer Letter': 'Permanent',
+  };
+  const employmentType = employmentTypeMap[data.contractType] || 'Permanent';
+
+  // Save to backend — creates a real Draft contract in the DB
+  let contractId = null;
+  let contractNumber = null;
+  try {
+    const session = getSession?.();
+    const previewDoc = document.querySelector('#page-preview .preview-doc') || document.getElementById('previewDoc');
+    const contentHtml = previewDoc ? previewDoc.outerHTML : '';
+
+    const payload = {
+      contract_type: data.contractType,
+      employment_type: employmentType,
+      employee_first_name: data.firstName,
+      employee_last_name: data.lastName,
+      employee_email: data.emailAddress || null,
+      employee_phone: data.phoneNumber || null,
+      employee_role: data.role,
+      title: `${fullName} - ${schema.label}`,
+      salary: data.salary,
+      start_date: data.startDate,
+      end_date: data.endDate || null,
+      probation_period_months: parseInt(data.probationPeriod) || 3,
+      notice_period_days: parseInt(data.noticePeriod) * 30 || 30,
+      content_html: contentHtml,
+    };
+    if (session?.id) payload.created_by = session.id;
+
+    const created = await apiFetch('/api/contracts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+    contractId = created.id;
+    contractNumber = created.contractNumber;
+  } catch (err) {
+    console.warn('[contract] Backend save failed, continuing locally:', err.message);
+  }
+
+  const ref = contractNumber || ('RMP-' + new Date().getFullYear() + '-' + String(Math.floor(Math.random() * 900) + 100));
+  set('preview-subtitle', fullName + ' - ' + schema.label + ' - REF: ' + ref);
+
+  storeGeneratedContract?.({ ref, contractId, fullName, data, schemaKey: getContractKey(), schemaLabel: schema.label });
 
   setPreviewAccess?.(true);
   routeTo('preview');

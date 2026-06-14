@@ -59,6 +59,7 @@ const server = http.createServer(async (req, res) => {
     // ── Contracts ───────────────────────────────────────────────────
     if (m === 'GET'  && p === '/api/contracts')                       return await listContracts(req, res);
     if (m === 'POST' && p === '/api/contracts')                       return await createContract(req, res);
+    if (m === 'GET'  && p.match(/^\/api\/contracts\/[^/]+\/content$/)) return await getContractContent(req, res, p.split('/')[3]);
     if (m === 'GET'  && p.match(/^\/api\/contracts\/[^/]+$/))         return await getContract(req, res, p.split('/')[3]);
     if (m === 'PUT'  && p.match(/^\/api\/contracts\/[^/]+\/submit$/)) return await submitContract(req, res, p.split('/')[3]);
     if (m === 'PUT'  && p.match(/^\/api\/contracts\/[^/]+\/status$/)) return await updateContractStatus(req, res, p.split('/')[3]);
@@ -68,6 +69,9 @@ const server = http.createServer(async (req, res) => {
     if (m === 'GET'  && p === '/api/approvals')                       return await listApprovals(req, res);
     if (m === 'POST' && p.match(/^\/api\/approvals\/[^/]+\/approve$/)) return await approveWorkflow(req, res, p.split('/')[3]);
     if (m === 'POST' && p.match(/^\/api\/approvals\/[^/]+\/reject$/))  return await rejectWorkflow(req, res, p.split('/')[3]);
+
+    // ── Contract Types ──────────────────────────────────────────────
+    if (m === 'GET'  && p === '/api/contract-types')                  return await listContractTypes(res);
 
     // ── Templates ───────────────────────────────────────────────────
     if (m === 'GET'  && p === '/api/templates')                       return await listTemplates(res);
@@ -492,12 +496,109 @@ async function getContract(req, res, id) {
   });
 }
 
+function getAuthUserId(req) {
+  const header = req.headers['authorization'] || '';
+  const token = header.startsWith('Bearer ') ? header.slice(7).trim() : '';
+  if (token.startsWith('dev-')) return token.slice(4);
+  return null;
+}
+
+async function resolveContractTypeId(nameOrId) {
+  if (!nameOrId) return null;
+  // Already a UUID
+  if (/^[0-9a-f-]{36}$/i.test(nameOrId)) return nameOrId;
+  const r = await pool.query(
+    `SELECT id FROM contract_types WHERE lower(name) = lower($1) OR lower(code) = lower($1) LIMIT 1`,
+    [nameOrId]
+  );
+  return r.rows[0]?.id || null;
+}
+
+async function resolveTemplateId(nameOrId, contractTypeId) {
+  if (!nameOrId && !contractTypeId) return null;
+  if (nameOrId && /^[0-9a-f-]{36}$/i.test(nameOrId)) return nameOrId;
+  const q = nameOrId
+    ? `SELECT id FROM templates WHERE (lower(name) = lower($1)) AND is_active = true LIMIT 1`
+    : `SELECT id FROM templates WHERE contract_type_id = $1 AND is_active = true ORDER BY version DESC LIMIT 1`;
+  const r = await pool.query(q, [nameOrId || contractTypeId]);
+  return r.rows[0]?.id || null;
+}
+
+async function resolveOrCreateEmployee(body, createdBy) {
+  // If a UUID is provided directly, use it
+  if (body.employee_id && /^[0-9a-f-]{36}$/i.test(body.employee_id)) return body.employee_id;
+
+  const email = (body.employee_email || '').trim().toLowerCase();
+  const firstName = (body.employee_first_name || body.first_name || '').trim();
+  const lastName = (body.employee_last_name || body.last_name || '').trim();
+
+  if (!firstName && !lastName && !email) throw httpError(400, 'employee_id or employee name/email is required.');
+
+  // Try lookup by email first, then by full name
+  if (email) {
+    const byEmail = await pool.query(`SELECT id FROM employees WHERE lower(email) = $1 LIMIT 1`, [email]);
+    if (byEmail.rows[0]) return byEmail.rows[0].id;
+  }
+  if (firstName && lastName) {
+    const byName = await pool.query(
+      `SELECT id FROM employees WHERE lower(first_name) = lower($1) AND lower(last_name) = lower($2) LIMIT 1`,
+      [firstName, lastName]
+    );
+    if (byName.rows[0]) return byName.rows[0].id;
+  }
+
+  // Create a new employee record
+  if (!firstName || !lastName) throw httpError(400, 'employee_first_name and employee_last_name are required when creating a new employee.');
+
+  // Generate next employee code (find max numeric suffix)
+  const lastEmp = await pool.query(
+    `SELECT employee_id FROM employees WHERE employee_id ~ '^EMP-[0-9]+$' ORDER BY CAST(split_part(employee_id, '-', 2) AS INTEGER) DESC LIMIT 1`
+  );
+  const lastCode = lastEmp.rows[0]?.employee_id || 'EMP-000';
+  const nextNum = String(parseInt(lastCode.split('-')[1] || '0') + 1).padStart(3, '0');
+  const empCode = `EMP-${nextNum}`;
+
+  const dept = await pool.query(`SELECT id FROM departments LIMIT 1`);
+  const deptId = dept.rows[0]?.id || null;
+
+  let empEmail = email || `${firstName.toLowerCase()}.${lastName.toLowerCase()}.${empCode.toLowerCase()}@redmps.com`;
+  // Ensure uniqueness if the email is already taken by a different record
+  if (email) {
+    const taken = await pool.query(`SELECT id FROM employees WHERE lower(email) = lower($1)`, [email]);
+    if (taken.rows[0]) {
+      empEmail = `${email.split('@')[0]}.${empCode.toLowerCase()}@${email.split('@')[1] || 'redmps.com'}`;
+    }
+  }
+
+  const newEmp = await pool.query(
+    `INSERT INTO employees (employee_id, first_name, last_name, email, phone, job_title, department_id, employment_type, employment_status, hire_date, created_by)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'Active',$9,$10) RETURNING id`,
+    [empCode, firstName, lastName, empEmail,
+     body.employee_phone || body.phone_number || null,
+     body.employee_role || body.role || null,
+     deptId, body.employment_type || 'Permanent',
+     body.start_date || new Date().toISOString().slice(0, 10),
+     createdBy]
+  );
+  return newEmp.rows[0].id;
+}
+
 async function createContract(req, res) {
   const body = await readJson(req);
-  const required = ['employee_id', 'contract_type_id', 'template_id', 'start_date', 'salary', 'employment_type', 'created_by'];
-  for (const f of required) {
-    if (!body[f]) throw httpError(400, `${f} is required.`);
-  }
+  const createdBy = body.created_by || getAuthUserId(req);
+  if (!createdBy) throw httpError(401, 'Authentication required.');
+
+  if (!body.start_date) throw httpError(400, 'start_date is required.');
+  if (!body.salary) throw httpError(400, 'salary is required.');
+  if (!body.employment_type) throw httpError(400, 'employment_type is required.');
+
+  const contractTypeId = await resolveContractTypeId(body.contract_type_id || body.contract_type);
+  if (!contractTypeId) throw httpError(400, 'contract_type_id (or contract_type name) is required and must match a known type.');
+
+  const templateId = await resolveTemplateId(body.template_id || body.template_name, contractTypeId);
+  if (!templateId) throw httpError(400, 'No matching active template found for this contract type.');
+
+  const employeeId = await resolveOrCreateEmployee(body, createdBy);
 
   const lastC = await pool.query(`SELECT contract_number FROM contracts ORDER BY created_at DESC LIMIT 1`);
   const year = new Date().getFullYear();
@@ -507,17 +608,23 @@ async function createContract(req, res) {
   const result = await pool.query(`
     INSERT INTO contracts (contract_number, employee_id, contract_type_id, template_id,
       title, status, salary, employment_type, start_date, end_date,
-      probation_period_months, notice_period_days, created_by)
-    VALUES ($1,$2,$3,$4,$5,'Draft',$6,$7,$8,$9,$10,$11,$12)
+      probation_period_months, notice_period_days, content_html, created_by)
+    VALUES ($1,$2,$3,$4,$5,'Draft',$6,$7,$8,$9,$10,$11,$12,$13)
     RETURNING id
-  `, [num, body.employee_id, body.contract_type_id, body.template_id,
+  `, [num, employeeId, contractTypeId, templateId,
       body.title || null, body.salary, body.employment_type,
       body.start_date, body.end_date || null,
       body.probation_period_months || 3, body.notice_period_days || 30,
-      body.created_by]);
+      body.content_html || null, createdBy]);
 
   const created = await getContractRow(result.rows[0].id);
   send(res, 201, toClientContract(created));
+}
+
+async function getContractContent(req, res, id) {
+  const r = await pool.query(`SELECT id, contract_number, title, content_html FROM contracts WHERE id = $1`, [id]);
+  if (!r.rows[0]) throw httpError(404, 'Contract not found.');
+  send(res, 200, { id: r.rows[0].id, contractNumber: r.rows[0].contract_number, title: r.rows[0].title, contentHtml: r.rows[0].content_html });
 }
 
 async function submitContract(req, res, id) {
@@ -558,7 +665,16 @@ async function submitContract(req, res, id) {
     [id]
   );
 
-  const submitter = body.submitted_by_name || 'HR';
+  // Resolve submitter name from auth token if not provided in body
+  let submitter = body.submitted_by_name || null;
+  if (!submitter) {
+    const uid = getAuthUserId(req);
+    if (uid) {
+      const u = await pool.query(`SELECT first_name, last_name FROM users WHERE id = $1`, [uid]);
+      if (u.rows[0]) submitter = `${u.rows[0].first_name} ${u.rows[0].last_name}`;
+    }
+  }
+  submitter = submitter || 'HR';
   await Promise.all(approvers.rows.map(a =>
     notifications.notifyApprovalRequested(pool, {
       approverId: a.user_id,
@@ -613,31 +729,39 @@ async function sendContractToEmployee(req, res, id) {
 
   const senderName = body.sender_name || `${r.hr_first} ${r.hr_last}`;
 
-  // Notify employee
-  await notifications.notifyContractSent(pool, {
-    recipientId: r.employee_id,
-    recipientEmail: r.emp_email,
-    recipientName: `${r.emp_first} ${r.emp_last}`,
-    contract: {
-      id,
-      title: r.title,
-      reference: r.contract_number,
-      senderName,
-    },
-  });
+  // Notify employee via email (employee may not have a user account, so ignore DB notification errors)
+  try {
+    await notifications.notifyContractSent(pool, {
+      recipientId: r.creator_id,
+      recipientEmail: r.emp_email,
+      recipientName: `${r.emp_first} ${r.emp_last}`,
+      contract: {
+        id,
+        title: r.title,
+        reference: r.contract_number,
+        senderName,
+      },
+    });
+  } catch (notifyErr) {
+    console.warn('Employee notification skipped:', notifyErr.message);
+  }
 
   // Also notify HR that the send succeeded
-  await notifications.notifyContractApproved(pool, {
-    recipientId: r.creator_id,
-    recipientEmail: r.creator_email,
-    recipientName: `${r.hr_first} ${r.hr_last}`,
-    contract: {
-      id,
-      title: r.title,
-      reference: r.contract_number,
-      approverName: `${r.emp_first} ${r.emp_last} (employee)`,
-    },
-  });
+  try {
+    await notifications.notifyContractApproved(pool, {
+      recipientId: r.creator_id,
+      recipientEmail: r.creator_email,
+      recipientName: `${r.hr_first} ${r.hr_last}`,
+      contract: {
+        id,
+        title: r.title,
+        reference: r.contract_number,
+        approverName: `${r.emp_first} ${r.emp_last} (employee)`,
+      },
+    });
+  } catch (notifyErr) {
+    console.warn('HR notification skipped:', notifyErr.message);
+  }
 
   send(res, 200, {
     status: 'sent',
@@ -777,6 +901,15 @@ async function rejectWorkflow(req, res, id) {
   }
 
   send(res, 200, { status: 'rejected' });
+}
+
+// ── Contract Types ───────────────────────────────────────────────────────────
+
+async function listContractTypes(res) {
+  const result = await pool.query(`
+    SELECT id, name, code FROM contract_types ORDER BY name
+  `);
+  send(res, 200, { data: result.rows });
 }
 
 // ── Templates ────────────────────────────────────────────────────────────────

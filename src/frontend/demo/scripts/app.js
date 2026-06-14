@@ -284,9 +284,11 @@ function toggleNotificationPanel(forceOpen = null) {
   const opening = forceOpen === null ? panel.classList.contains('hidden') : forceOpen;
   panel.classList.toggle('hidden', !opening);
   button?.setAttribute('aria-expanded', String(opening));
+  if (opening && typeof loadNotifications === 'function') loadNotifications();
 }
 
 function markNotificationsRead() {
+  if (typeof markAllNotificationsRead === 'function') markAllNotificationsRead();
   document.querySelector('.notif-dot')?.classList.add('is-read');
   showToast('Notifications marked as read.', 'success');
   toggleNotificationPanel(false);
@@ -423,7 +425,30 @@ function showApprovalRecipientModal(generated) {
   modal.querySelector('#approvalRecipientClose').addEventListener('click', () => overlay.remove());
 }
 
-function doSubmitForApproval(generated, recipient) {
+async function doSubmitForApproval(generated, recipient) {
+  const session = getSession?.();
+
+  // If we have a real backend contract ID, use the API
+  if (generated.contractId) {
+    try {
+      await apiFetch(`/api/contracts/${generated.contractId}/submit`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ submitted_by_name: session?.name || 'HR' }),
+      });
+      try {
+        sessionStorage.setItem(GENERATED_CONTRACT_KEY, JSON.stringify({ ...generated, submittedForApproval: true }));
+      } catch { /* ignore */ }
+      showToast(`${generated.fullName} submitted for approval.`, 'success');
+      routeTo('approvals');
+      return;
+    } catch (err) {
+      showToast('Could not submit via API: ' + err.message, 'error');
+      return;
+    }
+  }
+
+  // Fallback: no backend contract yet — keep local queue for offline/draft contracts
   const queue = readApprovalQueue();
   const exportContext = getContractExportContext();
   if (!queue.some(item => item.ref === generated.ref)) {
@@ -439,14 +464,14 @@ function doSubmitForApproval(generated, recipient) {
       status: 'Manager Review',
       priority: 'normal',
       submittedAt: new Date().toISOString(),
-      submittedBy: getSession?.()?.name || 'Current user',
+      submittedBy: session?.name || 'Current user',
       currentOwner: recipient.name,
       recipientName: recipient.name,
       recipientEmail: recipient.email,
       recipientRole: recipient.role,
       notes: [],
       history: [
-        { at: new Date().toISOString(), action: `Submitted for approval to ${recipient.name} (${recipient.role})`, by: getSession?.()?.name || 'Current user' }
+        { at: new Date().toISOString(), action: `Submitted for approval to ${recipient.name} (${recipient.role})`, by: session?.name || 'Current user' }
       ]
     });
     writeApprovalQueue(queue);
@@ -454,18 +479,15 @@ function doSubmitForApproval(generated, recipient) {
 
   try {
     sessionStorage.setItem(GENERATED_CONTRACT_KEY, JSON.stringify({ ...generated, submittedForApproval: true }));
-  } catch {
-    // Ignore storage failures in restricted browser modes.
-  }
+  } catch { /* ignore */ }
 
-  // Email the selected approver
   sendNotificationEmail({
     type: 'approval_requested',
     to: recipient.email,
     recipientName: recipient.name,
     contractTitle: generated.schemaLabel,
     contractRef: generated.ref,
-    submittedBy: getSession?.()?.name || 'HR',
+    submittedBy: session?.name || 'HR',
   });
 
   showToast(`${generated.fullName} sent to ${recipient.name} for approval.`, 'success');

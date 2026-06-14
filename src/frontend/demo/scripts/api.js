@@ -14,7 +14,12 @@ async function apiFetch(path, options = {}) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
   try {
-    const res = await fetch(API + path, { ...options, signal: controller.signal });
+    // Attach auth token
+    const token = (() => { try { return sessionStorage.getItem('contractiq.accessToken') || ''; } catch { return ''; } })();
+    const headers = { ...(options.headers || {}) };
+    if (token && !headers['Authorization']) headers['Authorization'] = `Bearer ${token}`;
+
+    const res = await fetch(API + path, { ...options, headers, signal: controller.signal });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       throw new Error(err.message || `HTTP ${res.status}`);
@@ -993,5 +998,65 @@ async function sendToEmployee(btn, contractId, employeeName) {
     btn.disabled = false;
     btn.textContent = original;
     showToast(`Send failed: ${err.message}`, 'error');
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   NOTIFICATIONS
+══════════════════════════════════════════════════════════════════ */
+
+async function loadNotifications() {
+  const session = typeof getSession === 'function' ? getSession() : null;
+  if (!session?.id) return;
+
+  try {
+    const data = await apiFetch(`/api/notifications?user_id=${encodeURIComponent(session.id)}`);
+    const items = data.data || [];
+
+    const panel = document.getElementById('notificationPanel');
+    const dot = document.querySelector('.notif-dot');
+    if (!panel) return;
+
+    const unread = items.filter(n => !n.is_read);
+    if (dot) dot.classList.toggle('is-read', unread.length === 0);
+
+    const list = panel.querySelector('.notif-list') || panel;
+    const existingItems = list.querySelectorAll('.notif-item');
+    existingItems.forEach(el => el.remove());
+
+    if (items.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'notif-item notif-empty';
+      empty.textContent = 'No notifications.';
+      list.appendChild(empty);
+      return;
+    }
+
+    items.slice(0, 20).forEach(n => {
+      const el = document.createElement('div');
+      el.className = 'notif-item' + (n.is_read ? '' : ' notif-unread');
+      el.innerHTML = `<div class="notif-title">${escapeHtml(n.title || n.notification_type)}</div>
+        <div class="notif-body">${escapeHtml(n.message || '')}</div>
+        <div class="notif-time">${timeAgo(n.created_at)}</div>`;
+      list.appendChild(el);
+    });
+  } catch (err) {
+    console.warn('[notifications] load failed:', err.message);
+  }
+}
+
+async function markAllNotificationsRead() {
+  const session = typeof getSession === 'function' ? getSession() : null;
+  if (!session?.id) return;
+  try {
+    await apiFetch('/api/notifications/read', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: session.id }),
+    });
+    const dot = document.querySelector('.notif-dot');
+    if (dot) dot.classList.add('is-read');
+  } catch (err) {
+    console.warn('[notifications] mark-read failed:', err.message);
   }
 }
