@@ -1,54 +1,54 @@
-# 🚀 Quick Start - ContractIQ Demo Application
+﻿# ðŸš€ Quick Start - ContractIQ Demo Application
 
 ## Where Everything Is
 
 ```
 RedMPS_Contract/
-└── src/frontend/
-    ├── demo-index.html ...................... Main application entry point
-    ├── redmps-hr-platform.html ............ Original monolithic file (reference)
-    └── demo/
-        ├── README.md ....................... Full component documentation
-        │
-        ├── components/ ..................... Reusable HTML components
-        │   ├── sidebar.html ............... Navigation sidebar
-        │   ├── topbar.html ................ Header/toolbar
-        │   └── pages/
-        │       ├── dashboard.html ......... Dashboard page
-        │       ├── wizard.html ........... Contract creation wizard
-        │       ├── preview.html ........... Document preview
-        │       ├── contracts.html ........ Contracts list
-        │       └── analytics.html ........ Analytics dashboard
-        │
-        ├── styles/ ......................... CSS organized by concern
-        │   ├── design-tokens.css ......... Colors, typography, spacing
-        │   ├── global.css ................ Reset, animations, base
-        │   ├── components/
-        │   │   ├── buttons.css
-        │   │   ├── forms.css
-        │   │   ├── cards.css
-        │   │   ├── sidebar.css
-        │   │   ├── topbar.css
-        │   │   └── modals.css
-        │   └── pages/
-        │       ├── dashboard.css
-        │       ├── wizard.css
-        │       ├── preview.css
-        │       ├── contracts.css
-        │       └── analytics.css
-        │
-        └── scripts/ ........................ JavaScript functionality
-            ├── app.js ..................... Main app initialization
-            ├── pages.js ................... Page navigation
-            ├── navigation.js .............. Navigation handlers
-            ├── wizard.js .................. Wizard logic
-            ├── modals.js .................. Modal handling
-            └── utils.js ................... Helper functions
+â””â”€â”€ src/frontend/
+    â”œâ”€â”€ demo-index.html ...................... Main application entry point
+    â”œâ”€â”€ redmps-hr-platform.html ............ Original monolithic file (reference)
+    â””â”€â”€ demo/
+        â”œâ”€â”€ README.md ....................... Full component documentation
+        â”‚
+        â”œâ”€â”€ components/ ..................... Reusable HTML components
+        â”‚   â”œâ”€â”€ sidebar.html ............... Navigation sidebar
+        â”‚   â”œâ”€â”€ topbar.html ................ Header/toolbar
+        â”‚   â””â”€â”€ pages/
+        â”‚       â”œâ”€â”€ dashboard.html ......... Dashboard page
+        â”‚       â”œâ”€â”€ wizard.html ........... Contract creation wizard
+        â”‚       â”œâ”€â”€ preview.html ........... Document preview
+        â”‚       â”œâ”€â”€ contracts.html ........ Contracts list
+        â”‚       â””â”€â”€ analytics.html ........ Analytics dashboard
+        â”‚
+        â”œâ”€â”€ styles/ ......................... CSS organized by concern
+        â”‚   â”œâ”€â”€ design-tokens.css ......... Colors, typography, spacing
+        â”‚   â”œâ”€â”€ global.css ................ Reset, animations, base
+        â”‚   â”œâ”€â”€ components/
+        â”‚   â”‚   â”œâ”€â”€ buttons.css
+        â”‚   â”‚   â”œâ”€â”€ forms.css
+        â”‚   â”‚   â”œâ”€â”€ cards.css
+        â”‚   â”‚   â”œâ”€â”€ sidebar.css
+        â”‚   â”‚   â”œâ”€â”€ topbar.css
+        â”‚   â”‚   â””â”€â”€ modals.css
+        â”‚   â””â”€â”€ pages/
+        â”‚       â”œâ”€â”€ dashboard.css
+        â”‚       â”œâ”€â”€ wizard.css
+        â”‚       â”œâ”€â”€ preview.css
+        â”‚       â”œâ”€â”€ contracts.css
+        â”‚       â””â”€â”€ analytics.css
+        â”‚
+        â””â”€â”€ scripts/ ........................ JavaScript functionality
+            â”œâ”€â”€ app.js ..................... Main app initialization
+            â”œâ”€â”€ pages.js ................... Page navigation
+            â”œâ”€â”€ navigation.js .............. Navigation handlers
+            â”œâ”€â”€ wizard.js .................. Wizard logic
+            â”œâ”€â”€ modals.js .................. Modal handling
+            â””â”€â”€ utils.js ................... Helper functions
 ```
 
 ---
 
-## 🎯 How to Run
+## ðŸŽ¯ How to Run
 
 ### Option 1: Direct Browser Open
 ```bash
@@ -74,7 +74,7 @@ npm run demo
 
 ---
 
-## ✨ What You'll See
+## âœ¨ What You'll See
 
 ### Welcome Modal
 - Introductory message
@@ -82,38 +82,38 @@ npm run demo
 - "Create First Contract" button
 
 ### Dashboard Page
-- ✅ 4 KPI cards (contracts, approvals, processing time, compliance)
-- ✅ Recent contracts table
-- ✅ Approval queue
-- ✅ Monthly volume chart
-- ✅ Contract types distribution
-- ✅ Activity timeline
+- âœ… 4 KPI cards (contracts, approvals, processing time, compliance)
+- âœ… Recent contracts table
+- âœ… Approval queue
+- âœ… Monthly volume chart
+- âœ… Contract types distribution
+- âœ… Activity timeline
 
 ### Contract Form
-- ✅ Single form with 7 required fields
-- ✅ Live completion checklist sidebar
-- ✅ Fields: name, surname, ID, role, salary, address, probation, notice
-- ✅ Generate preview populates contract document
+- âœ… Single form with 7 required fields
+- âœ… Live completion checklist sidebar
+- âœ… Fields: name, surname, ID, role, salary, address, probation, notice
+- âœ… Generate preview populates contract document
 
 ### Contract Preview
-- ✅ Document preview (4 pages)
-- ✅ Approval workflow pipeline
-- ✅ Compliance checks
-- ✅ Export options (PDF, DOCX, e-Signature, Email)
+- âœ… Document preview (4 pages)
+- âœ… Approval workflow pipeline
+- âœ… Compliance checks
+- âœ… Export options (PDF, DOCX, e-Signature, Email)
 
 ### Contracts List
-- ✅ Filter by status
-- ✅ Department/type filters
-- ✅ Contract cards grid
-- ✅ Status badges
+- âœ… Filter by status
+- âœ… Department/type filters
+- âœ… Contract cards grid
+- âœ… Status badges
 
 ---
 
-## 🔄 Navigation
+## ðŸ”„ Navigation
 
 ### Click These to Navigate:
 - **Dashboard** - Sidebar nav item or back button
-- **Contracts** - Sidebar nav or "View all →" link
+- **Contracts** - Sidebar nav or "View all â†’" link
 - **New Contract** - Sidebar nav or "New Contract" button
 - **Preview & Sign** - Sidebar nav or contract card click
 - **Analytics** - Sidebar nav item
@@ -123,7 +123,7 @@ Shows current page title in top left
 
 ---
 
-## 📝 Key Sections
+## ðŸ“ Key Sections
 
 ### Design Tokens
 **File**: `demo/styles/design-tokens.css`
@@ -169,7 +169,7 @@ Functionality and interactivity:
 
 ---
 
-## 🎨 Customize
+## ðŸŽ¨ Customize
 
 ### Change Colors
 Edit `demo/styles/design-tokens.css`:
@@ -203,56 +203,54 @@ Edit component files in `demo/components/pages/`:
 
 ---
 
-## 📊 Mock Data
+## Live Data
 
-Current demo includes:
-- **5 employees** (Thabo, Sizwe, Lerato, Ayanda, Palesa)
-- **4 contracts** visible in list
-- **142 contracts total** in KPIs
-- **5 pending approvals**
-- **6 months** of monthly data
-- **5 contract types**
+The app reads operational data from the backend API and PostgreSQL:
+- Dashboard KPIs are loaded from `/api/dashboard`
+- Contracts, employees, approvals, and audit logs use paginated API endpoints
+- Authentication, password resets, and user creation require database-backed users
+- Email/notification requests require explicit recipient and contract context
 
-All data is hardcoded in HTML for demo purposes.
+If the API is unavailable, pages show an explicit offline/error state instead of treating static markup as live data.
 
 ---
 
-## 🔗 Component Flow
+## ðŸ”— Component Flow
 
 ```
 demo-index.html (Main)
-├── Loads all CSS
-├── Loads all JS
-└── Containers:
-    ├── #sidebar (sidebar.html)
-    ├── #topbar (topbar.html)
-    └── #pages-container (pages/*.html)
+â”œâ”€â”€ Loads all CSS
+â”œâ”€â”€ Loads all JS
+â””â”€â”€ Containers:
+    â”œâ”€â”€ #sidebar (sidebar.html)
+    â”œâ”€â”€ #topbar (topbar.html)
+    â””â”€â”€ #pages-container (pages/*.html)
 ```
 
 ---
 
-## ⚡ Features Implemented
+## âš¡ Features Implemented
 
-- ✅ Multi-page navigation
-- ✅ Sidebar with active states
-- ✅ Responsive topbar
-- ✅ KPI cards with animations
-- ✅ Data tables with sorting
-- ✅ Form validation alerts
-- ✅ Status badge colors
-- ✅ Charts and visualizations
-- ✅ Approval workflow pipeline
-- ✅ Export action buttons
-- ✅ Welcome modal
-- ✅ Auto-save indicator
-- ✅ AI suggestion cards
-- ✅ Wizard step progress
-- ✅ Document preview
-- ✅ Animation effects
+- âœ… Multi-page navigation
+- âœ… Sidebar with active states
+- âœ… Responsive topbar
+- âœ… KPI cards with animations
+- âœ… Data tables with sorting
+- âœ… Form validation alerts
+- âœ… Status badge colors
+- âœ… Charts and visualizations
+- âœ… Approval workflow pipeline
+- âœ… Export action buttons
+- âœ… Welcome modal
+- âœ… Auto-save indicator
+- âœ… AI suggestion cards
+- âœ… Wizard step progress
+- âœ… Document preview
+- âœ… Animation effects
 
 ---
 
-## 🚀 Next Steps
+## ðŸš€ Next Steps
 
 ### To Connect to Real Backend:
 1. Open `demo/scripts/app.js`
@@ -278,7 +276,7 @@ demo-index.html (Main)
 
 ---
 
-## 📖 Documentation
+## ðŸ“– Documentation
 
 - Full structure: `demo/README.md`
 - Component guide: `docs/PROJECT_STRUCTURE.md`
@@ -287,7 +285,7 @@ demo-index.html (Main)
 
 ---
 
-## 🎯 File Summary
+## ðŸŽ¯ File Summary
 
 | File Type | Count | Purpose |
 |-----------|-------|---------|
@@ -299,7 +297,7 @@ demo-index.html (Main)
 
 ---
 
-## ✅ Testing Checklist
+## âœ… Testing Checklist
 
 - [ ] Demo opens in browser
 - [ ] Sidebar navigation works
@@ -314,7 +312,7 @@ demo-index.html (Main)
 
 ---
 
-## 🆘 Troubleshooting
+## ðŸ†˜ Troubleshooting
 
 ### "File not found" error
 - Make sure you're in correct directory
@@ -338,7 +336,7 @@ demo-index.html (Main)
 
 ---
 
-## 💡 Tips
+## ðŸ’¡ Tips
 
 - Use browser DevTools (F12) to inspect elements
 - Check the console for any errors
@@ -348,7 +346,7 @@ demo-index.html (Main)
 
 ---
 
-## 📞 Support
+## ðŸ“ž Support
 
 For issues with:
 - **Structure**: See `demo/README.md`
@@ -358,6 +356,6 @@ For issues with:
 
 ---
 
-**Status**: ✅ Ready to Demo  
+**Status**: âœ… Ready to Demo  
 **Last Updated**: June 5, 2026  
 **Version**: 1.0

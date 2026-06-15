@@ -724,6 +724,7 @@ async function generateContractPreview() {
     const created = await apiFetch('/api/contracts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
     contractId = created.id;
     contractNumber = created.contractNumber;
+    if (typeof notifyDataChanged === 'function') notifyDataChanged();
   } catch (err) {
     console.warn('[contract] Backend save failed, continuing locally:', err.message);
   }

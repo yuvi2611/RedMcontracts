@@ -118,6 +118,7 @@ src/frontend/
 - Monthly volume chart
 - Contract types donut chart
 - Recent activity timeline
+- Runtime values hydrate from the backend API and PostgreSQL.
 
 #### Wizard Page
 **File**: `demo/components/pages/wizard.html`
@@ -146,8 +147,9 @@ src/frontend/
 **File**: `demo/components/pages/contracts.html`
 - Filter chips (All, Draft, Under Review, Approved, Signed)
 - Department and type filters
-- Contract cards grid (3 columns)
-- 4 sample contracts with:
+- Contract table/grid populated from PostgreSQL
+- Pagination controls for multi-page result sets
+- Contract rows include:
   - Employee name
   - Position
   - Department

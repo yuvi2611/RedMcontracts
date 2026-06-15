@@ -62,12 +62,12 @@
       <table class="table contracts-table" id="contractsTable">
         <thead>
           <tr>
-            <th>Employee</th>
-            <th>Contract Type</th>
-            <th>Role</th>
-            <th>Start Date</th>
-            <th>Status</th>
-            <th>Actions</th>
+            <th class="sortable" onclick="sortContractsTable(0,this)">Employee <span class="sort-caret">▲</span></th>
+            <th class="sortable" onclick="sortContractsTable(1,this)">Contract Type <span class="sort-caret">▲</span></th>
+            <th class="sortable" onclick="sortContractsTable(2,this)">Role <span class="sort-caret">▲</span></th>
+            <th class="sortable" onclick="sortContractsTable(3,this)">Start Date <span class="sort-caret">▲</span></th>
+            <th class="sortable" onclick="sortContractsTable(4,this)">Status <span class="sort-caret">▲</span></th>
+            <th style="text-align:right">Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -96,7 +96,7 @@
             <td><div class="row-actions"><button class="row-btn" onclick="routeTo('preview')">View</button><button class="row-btn" onclick="showToast('Start the backend server to download PDFs.','info')">PDF</button></div></td>
           </tr>
           <tr class="contract-row" data-status="signed" data-search="yuvaan pather permanent rmp-2026-004">
-            <td><div class="employee-cell"><div class="emp-avatar" style="background:#7c3aed">YP</div><div><div class="emp-name">Yuvaan Pather</div><div class="emp-dept">RMP-2026-004</div></div></div></td>
+            <td><div class="employee-cell"><div class="emp-avatar" style="background:#7c3aed">SE</div><div><div class="emp-name">Selected Employee</div><div class="emp-dept">RMP-2026-004</div></div></div></td>
             <td><span class="type-chip perm">Permanent</span></td>
             <td>Finance Manager</td>
             <td>15 Jan 2026</td>
@@ -138,7 +138,7 @@
         </tbody>
       </table>
       <div class="table-footer">
-        <span class="table-count" id="contractsCount">Showing 8 of 142 contracts</span>
+        <span class="table-count" id="contractsCount">Showing contracts</span>
         <div class="pagination" id="contractsPagination">
           <button class="page-btn active" onclick="loadContractsPage(1)">1</button>
         </div>
@@ -204,7 +204,7 @@
             <div class="contract-card-avatar" style="background:#7c3aed">YP</div>
             <span class="status-badge signed">Signed</span>
           </div>
-          <div class="contract-card-name">Yuvaan Pather</div>
+          <div class="contract-card-name">Selected Employee</div>
           <div class="contract-card-title">Finance Manager</div>
           <div class="contract-card-meta"><span class="type-chip perm">Permanent</span><span class="contract-card-ref">RMP-2026-004</span></div>
           <div class="contract-card-footer">

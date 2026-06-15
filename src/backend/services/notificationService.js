@@ -57,20 +57,20 @@ async function notifyUserInvite(pool, { user, tempPassword, invitedByName }) {
   }), 'user_invite');
 }
 
-async function notifyPasswordReset(pool, { userId, userEmail, firstName, resetToken }) {
+async function notifyPasswordReset(pool, { userId, userEmail, firstName, resetCode }) {
   if (userId) {
     await createNotification(pool, {
       recipientId: userId,
       type: 'password_reset',
       title: 'Password reset requested',
-      message: 'A password reset link has been sent to your email address.',
+      message: 'A password reset code has been sent to your email address.',
     });
   }
 
   await fireEmail(() => email.sendPasswordResetEmail({
     to: userEmail,
     firstName,
-    resetToken,
+    resetCode,
   }), 'password_reset');
 }
 

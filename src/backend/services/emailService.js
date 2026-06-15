@@ -2,6 +2,15 @@
 
 const https = require('https');
 
+// Optional safety guard. When EMAIL_ALLOWED_RECIPIENTS is set, emails only go
+// to those comma-separated addresses; when empty, delivery is unrestricted.
+const ALLOWED_RECIPIENTS = new Set(
+  String(process.env.EMAIL_ALLOWED_RECIPIENTS || '')
+    .split(',')
+    .map(email => email.trim().toLowerCase())
+    .filter(Boolean)
+);
+
 function config() {
   return {
     apiKey:    process.env.BREVO_API_KEY || process.env.SENDINBLUE_API_KEY || '',
@@ -24,13 +33,28 @@ function send({ to, subjectLine, html }) {
       return reject(new Error('Brevo API key not set. Add BREVO_API_KEY to your .env file.'));
     }
 
-    const recipients = (Array.isArray(to) ? to : [to]).map(addr =>
+    const allRecipients = (Array.isArray(to) ? to : [to]).map(addr =>
       typeof addr === 'string' ? { email: addr } : addr
     );
 
+    // Filter to allowed recipients only
+    const recipients = allRecipients.filter(r => {
+      const emailAddr = (r.email || '').toLowerCase();
+      if (ALLOWED_RECIPIENTS.size && !ALLOWED_RECIPIENTS.has(emailAddr)) {
+        console.warn(`[email] Skipping non-whitelisted recipient: ${emailAddr}`);
+        return false;
+      }
+      return true;
+    });
+
+    if (recipients.length === 0) {
+      console.warn(`[email] No allowed recipients for "${subjectLine}" — email suppressed.`);
+      return resolve({ suppressed: true });
+    }
+
     const body = JSON.stringify({
       sender:      { name: cfg.fromName, email: cfg.fromEmail },
-      to:          recipients,
+      to:          recipients,  // already filtered to allowed list
       replyTo:     cfg.replyTo ? { email: cfg.replyTo } : undefined,
       subject:     subjectLine,
       htmlContent: html,
@@ -80,30 +104,50 @@ function layout(bodyHtml) {
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <style>
-  body{margin:0;padding:0;background:#f4f6f8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#1a1a2e}
-  .wrap{max-width:600px;margin:40px auto;background:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.08)}
-  .header{background:#1a1a2e;padding:28px 32px;text-align:center}
-  .header h1{margin:0;color:#ffffff;font-size:22px;font-weight:700;letter-spacing:.5px}
-  .header span{color:#e74c3c;font-weight:800}
-  .body{padding:32px}
-  .body p{margin:0 0 16px;line-height:1.6;color:#444}
-  .body h2{margin:0 0 12px;font-size:18px;color:#1a1a2e}
-  .btn{display:inline-block;margin:20px 0;padding:12px 28px;background:#e74c3c;color:#ffffff!important;text-decoration:none;border-radius:6px;font-weight:600;font-size:15px}
-  .info-box{background:#f8f9fa;border-left:4px solid #e74c3c;border-radius:4px;padding:16px;margin:16px 0}
-  .info-box p{margin:4px 0;font-size:14px;color:#555}
-  .info-box strong{color:#1a1a2e}
-  .footer{background:#f4f6f8;padding:20px 32px;text-align:center;font-size:12px;color:#888;border-top:1px solid #e8eaed}
-  .footer a{color:#e74c3c;text-decoration:none}
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+  *{box-sizing:border-box}
+  body{margin:0;padding:0;background:#0d0d0d;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#1a1a1a}
+  .outer{padding:40px 16px;background:#0d0d0d}
+  .wrap{max-width:600px;margin:0 auto;background:#ffffff;border-radius:0;overflow:hidden;border:1px solid #2a2a2a}
+  .header{background:#0d0d0d;padding:0;text-align:center;border-bottom:3px solid #cc1a1a}
+  .header-top{padding:28px 32px 0}
+  .logo{display:inline-block;font-size:24px;font-weight:700;color:#ffffff;letter-spacing:1px;text-transform:uppercase}
+  .logo span{color:#cc1a1a}
+  .header-band{height:6px;background:linear-gradient(90deg,#cc1a1a 0%,#ff2222 50%,#cc1a1a 100%);margin-top:20px}
+  .body{padding:36px 40px}
+  .body p{margin:0 0 16px;line-height:1.7;color:#3a3a3a;font-size:15px}
+  .body h2{margin:0 0 20px;font-size:20px;font-weight:700;color:#0d0d0d;letter-spacing:-.3px;border-left:4px solid #cc1a1a;padding-left:12px}
+  .btn{display:inline-block;margin:20px 0;padding:13px 32px;background:#cc1a1a;color:#ffffff!important;text-decoration:none;font-weight:600;font-size:15px;letter-spacing:.3px;text-transform:uppercase;border:none}
+  .btn:hover{background:#aa1010}
+  .info-box{background:#0d0d0d;border-left:4px solid #cc1a1a;padding:18px 20px;margin:20px 0}
+  .info-box p{margin:6px 0;font-size:14px;color:#cccccc;line-height:1.5}
+  .info-box strong{color:#ffffff;font-weight:600}
+  .divider{height:1px;background:#e8e8e8;margin:24px 0}
+  .footer{background:#0d0d0d;padding:22px 40px;border-top:3px solid #cc1a1a}
+  .footer-inner{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
+  .footer-brand{font-size:13px;color:#888;font-weight:500}
+  .footer-brand span{color:#cc1a1a}
+  .footer-link{font-size:12px;color:#666;text-decoration:none}
+  .footer-link:hover{color:#cc1a1a}
+  .footer-copy{font-size:11px;color:#555;margin-top:10px;padding-top:10px;border-top:1px solid #2a2a2a;text-align:center}
 </style>
 </head>
 <body>
+<div class="outer">
 <div class="wrap">
-  <div class="header"><h1>Contract<span>IQ</span></h1></div>
+  <div class="header">
+    <div class="header-top"><div class="logo">Contract<span>IQ</span></div></div>
+    <div class="header-band"></div>
+  </div>
   <div class="body">${bodyHtml}</div>
   <div class="footer">
-    &copy; ${new Date().getFullYear()} RedMPS &mdash; ContractIQ &bull;
-    <a href="mailto:${process.env.EMAIL_REPLY_TO || 'support@redmps.com'}">Contact support</a>
+    <div class="footer-inner">
+      <div class="footer-brand"><span>RedMPS</span> &mdash; ContractIQ</div>
+      <a class="footer-link" href="mailto:${process.env.EMAIL_REPLY_TO || 'support@redmps.com'}">Contact Support</a>
+    </div>
+    <div class="footer-copy">&copy; ${new Date().getFullYear()} RedMPS (Pty) Ltd. All rights reserved. This communication is confidential and intended solely for the named recipient(s).</div>
   </div>
+</div>
 </div>
 </body>
 </html>`;
@@ -143,17 +187,19 @@ async function sendUserInviteEmail({ to, firstName, invitedByName, tempPassword 
   });
 }
 
-async function sendPasswordResetEmail({ to, firstName, resetToken, resetUrl }) {
-  const url = resetUrl || `${process.env.FRONTEND_URL || 'http://localhost:4200'}/reset-password?token=${resetToken}&email=${encodeURIComponent(to)}`;
+async function sendPasswordResetEmail({ to, firstName, resetCode }) {
   return send({
     to,
     subjectLine: subjectKey('EMAIL_SUBJECT_PASSWORD_RESET', 'Reset your ContractIQ password'),
     html: layout(`
       <h2>Reset your password</h2>
       <p>Hi ${firstName || 'there'}, we received a request to reset your ContractIQ password.</p>
-      <p>Click the button below to choose a new password. This link expires in <strong>1 hour</strong>.</p>
-      <a class="btn" href="${url}">Reset password</a>
-      <p>If you didn't request a password reset, you can safely ignore this email.</p>
+      <p>Enter the code below on the password reset screen to choose a new password. This code expires in <strong>1 hour</strong>.</p>
+      <div class="info-box" style="text-align:center">
+        <p style="font-size:13px;color:#999;margin-bottom:8px;letter-spacing:1px;text-transform:uppercase">Your reset code</p>
+        <p style="font-size:32px;font-weight:700;letter-spacing:8px;color:#ffffff;margin:0">${resetCode}</p>
+      </div>
+      <p>If you didn't request a password reset, you can safely ignore this email and your password will remain unchanged.</p>
     `),
   });
 }

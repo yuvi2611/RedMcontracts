@@ -16,19 +16,26 @@ const ROLE_MAP = {
 };
 
 const pool = new Pool({
-  host: env.DATABASE_HOST || 'localhost',
+  host: requiredEnv('DATABASE_HOST'),
   port: Number(env.DATABASE_PORT || 5432),
-  database: unquote(env.DATABASE_NAME || 'RedMPS Contracts'),
-  user: env.DATABASE_USER || 'postgres',
-  password: env.DATABASE_PASSWORD || 'pass',
+  database: unquote(requiredEnv('DATABASE_NAME')),
+  user: requiredEnv('DATABASE_USER'),
+  password: requiredEnv('DATABASE_PASSWORD'),
   max: Number(env.DATABASE_CONNECTION_POOL_SIZE || 10),
   ssl: String(env.DATABASE_SSL_MODE || 'disable').toLowerCase() === 'require'
     ? { rejectUnauthorized: false }
     : false,
 });
 
-// token → { userId, email, firstName, expiresAt }
-const resetTokens = new Map();
+// code → { userId, email, firstName, expiresAt }
+// A short numeric code is emailed to the user and entered on the reset screen.
+const resetCodes = new Map();
+const accessTokens = new Map();
+const ACCESS_TOKEN_TTL_MS = 8 * 60 * 60 * 1000;
+
+function newResetCode() {
+  return String(crypto.randomInt(100000, 1000000)); // 6-digit
+}
 
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
@@ -44,8 +51,12 @@ const server = http.createServer(async (req, res) => {
     if (m === 'POST' && p === '/api/auth/login')                      return await login(req, res);
     if (m === 'POST' && p === '/api/auth/password-reset/request')     return await requestPasswordReset(req, res);
     if (m === 'POST' && p === '/api/auth/password-reset/confirm')     return await confirmPasswordReset(req, res);
+    if (m === 'POST' && p === '/api/auth/change-password')            return await changePassword(req, res);
+
+    req.user = await authenticate(req);
 
     // ── Users ───────────────────────────────────────────────────────
+    if (m === 'GET'  && p === '/api/users')                           return await listUsers(req, res);
     if (m === 'POST' && p === '/api/users')                           return await createUser(req, res);
 
     // ── Dashboard ───────────────────────────────────────────────────
@@ -90,6 +101,9 @@ const server = http.createServer(async (req, res) => {
 
     // ── Departments ─────────────────────────────────────────────────
     if (m === 'GET'  && p === '/api/departments')                     return await listDepartments(res);
+
+    // ── Email test (troubleshoot) ───────────────────────────────────
+    if (m === 'POST' && p === '/api/email/test')                      return await testEmail(req, res);
 
     return send(res, 404, { message: 'Not found' });
   } catch (error) {
@@ -149,9 +163,15 @@ async function login(req, res) {
     [user.id]
   );
 
+  const accessToken = crypto.randomBytes(32).toString('hex');
+  accessTokens.set(accessToken, {
+    userId: user.id,
+    expiresAt: Date.now() + ACCESS_TOKEN_TTL_MS,
+  });
+
   send(res, 200, {
-    accessToken: `dev-${user.id}`,
-    refreshToken: `dev-refresh-${user.id}`,
+    accessToken,
+    refreshToken: crypto.randomBytes(32).toString('hex'),
     user: toClientUser(user),
   });
 }
@@ -170,8 +190,8 @@ async function requestPasswordReset(req, res) {
   if (!result.rows[0]) throw httpError(404, 'No active account found for that email address.');
 
   const user = result.rows[0];
-  const token = crypto.randomBytes(32).toString('hex');
-  resetTokens.set(token, {
+  const code = newResetCode();
+  resetCodes.set(code, {
     userId: user.id,
     email: user.email,
     firstName: user.first_name,
@@ -182,7 +202,7 @@ async function requestPasswordReset(req, res) {
     userId: user.id,
     userEmail: user.email,
     firstName: user.first_name,
-    resetToken: token,
+    resetCode: code,
   });
 
   send(res, 200, { status: 'reset_email_sent', message: 'Password reset email sent.' });
@@ -190,16 +210,17 @@ async function requestPasswordReset(req, res) {
 
 async function confirmPasswordReset(req, res) {
   const body = await readJson(req);
-  const token = String(body.token || '').trim();
+  const email = String(body.email || '').trim().toLowerCase();
+  const code = String(body.code || body.token || '').trim();
   const password = String(body.password || '');
 
-  if (!token) throw httpError(400, 'Reset token is required.');
+  if (!code) throw httpError(400, 'Reset code is required.');
   if (password.length < 12) throw httpError(400, 'New password must be at least 12 characters.');
 
-  const entry = resetTokens.get(token);
-  if (!entry || Date.now() > entry.expiresAt) {
-    resetTokens.delete(token);
-    throw httpError(400, 'Reset token is invalid or has expired.');
+  const entry = resetCodes.get(code);
+  if (!entry || Date.now() > entry.expiresAt || (email && entry.email.toLowerCase() !== email)) {
+    if (entry && Date.now() > entry.expiresAt) resetCodes.delete(code);
+    throw httpError(400, 'Reset code is invalid or has expired.');
   }
 
   const result = await pool.query(
@@ -217,13 +238,45 @@ async function confirmPasswordReset(req, res) {
   );
   if (!result.rows[0]) throw httpError(404, 'No active account found.');
 
-  resetTokens.delete(token);
+  resetCodes.delete(code);
   send(res, 200, { status: 'password_updated' });
+}
+
+// First-login / voluntary password change for an authenticated user.
+// Verifies the current password, then sets a new one and clears the
+// force_password_change flag.
+async function changePassword(req, res) {
+  const body = await readJson(req);
+  const email = String(body.email || '').trim().toLowerCase();
+  const current = String(body.current_password || body.currentPassword || '');
+  const next = String(body.new_password || body.newPassword || '');
+
+  if (!email || !current) throw httpError(400, 'Email and current password are required.');
+  if (next.length < 12) throw httpError(400, 'New password must be at least 12 characters.');
+  if (next === current) throw httpError(400, 'New password must be different from the current password.');
+
+  const result = await pool.query(
+    `update users
+     set password_hash = crypt($2, gen_salt('bf', 12)),
+         force_password_change = false,
+         failed_login_attempts = 0,
+         locked_until = null,
+         password_changed_at = current_timestamp,
+         updated_at = current_timestamp
+     where lower(email) = lower($1)
+       and is_active = true
+       and password_hash = crypt($3, password_hash)
+     returning id, email`,
+    [email, next, current]
+  );
+  if (!result.rows[0]) throw httpError(401, 'Current password is incorrect.');
+
+  send(res, 200, { status: 'password_changed' });
 }
 
 async function createUser(req, res) {
   const body = await readJson(req);
-  const actorEmail = String(body.created_by || body.actor_email || '').trim().toLowerCase();
+  const actorEmail = String(req.user?.email || body.created_by || body.actor_email || '').trim().toLowerCase();
   const roleName = ROLE_MAP[body.role_id] || body.role_name || body.role_id;
   const departmentCode = body.department_id || null;
 
@@ -300,12 +353,51 @@ async function createUser(req, res) {
   send(res, 201, newUser);
 }
 
+async function listUsers(req, res) {
+  const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+  const roleFilter = (url.searchParams.get('roles') || '')
+    .split(',')
+    .map(role => role.trim().toLowerCase())
+    .filter(Boolean);
+  const activeOnly = url.searchParams.get('active') !== 'false';
+  const limit = Math.min(Math.max(Number(url.searchParams.get('limit') || 100), 1), 500);
+
+  const params = [];
+  const conditions = [];
+
+  if (activeOnly) conditions.push('u.is_active = true');
+  if (roleFilter.length) {
+    params.push(roleFilter);
+    conditions.push(`lower(r.name) = ANY($${params.length}::text[])`);
+  }
+  params.push(limit);
+
+  const where = conditions.length ? `where ${conditions.join(' and ')}` : '';
+  const result = await pool.query(
+    `select u.id, u.email, u.first_name, u.last_name, u.phone, u.is_active,
+            u.is_superuser, u.force_password_change, r.name as role
+     from users u
+     join roles r on r.id = u.role_id
+     ${where}
+     order by r.name, u.first_name, u.last_name
+     limit $${params.length}`,
+    params
+  );
+
+  send(res, 200, { data: result.rows.map(toClientUser) });
+}
+
 // ── Dashboard ────────────────────────────────────────────────────────────────
 
 async function getDashboard(res) {
   const [summary, pending, recent, employees] = await Promise.all([
     pool.query(`SELECT * FROM v_contract_summary`),
-    pool.query(`SELECT COUNT(*) as count FROM approval_workflows WHERE status = 'Pending'`),
+    pool.query(`
+      SELECT COUNT(*) as count
+      FROM approval_workflows aw
+      JOIN contracts c ON c.id = aw.contract_id
+      WHERE aw.status = 'Pending' AND c.status = 'Review'
+    `),
     pool.query(`
       SELECT c.contract_number, c.title, c.status, c.created_at, c.salary,
              e.first_name, e.last_name
@@ -727,6 +819,15 @@ async function sendContractToEmployee(req, res, id) {
     [id]
   );
 
+  // Resolve any lingering pending approval steps — the contract is finalized,
+  // so they should no longer count toward the pending-approvals queue.
+  await pool.query(
+    `UPDATE approval_workflows
+     SET status = 'Approved', decision_date = COALESCE(decision_date, NOW()), updated_at = NOW()
+     WHERE contract_id = $1 AND status = 'Pending'`,
+    [id]
+  );
+
   const senderName = body.sender_name || `${r.hr_first} ${r.hr_last}`;
 
   // Notify employee via email (employee may not have a user account, so ignore DB notification errors)
@@ -787,23 +888,37 @@ async function getContractRow(id) {
 async function listApprovals(req, res) {
   const url = new URL(req.url, `http://localhost`);
   const status = url.searchParams.get('status') || 'Pending';
+  const page   = Math.max(1, Number(url.searchParams.get('page') || 1));
+  const limit  = Math.min(100, Number(url.searchParams.get('limit') || 50));
+  const offset = (page - 1) * limit;
 
-  const result = await pool.query(`
-    SELECT aw.id, aw.step_number, aw.status, aw.comment, aw.created_at, aw.decision_date,
-           c.id as contract_id, c.contract_number, c.title, c.status as contract_status,
-           c.employment_type, c.salary,
-           e.first_name, e.last_name, e.employee_id as emp_code,
-           u.first_name as approver_first, u.last_name as approver_last, u.email as approver_email
-    FROM approval_workflows aw
-    JOIN contracts c ON c.id = aw.contract_id
-    JOIN employees e ON e.id = c.employee_id
-    JOIN users u ON u.id = aw.approver_id
-    WHERE ($1 = 'all' OR aw.status = $1)
-    ORDER BY aw.created_at DESC
-    LIMIT 100
-  `, [status]);
+  const [rows, total] = await Promise.all([
+    pool.query(`
+      SELECT aw.id, aw.step_number, aw.status, aw.comment, aw.created_at, aw.decision_date,
+             c.id as contract_id, c.contract_number, c.title, c.status as contract_status,
+             c.employment_type, c.salary,
+             e.first_name, e.last_name, e.employee_id as emp_code,
+             u.first_name as approver_first, u.last_name as approver_last, u.email as approver_email
+      FROM approval_workflows aw
+      JOIN contracts c ON c.id = aw.contract_id
+      JOIN employees e ON e.id = c.employee_id
+      JOIN users u ON u.id = aw.approver_id
+      WHERE ($1 = 'all' OR aw.status = $1)
+      ORDER BY aw.created_at DESC
+      LIMIT $2 OFFSET $3
+    `, [status, limit, offset]),
+    pool.query(`
+      SELECT COUNT(*) as count
+      FROM approval_workflows aw
+      WHERE ($1 = 'all' OR aw.status = $1)
+    `, [status]),
+  ]);
 
-  send(res, 200, { data: result.rows.map(toClientApproval) });
+  send(res, 200, {
+    data: rows.rows.map(toClientApproval),
+    total: Number(total.rows[0].count),
+    page, limit,
+  });
 }
 
 async function approveWorkflow(req, res, id) {
@@ -825,6 +940,13 @@ async function approveWorkflow(req, res, id) {
 
   if (!nextStep.rows[0]) {
     await pool.query(`UPDATE contracts SET status = 'Approved', approved_at = NOW() WHERE id = $1`, [contract_id]);
+    // Resolve any remaining pending steps so the queue/badge stay consistent.
+    await pool.query(
+      `UPDATE approval_workflows
+       SET status = 'Approved', decision_date = COALESCE(decision_date, NOW()), updated_at = NOW()
+       WHERE contract_id = $1 AND status = 'Pending'`,
+      [contract_id]
+    );
 
     // Notify the HR officer who created the contract
     const contractRow = await pool.query(`
@@ -1016,13 +1138,14 @@ async function sendDirectNotification(req, res) {
   const { type, to, recipientName, contractTitle, contractRef, submittedBy, approverName, reason } = body;
 
   if (!type || !to) throw httpError(400, 'type and to are required.');
+  if (!contractRef || !contractTitle) throw httpError(400, 'contractRef and contractTitle are required.');
 
   const contract = {
-    id: contractRef || 'unknown',
-    title: contractTitle || 'Employment Contract',
-    reference: contractRef || 'unknown',
-    approverName: approverName || submittedBy || '—',
-    senderName: submittedBy || '—',
+    id: contractRef,
+    title: contractTitle,
+    reference: contractRef,
+    approverName: approverName || submittedBy || '',
+    senderName: submittedBy || '',
   };
 
   const emailService = require('./services/emailService');
@@ -1032,7 +1155,7 @@ async function sendDirectNotification(req, res) {
       to,
       approverName: recipientName || to,
       contract,
-      submittedByName: submittedBy || 'HR',
+      submittedByName: submittedBy || req.user?.name || req.user?.email || '',
     }),
     contract_approved: () => emailService.sendContractApprovedEmail({
       to,
@@ -1043,7 +1166,7 @@ async function sendDirectNotification(req, res) {
       to,
       recipientName: recipientName || to,
       contract,
-      reason: reason || 'Reviewer requested revisions.',
+      reason: reason || '',
     }),
     contract_sent: () => emailService.sendContractSentEmail({
       to,
@@ -1068,28 +1191,60 @@ async function sendDirectNotification(req, res) {
 // ── Notifications ────────────────────────────────────────────────────────────
 
 async function listNotifications(req, res) {
-  const url = new URL(req.url, `http://localhost`);
-  const userId = url.searchParams.get('user_id');
-  if (!userId) throw httpError(400, 'user_id is required.');
-
   const result = await pool.query(`
     SELECT id, notification_type, title, message, is_read, created_at,
            related_entity_type, related_entity_id
     FROM notifications WHERE recipient_id = $1
     ORDER BY created_at DESC LIMIT 50
-  `, [userId]);
+  `, [req.user.id]);
 
   send(res, 200, { data: result.rows });
 }
 
 async function markNotificationsRead(req, res) {
-  const body = await readJson(req);
-  if (!body.user_id) throw httpError(400, 'user_id is required.');
+  await readJson(req);
   await pool.query(`
     UPDATE notifications SET is_read = true, read_at = NOW()
     WHERE recipient_id = $1 AND is_read = false
-  `, [body.user_id]);
+  `, [req.user.id]);
   send(res, 200, { status: 'marked_read' });
+}
+
+// ── Email test endpoint (troubleshoot delivery) ───────────────────────────────
+
+async function testEmail(req, res) {
+  const emailService = require('./services/emailService');
+  const body = await readJson(req);
+  const to = body.to;
+  const type = body.type || 'welcome';
+  if (!to) throw httpError(400, 'A test recipient email address is required.');
+  const recipientName = body.recipientName;
+  const tempPassword = body.tempPassword;
+  const contract = body.contract;
+
+  const requireBody = (condition, message) => {
+    if (!condition) throw httpError(400, message);
+  };
+
+  const dispatchers = {
+    welcome:            () => { requireBody(recipientName && tempPassword, 'recipientName and tempPassword are required for welcome tests.'); return emailService.sendWelcomeEmail({ to, firstName: recipientName, tempPassword }); },
+    invite:             () => { requireBody(recipientName && body.invitedByName && tempPassword, 'recipientName, invitedByName, and tempPassword are required for invite tests.'); return emailService.sendUserInviteEmail({ to, firstName: recipientName, invitedByName: body.invitedByName, tempPassword }); },
+    password_reset:     () => { requireBody(recipientName && body.resetCode, 'recipientName and resetCode are required for password reset tests.'); return emailService.sendPasswordResetEmail({ to, firstName: recipientName, resetCode: body.resetCode }); },
+    contract_created:   () => { requireBody(recipientName && contract, 'recipientName and contract are required for contract email tests.'); return emailService.sendContractCreatedEmail({ to, recipientName, contract }); },
+    contract_sent:      () => { requireBody(recipientName && contract?.senderName, 'recipientName and contract.senderName are required for contract sent tests.'); return emailService.sendContractSentEmail({ to, recipientName, contract }); },
+    contract_approved:  () => { requireBody(recipientName && contract?.approverName, 'recipientName and contract.approverName are required for contract approved tests.'); return emailService.sendContractApprovedEmail({ to, recipientName, contract }); },
+    contract_rejected:  () => { requireBody(recipientName && contract?.approverName && body.reason, 'recipientName, contract.approverName, and reason are required for contract rejected tests.'); return emailService.sendContractRejectedEmail({ to, recipientName, contract, reason: body.reason }); },
+    contract_expiring:  () => { requireBody(recipientName && contract && Number.isFinite(Number(body.daysUntilExpiry)), 'recipientName, contract, and daysUntilExpiry are required for expiry tests.'); return emailService.sendContractExpiringEmail({ to, recipientName, contract, daysUntilExpiry: Number(body.daysUntilExpiry) }); },
+    contract_expired:   () => { requireBody(recipientName && contract, 'recipientName and contract are required for expired contract tests.'); return emailService.sendContractExpiredEmail({ to, recipientName, contract }); },
+    approval_requested: () => { requireBody(recipientName && contract && body.submittedByName, 'recipientName, contract, and submittedByName are required for approval request tests.'); return emailService.sendApprovalRequestedEmail({ to, approverName: recipientName, contract, submittedByName: body.submittedByName }); },
+    approval_reminder:  () => { requireBody(recipientName && contract && Number.isFinite(Number(body.pendingSinceDays)), 'recipientName, contract, and pendingSinceDays are required for approval reminder tests.'); return emailService.sendApprovalReminderEmail({ to, approverName: recipientName, contract, pendingSinceDays: Number(body.pendingSinceDays) }); },
+  };
+
+  const fn = dispatchers[type];
+  if (!fn) throw httpError(400, `Unknown type. Valid types: ${Object.keys(dispatchers).join(', ')}`);
+
+  const result = await fn();
+  send(res, 200, { status: 'sent', to, type, result });
 }
 
 // ── Departments ──────────────────────────────────────────────────────────────
@@ -1227,6 +1382,36 @@ function toClientUser(row) {
   };
 }
 
+async function authenticate(req) {
+  const header = req.headers.authorization || '';
+  const token = header.startsWith('Bearer ') ? header.slice(7).trim() : '';
+  if (!token) throw httpError(401, 'Authentication is required.');
+
+  const session = accessTokens.get(token);
+  if (!session || Date.now() > session.expiresAt) {
+    accessTokens.delete(token);
+    throw httpError(401, 'Session has expired. Please sign in again.');
+  }
+
+  const result = await pool.query(
+    `select u.id, u.email, u.first_name, u.last_name, u.phone, u.is_active,
+            u.is_superuser, u.force_password_change, r.name as role
+     from users u
+     join roles r on r.id = u.role_id
+     where u.id = $1
+       and u.is_active = true
+     limit 1`,
+    [session.userId]
+  );
+  if (!result.rows[0]) {
+    accessTokens.delete(token);
+    throw httpError(401, 'Session user is no longer active.');
+  }
+
+  session.expiresAt = Date.now() + ACCESS_TOKEN_TTL_MS;
+  return toClientUser(result.rows[0]);
+}
+
 function send(res, status, body = null) {
   res.statusCode = status;
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -1275,6 +1460,12 @@ function loadEnv() {
 
 function unquote(value) {
   return String(value).replace(/^["']|["']$/g, '');
+}
+
+function requiredEnv(name) {
+  const value = env[name];
+  if (!value) throw new Error(`${name} is required. Set it in .env or the process environment.`);
+  return value;
 }
 
 function httpError(statusCode, message) {

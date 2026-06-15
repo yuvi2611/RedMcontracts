@@ -129,6 +129,9 @@ function renderRoute(routeName = getRouteFromHash()) {
   if (route.page === 'analytics'  && typeof initAnalytics  === 'function') initAnalytics();
   if (route.page === 'audit'      && typeof initAuditLog   === 'function') initAuditLog();
   if (route.page === 'templates'  && typeof initTemplates  === 'function') initTemplates();
+
+  // Start/stop live polling for the page we just entered.
+  if (typeof startLivePolling === 'function') startLivePolling();
 }
 
 function initRouter() {

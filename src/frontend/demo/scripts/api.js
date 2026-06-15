@@ -3,8 +3,8 @@
 /* ═══════════════════════════════════════════════════════════════════
    ContractIQ — Live API connector
    Fetches real data from the Node backend and renders it into each page.
-   All functions are safe to call even when the API is offline — they
-   fall back silently so the static demo content remains visible.
+   When the API is offline, pages show an explicit error state instead of
+   pretending static sample data is live.
 ═══════════════════════════════════════════════════════════════════ */
 
 const API = window.CONTRACTIQ_API_BASE || 'http://localhost:5000';
@@ -140,7 +140,7 @@ function timeAgo(iso) {
    DASHBOARD
 ══════════════════════════════════════════════════════════════════ */
 
-async function initDashboard() {
+async function initDashboard(silent = false) {
   // Personalise greeting from session
   const session = typeof getSession === 'function' ? getSession() : null;
   if (session?.firstName || session?.name) {
@@ -149,17 +149,20 @@ async function initDashboard() {
     setEl('dash-greeting', `${greeting}, ${session.firstName || session.name.split(' ')[0]}`);
   }
 
-  // Show skeletons immediately
-  ['dash-total-contracts','dash-pending-approvals','dash-active-employees','dash-signed-count'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.innerHTML = '<span class="skel skel-num"></span>';
-  });
-  ['dash-review-count','dash-draft-count','dash-signed-count-2'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.innerHTML = '<span class="skel skel-text" style="width:40px;display:inline-block"></span>';
-  });
-  const tbody = document.getElementById('dash-recent-contracts');
-  if (tbody) tbody.innerHTML = Array(4).fill(skelTableRow(5)).join('');
+  // Show skeletons immediately — skipped on silent refreshes (polling / live updates)
+  // so the numbers update in place without flashing.
+  if (!silent) {
+    ['dash-total-contracts','dash-pending-approvals','dash-active-employees','dash-signed-count'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.innerHTML = '<span class="skel skel-num"></span>';
+    });
+    ['dash-review-count','dash-draft-count','dash-signed-count-2'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.innerHTML = '<span class="skel skel-text" style="width:40px;display:inline-block"></span>';
+    });
+    const tbody = document.getElementById('dash-recent-contracts');
+    if (tbody) tbody.innerHTML = Array(4).fill(skelTableRow(5)).join('');
+  }
 
   try {
     const data = await apiFetch('/api/dashboard');
@@ -172,8 +175,7 @@ async function initDashboard() {
     setEl('dash-signed-count-2',    data.signedCount);
 
     // Update sidebar approval badge
-    const badge = document.querySelector('#nav-approvals .nav-badge');
-    if (badge) badge.textContent = data.pendingApprovals;
+    setNavBadge('#nav-approvals .nav-badge', data.pendingApprovals);
 
     const tbody = document.getElementById('dash-recent-contracts');
     if (tbody && data.recentContracts?.length) {
@@ -195,18 +197,93 @@ async function initDashboard() {
 }
 
 /* ══════════════════════════════════════════════════════════════════
+   LIVE DATA — keep the dashboard & chrome current as the app is used
+   - notifyDataChanged(): call after any create/update so open views refresh
+   - polling: while a live page is active, refresh quietly on an interval
+   - sidebar badges update on every refresh, on any page
+══════════════════════════════════════════════════════════════════ */
+
+let _livePollTimer = null;
+const LIVE_POLL_MS = 20000;
+
+// Refresh whatever live view is currently active, plus global chrome.
+function refreshLiveData(silent = true) {
+  const route = document.body.dataset.route;
+  if (route === 'dashboard' && typeof initDashboard === 'function') return initDashboard(silent);
+  if (route === 'contracts' && typeof initContracts === 'function') return initContracts(_contractsPage || 1);
+  if (route === 'approvals' && typeof initApprovalsFromApi === 'function') return initApprovalsFromApi();
+  if (route === 'employees' && typeof initEmployees === 'function') return initEmployees();
+  if (route === 'analytics' && typeof initAnalytics === 'function') return initAnalytics();
+  // Not on a live page — at least keep the sidebar badges current.
+  return updateLiveBadges();
+}
+
+// Lightweight: refresh the sidebar approval + contracts-review badges anywhere.
+// Set a sidebar nav badge — hide it entirely when the count is zero/empty.
+function setNavBadge(selector, count) {
+  const el = document.querySelector(selector);
+  if (!el) return;
+  const n = Number(count) || 0;
+  el.textContent = n;
+  el.hidden = n <= 0;
+}
+
+async function updateLiveBadges() {
+  try {
+    const d = await apiFetch('/api/dashboard');
+    setNavBadge('#nav-approvals .nav-badge', d.pendingApprovals);
+    setNavBadge('#nav-contracts .nav-badge', d.reviewCount);
+  } catch { /* offline — leave existing values */ }
+}
+
+// Call after any mutating action so open views reflect the change immediately.
+function notifyDataChanged() {
+  refreshLiveData(true);
+  updateLiveBadges();
+  if (typeof refreshNotifBadge === 'function') refreshNotifBadge();
+}
+
+// Poll only while a data-driven page is active and the tab is visible.
+function startLivePolling() {
+  stopLivePolling();
+  const route = document.body.dataset.route;
+  if (!['dashboard', 'approvals', 'contracts'].includes(route)) return;
+  _livePollTimer = setInterval(() => {
+    if (document.hidden) return;
+    refreshLiveData(true);
+    if (typeof refreshNotifBadge === 'function') refreshNotifBadge();
+  }, LIVE_POLL_MS);
+}
+
+function stopLivePolling() {
+  if (_livePollTimer) { clearInterval(_livePollTimer); _livePollTimer = null; }
+}
+
+// Refresh immediately when the user returns to a backgrounded tab.
+if (typeof document !== 'undefined' && !window.__liveVisibilityBound) {
+  window.__liveVisibilityBound = true;
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) refreshLiveData(true);
+  });
+}
+
+/* ══════════════════════════════════════════════════════════════════
    EMPLOYEES
 ══════════════════════════════════════════════════════════════════ */
 
-async function initEmployees() {
+let _employeesPage = 1;
+
+async function initEmployees(page = _employeesPage || 1) {
+  _employeesPage = page;
   const dir = document.getElementById('employeeDirectory');
   if (!dir) return;
+  const limit = 8;
 
   // Show skeletons immediately
   dir.innerHTML = Array(6).fill(skelEmployeeCard()).join('');
 
   try {
-    const data = await apiFetch('/api/employees?limit=100');
+    const data = await apiFetch(`/api/employees?limit=${limit}&page=${page}`);
     if (!data.data?.length) { dir.innerHTML = '<p style="color:var(--coal-400);padding:20px">No employees found.</p>'; return; }
 
     const employees = data.data;
@@ -252,10 +329,29 @@ async function initEmployees() {
         </article>
       `;
     }).join('');
+    renderEmployeesPagination(page, Math.ceil((data.total || 0) / limit) || 1, data.total || employees.length);
   } catch (err) {
     console.warn('[api] employees:', err.message);
     dir.innerHTML = '<p style="color:var(--coal-400);padding:20px">Could not load employees — API offline.</p>';
   }
+}
+
+function renderEmployeesPagination(page, totalPages, total) {
+  const dir = document.getElementById('employeeDirectory');
+  if (!dir) return;
+  let footer = document.getElementById('employeePaginationFooter');
+  if (!footer) {
+    footer = document.createElement('div');
+    footer.id = 'employeePaginationFooter';
+    footer.className = 'table-footer';
+    dir.insertAdjacentElement('afterend', footer);
+  }
+  const controls = totalPages > 1 ? buildSimplePagination(page, totalPages, 'loadEmployeesPage') : '';
+  footer.innerHTML = `<span class="table-count">Showing page ${page} of ${totalPages} (${total} employees)</span><div class="pagination">${controls}</div>`;
+}
+
+function loadEmployeesPage(page) {
+  initEmployees(page);
 }
 
 /* ══════════════════════════════════════════════════════════════════
@@ -300,7 +396,11 @@ async function initContracts(page) {
             <td>${statusBadge(c.status)}</td>
             <td><div class="row-actions"><button class="row-btn" onclick="openContractViewModal('${id}','${name}')">View</button><button class="row-btn" onclick="downloadContractRowPdf('${id}','${name}')">PDF</button></div></td>
           </tr>`;
-      }).join('') : `<tr><td colspan="6" style="text-align:center;padding:32px;color:var(--coal-400)">No contracts found.</td></tr>`;
+      }).join('') : `<tr><td colspan="6"><div class="contracts-empty">
+        <svg width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>
+        <strong>No contracts yet</strong>
+        <span>Generate your first agreement to see it here.</span>
+      </div></td></tr>`;
     }
 
     // Render grid view
@@ -340,10 +440,9 @@ async function initContracts(page) {
 
     // Update tab counts
     updateContractTabCounts(data.data, data.total);
-    // Update sidebar badge
-    const reviewCount = data.data.filter(c => c.status === 'Review').length;
-    const badge = document.querySelector('#nav-contracts .nav-badge');
-    if (badge) badge.textContent = reviewCount;
+    // Update sidebar badge (prefer the authoritative total when available)
+    const reviewCount = data.reviewTotal ?? data.data.filter(c => c.status === 'Review').length;
+    setNavBadge('#nav-contracts .nav-badge', reviewCount);
 
     // Update pagination controls
     const paginationEl = document.getElementById('contractsPagination') ||
@@ -374,6 +473,46 @@ function loadContractsPage(n) {
   initContracts(n);
 }
 
+function buildSimplePagination(page, total, handlerName) {
+  if (total <= 1) return '';
+  const pages = [];
+  const prev = page > 1 ? `<button class="page-btn-next" onclick="${handlerName}(${page - 1})">Prev</button>` : '';
+  for (let p = 1; p <= Math.min(total, 5); p++) {
+    pages.push(`<button class="page-btn${p === page ? ' active' : ''}" onclick="${handlerName}(${p})">${p}</button>`);
+  }
+  if (total > 5) pages.push(`<span class="page-ellipsis">...</span><button class="page-btn${page === total ? ' active' : ''}" onclick="${handlerName}(${total})">${total}</button>`);
+  const next = page < total ? `<button class="page-btn-next" onclick="${handlerName}(${page + 1})">Next</button>` : '';
+  return prev + pages.join('') + next;
+}
+
+// Client-side sort of the currently rendered contract rows.
+function sortContractsTable(col, th) {
+  const tbody = document.querySelector('#contractsListView tbody');
+  if (!tbody) return;
+  const rows = Array.from(tbody.querySelectorAll('tr.contract-row'));
+  if (rows.length < 2) return;
+
+  const asc = !th.classList.contains('sorted-asc');
+  document.querySelectorAll('.contracts-table th.sortable')
+    .forEach(h => h.classList.remove('sorted-asc', 'sorted-desc'));
+  th.classList.add(asc ? 'sorted-asc' : 'sorted-desc');
+
+  const cellVal = row => {
+    const cell = row.children[col];
+    if (!cell) return '';
+    if (col === 0) return (cell.querySelector('.emp-name')?.textContent || '').trim().toLowerCase();
+    if (col === 3) { const t = cell.textContent.trim(); const d = Date.parse(t); return isNaN(d) ? t.toLowerCase() : d; }
+    return cell.textContent.trim().toLowerCase();
+  };
+
+  rows.sort((a, b) => {
+    const va = cellVal(a), vb = cellVal(b);
+    if (typeof va === 'number' && typeof vb === 'number') return asc ? va - vb : vb - va;
+    return asc ? String(va).localeCompare(String(vb)) : String(vb).localeCompare(String(va));
+  });
+  rows.forEach(r => tbody.appendChild(r));
+}
+
 function exportContractsCsv() {
   const rows = [['Reference','Employee','Contract Type','Role','Start Date','Status']];
   document.querySelectorAll('#contractsListView .contract-row').forEach(row => {
@@ -392,96 +531,297 @@ function exportContractsCsv() {
   showToast('Contracts exported to CSV.', 'success');
 }
 
+/* ══════════════════════════════════════════════════════════════════
+   CONTRACT DETAIL DRAWER  (premium slide-in panel)
+══════════════════════════════════════════════════════════════════ */
+
+const CONTRACT_STAGES = ['Draft', 'Review', 'Approved', 'Signed'];
+
+// Map a contract status to the 4-step timeline state.
+function contractTimeline(status) {
+  const s = status || 'Draft';
+  if (s === 'Rejected') {
+    return CONTRACT_STAGES.map((label, i) => {
+      if (label === 'Draft')  return { label, cls: 'done', mark: '✓' };
+      if (label === 'Review') return { label: 'Rejected', cls: 'rejected', mark: '✕' };
+      return { label, cls: '', mark: i + 1 };
+    });
+  }
+  const order = ['Draft', 'Review', 'Approved', 'Signed', 'Executed'];
+  let idx = order.indexOf(s);
+  if (idx < 0) idx = 0;
+  return CONTRACT_STAGES.map((label, i) => {
+    const stageIdx = order.indexOf(label);
+    if (stageIdx < idx) return { label, cls: 'done', mark: '✓' };
+    if (stageIdx === idx) return { label, cls: 'current', mark: i + 1 };
+    return { label, cls: '', mark: i + 1 };
+  });
+}
+
+// Entry point used by list rows / grid cards (keeps the old name).
 async function openContractViewModal(contractId, contractName) {
   if (!contractId) { showToast('Contract not found.', 'warning'); return; }
-
-  const existing = document.getElementById('contractViewModal');
-  if (existing) existing.remove();
+  closeContractViewModal();
 
   const overlay = document.createElement('div');
-  overlay.id = 'contractViewModal';
-  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;display:flex;align-items:center;justify-content:center;padding:24px;overflow-y:auto;';
-  overlay.innerHTML = `<div style="background:var(--surface);border-radius:16px;max-width:760px;width:100%;max-height:90vh;overflow-y:auto;padding:32px;position:relative;">
-    <button onclick="closeContractViewModal()" style="position:absolute;top:16px;right:16px;background:none;border:none;font-size:20px;cursor:pointer;color:var(--coal-400)">✕</button>
-    <div style="text-align:center;padding:40px 0;color:var(--coal-400)">Loading contract…</div>
+  overlay.id = 'contractDrawer';
+  overlay.className = 'cdrawer-overlay';
+  overlay.innerHTML = `<div class="cdrawer" role="dialog" aria-modal="true" aria-label="Contract details">
+    <div class="cdrawer-loading">Loading contract…</div>
   </div>`;
   document.body.appendChild(overlay);
   overlay.addEventListener('click', e => { if (e.target === overlay) closeContractViewModal(); });
+  document.addEventListener('keydown', drawerEscHandler);
+  window.addEventListener('hashchange', closeContractViewModal, { once: true });
+  requestAnimationFrame(() => overlay.classList.add('is-open'));
 
+  await renderContractDrawer(contractId, contractName);
+}
+
+function drawerEscHandler(e) { if (e.key === 'Escape') closeContractViewModal(); }
+
+async function renderContractDrawer(contractId, contractName) {
+  const panel = document.querySelector('#contractDrawer .cdrawer');
+  if (!panel) return;
   try {
     const c = await apiFetch(`/api/contracts/${contractId}`);
     const d = c.details || {};
-    const inner = overlay.querySelector('div');
-    inner.innerHTML = `
-      <button onclick="closeContractViewModal()" style="position:absolute;top:16px;right:16px;background:none;border:none;font-size:20px;cursor:pointer;color:var(--coal-400)">✕</button>
-      <div style="text-align:center;margin-bottom:20px">
-        <div style="font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--red-600);text-transform:uppercase;margin-bottom:4px">RedM Professional Services</div>
-        <div style="font-size:17px;font-weight:700;color:var(--coal-900)">${escapeHtml(c.title || c.contractType || 'Contract')}</div>
-        <div style="font-size:12px;color:var(--coal-500);margin-top:4px">${escapeHtml(c.contractNumber)} · ${statusBadge(c.status)}</div>
+    const name = c.employee?.name
+      || (d.firstName ? `${d.firstName} ${d.lastName || ''}`.trim() : '')
+      || contractName || '—';
+
+    const steps = contractTimeline(c.status).map(s =>
+      `<div class="ctl-step ${s.cls}"><div class="ctl-dot">${s.mark}</div><div class="ctl-label">${escapeHtml(s.label)}</div></div>`
+    ).join('');
+
+    const fact = (label, value, cls = '') => (value && value !== '—')
+      ? `<div class="cfact-row"><span class="cfact-label">${label}</span><span class="cfact-value ${cls}">${value}</span></div>` : '';
+
+    const parties = [
+      fact('Employee', escapeHtml(name)),
+      fact('ID Number', escapeHtml(d.idNumber)),
+      fact('Email', escapeHtml(d.emailAddress || c.employee?.email)),
+      fact('Phone', escapeHtml(d.phoneNumber || c.employee?.phone)),
+      fact('Address', escapeHtml(d.address)),
+    ].join('');
+
+    const terms = [
+      fact('Position', escapeHtml(c.title || d.role || c.employee?.jobTitle)),
+      fact('Contract Type', escapeHtml(c.contractType)),
+      fact('Monthly Salary', `${fmt(c.salary)} ${c.currency || 'ZAR'}`, 'salary'),
+      fact('Commencement', fmtDate(c.startDate)),
+      c.endDate ? fact('Termination', fmtDate(c.endDate)) : '',
+      fact('Probation', d.probationPeriod ? `${d.probationPeriod} month(s)` : ''),
+      fact('Notice Period', escapeHtml(d.noticePeriod)),
+      fact('Hours of Work', escapeHtml(d.workHours)),
+    ].join('');
+
+    const history = [
+      c.submittedAt ? fact('Submitted', fmtDate(c.submittedAt)) : '',
+      c.approvedAt ? fact('Approved', fmtDate(c.approvedAt)) : '',
+      c.signedAt ? fact('Signed', fmtDate(c.signedAt)) : '',
+    ].join('');
+
+    panel.innerHTML = `
+      <div class="cdrawer-header">
+        <button class="cdrawer-close" onclick="closeContractViewModal()" aria-label="Close">✕</button>
+        <div class="cdrawer-eyebrow">RedMPS · ContractIQ</div>
+        <h2 class="cdrawer-title">${escapeHtml(c.title || c.contractType || 'Contract')}</h2>
+        <div class="cdrawer-submeta"><span>${escapeHtml(c.contractNumber)}</span><span class="dot"></span>${statusBadge(c.status)}</div>
       </div>
-      <table style="width:100%;border-collapse:collapse;font-size:13px" class="schedule-table">
-        <tbody>
-          <tr><th>Employer:</th><td>RedM Professional Services (Pty) Ltd</td></tr>
-          <tr><th>Employee:</th><td>${escapeHtml(c.employee?.name || d.firstName && (d.firstName + ' ' + d.lastName) || contractName || '—')}</td></tr>
-          <tr><th>ID Number:</th><td>${escapeHtml(d.idNumber || '—')}</td></tr>
-          <tr><th>Address:</th><td>${escapeHtml(d.address || '—')}</td></tr>
-          <tr><th>Phone:</th><td>${escapeHtml(d.phoneNumber || c.employee?.phone || '—')}</td></tr>
-          <tr><th>Email:</th><td>${escapeHtml(d.emailAddress || c.employee?.email || '—')}</td></tr>
-          <tr><th>Position:</th><td>${escapeHtml(c.title || d.role || c.employee?.jobTitle || '—')}</td></tr>
-          <tr><th>Contract Type:</th><td>${escapeHtml(c.contractType || '—')}</td></tr>
-          ${d.fixedTermPeriod ? `<tr><th>Fixed-Term Period:</th><td>${escapeHtml(d.fixedTermPeriod)}</td></tr>` : ''}
-          <tr><th>Commencement Date:</th><td>${fmtDate(c.startDate) || '—'}</td></tr>
-          ${c.endDate ? `<tr><th>Termination Date:</th><td>${fmtDate(c.endDate)}</td></tr>` : ''}
-          <tr><th>Probation Period:</th><td>${escapeHtml(d.probationPeriod ? d.probationPeriod + ' month(s)' : '—')}</td></tr>
-          <tr><th>Hours of Work:</th><td>${escapeHtml(d.workHours || '—')}</td></tr>
-          <tr><th>Monthly Salary:</th><td>${fmt(c.salary)} ${c.currency || 'ZAR'}</td></tr>
-          <tr><th>Notice Period:</th><td>${escapeHtml(d.noticePeriod || '—')}</td></tr>
-          <tr><th>Status:</th><td>${statusBadge(c.status)}</td></tr>
-          ${c.submittedAt ? `<tr><th>Submitted:</th><td>${fmtDate(c.submittedAt)}</td></tr>` : ''}
-          ${c.approvedAt ? `<tr><th>Approved:</th><td>${fmtDate(c.approvedAt)}</td></tr>` : ''}
-          ${c.signedAt ? `<tr><th>Signed:</th><td>${fmtDate(c.signedAt)}</td></tr>` : ''}
-        </tbody>
-      </table>
-      <div style="display:flex;gap:10px;margin-top:20px;justify-content:flex-end">
-        <button class="btn-primary" onclick="downloadContractRowPdf('${escapeAttribute(contractId)}','${escapeAttribute(c.employee?.name || contractName || '')}')">Download PDF</button>
-        <button class="btn-secondary" onclick="closeContractViewModal()">Close</button>
-      </div>`;
+      <div class="cdrawer-body">
+        <div class="cdrawer-timeline">${steps}</div>
+        <div class="cdrawer-section">
+          <div class="cdrawer-section-title">Parties</div>
+          <div class="cfacts">${parties || '<div class="cfact-row"><span class="cfact-value">No party details captured.</span></div>'}</div>
+        </div>
+        <div class="cdrawer-section">
+          <div class="cdrawer-section-title">Terms</div>
+          <div class="cfacts">${terms}</div>
+        </div>
+        ${history ? `<div class="cdrawer-section"><div class="cdrawer-section-title">History</div><div class="cfacts">${history}</div></div>` : ''}
+      </div>
+      <div class="cdrawer-actions">${contractDrawerActions(c, name)}</div>`;
   } catch (err) {
     showToast('Could not load contract details.', 'error');
     closeContractViewModal();
   }
 }
 
+// Inline lifecycle actions, gated by the contract's current status.
+function contractDrawerActions(c, name) {
+  const id = escapeAttribute(c.id);
+  const nm = escapeAttribute(name);
+  const pdf = `<button class="btn-secondary" onclick="downloadContractRowPdf('${id}','${nm}')">Download PDF</button>`;
+  let primary = '', hint = '';
+  switch (c.status) {
+    case 'Draft':
+      primary = `<button class="btn-primary" onclick="drawerSubmitContract('${id}')">Submit for Approval</button>`;
+      break;
+    case 'Review':
+      primary = `<button class="btn-primary" onclick="closeContractViewModal();routeTo('approvals')">Open Approval Queue</button>`;
+      hint = 'Awaiting a reviewer decision.';
+      break;
+    case 'Approved':
+      primary = `<button class="btn-primary" onclick="drawerSendToEmployee('${id}')">Send to Employee</button>`;
+      break;
+    case 'Signed':
+    case 'Executed':
+      primary = `<button class="btn-primary" onclick="drawerSendToEmployee('${id}')">Resend to Employee</button>`;
+      hint = 'This contract is fully executed.';
+      break;
+    case 'Rejected':
+      hint = 'Returned for revision — edit and resubmit from the studio.';
+      break;
+  }
+  return `${primary}${pdf}${hint ? `<p class="cdrawer-hint">${hint}</p>` : ''}`;
+}
+
+function refreshContractsList() {
+  const pg = (typeof _contractsPage !== 'undefined' && _contractsPage) || 1;
+  if (typeof initContracts === 'function') initContracts(pg);
+}
+
+async function drawerSubmitContract(id) {
+  try {
+    await apiFetch(`/api/contracts/${id}/submit`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+    showToast('Contract submitted for approval.', 'success');
+    await renderContractDrawer(id);
+    notifyDataChanged();
+  } catch (err) { showToast(err.message || 'Could not submit contract.', 'error'); }
+}
+
+async function drawerSendToEmployee(id) {
+  try {
+    const r = await apiFetch(`/api/contracts/${id}/send-to-employee`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+    showToast(`Contract sent to ${r.sentTo || 'employee'}.`, 'success');
+    await renderContractDrawer(id);
+    notifyDataChanged();
+  } catch (err) { showToast(err.message || 'Could not send contract.', 'error'); }
+}
+
 function closeContractViewModal() {
-  document.getElementById('contractViewModal')?.remove();
+  document.removeEventListener('keydown', drawerEscHandler);
+  const ov = document.getElementById('contractDrawer');
+  if (!ov) { document.getElementById('contractViewModal')?.remove(); return; }
+  ov.classList.remove('is-open');
+  setTimeout(() => ov.remove(), 300);
+}
+
+// Build a fully branded, signature-ready RedMPS contract document (print → PDF).
+// Shared by the contracts list and the preview page so exports look identical.
+function buildContractDocumentHtml(c, d, name) {
+  d = d || {};
+  const today = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+  const row = (label, value) => (value && value !== '—')
+    ? `<tr><th>${label}</th><td>${value}</td></tr>` : '';
+  const salary = `${fmt(c.salary)} ${c.currency || 'ZAR'}`;
+
+  const scheduleRows = [
+    row('Employee', escapeHtml(name)),
+    row('Identity Number', escapeHtml(d.idNumber)),
+    row('Physical Address', escapeHtml(d.address)),
+    row('Phone', escapeHtml(d.phoneNumber || c.employee?.phone)),
+    row('Email', escapeHtml(d.emailAddress || c.employee?.email)),
+    row('Position', escapeHtml(c.title || d.role || c.employee?.jobTitle)),
+    row('Contract Type', escapeHtml(c.contractType)),
+    row('Commencement Date', fmtDate(c.startDate)),
+    c.endDate ? row('Termination Date', fmtDate(c.endDate)) : '',
+    row('Probation Period', d.probationPeriod ? `${escapeHtml(d.probationPeriod)} month(s)` : ''),
+    row('Hours of Work', escapeHtml(d.workHours || '08:00 – 17:00, Monday – Friday')),
+    row('Gross Monthly Salary', salary),
+    row('Notice Period', escapeHtml(d.noticePeriod || '30 days')),
+  ].join('');
+
+  return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">
+<title>${escapeHtml(c.contractNumber)} — ${escapeHtml(name)}</title>
+<style>
+  @page { size: A4; margin: 22mm 20mm; }
+  * { box-sizing: border-box; }
+  body { font-family: Georgia, 'Times New Roman', serif; color: #1a1a1a; font-size: 11.5pt; line-height: 1.6; margin: 0; }
+  .letterhead { border-bottom: 3px solid #d4002a; padding-bottom: 16px; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: flex-end; }
+  .lh-brand { font-family: 'Arial', sans-serif; }
+  .lh-brand .name { font-size: 22pt; font-weight: 800; letter-spacing: 1px; color: #0d0d0f; text-transform: uppercase; }
+  .lh-brand .name span { color: #d4002a; }
+  .lh-brand .tag { font-size: 8.5pt; letter-spacing: 2px; text-transform: uppercase; color: #d4002a; font-weight: 700; margin-top: 2px; }
+  .lh-meta { text-align: right; font-family: Arial, sans-serif; font-size: 8pt; color: #555; line-height: 1.5; }
+  .doc-title { text-align: center; margin: 26px 0 4px; font-size: 16pt; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; }
+  .doc-sub { text-align: center; font-size: 9pt; color: #666; font-style: italic; margin-bottom: 4px; }
+  .doc-ref { text-align: center; font-family: Arial, sans-serif; font-size: 8.5pt; color: #777; margin-bottom: 22px; }
+  table.schedule { width: 100%; border-collapse: collapse; margin-bottom: 24px; font-size: 10.5pt; }
+  table.schedule th, table.schedule td { border: 1px solid #d8d8d8; padding: 8px 12px; text-align: left; vertical-align: top; }
+  table.schedule th { background: #f6f6f8; width: 38%; font-weight: 700; color: #0d0d0f; }
+  .party-band { background: #0d0d0f; color: #fff; font-family: Arial, sans-serif; font-size: 8.5pt; letter-spacing: 1px; text-transform: uppercase; padding: 7px 12px; font-weight: 700; }
+  .party-band.red { background: #d4002a; }
+  .clause h3 { font-size: 11pt; margin: 18px 0 6px; color: #0d0d0f; }
+  .clause p { margin: 0 0 10px; text-align: justify; }
+  .sign-grid { display: flex; gap: 40px; margin-top: 42px; }
+  .sign-box { flex: 1; }
+  .sign-line { border-top: 1.5px solid #1a1a1a; margin-top: 46px; padding-top: 6px; font-family: Arial, sans-serif; font-size: 8.5pt; color: #555; }
+  .sign-name { font-family: Arial, sans-serif; font-weight: 700; font-size: 10pt; color: #0d0d0f; margin-bottom: 2px; }
+  .doc-footer { margin-top: 36px; border-top: 1px solid #e0e0e0; padding-top: 10px; font-family: Arial, sans-serif; font-size: 7.5pt; color: #999; text-align: center; }
+  @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+</style></head><body>
+  <div class="letterhead">
+    <div class="lh-brand">
+      <div class="name">Red<span>MPS</span></div>
+      <div class="tag">Professional Services</div>
+    </div>
+    <div class="lh-meta">
+      RedM Professional Services (Pty) Ltd · Reg 2013/172695/07<br>
+      145 Western Services Road, Woodmead, Sandton, 2191<br>
+      +27 10 300 9025
+    </div>
+  </div>
+
+  <div class="doc-title">${escapeHtml(c.title || c.contractType || 'Employment Agreement')}</div>
+  <div class="doc-sub">In compliance with the Basic Conditions of Employment Act, 1997</div>
+  <div class="doc-ref">Reference ${escapeHtml(c.contractNumber)} · Status: ${escapeHtml(c.status)} · Issued ${today}</div>
+
+  <div class="party-band red">Schedule — Particulars of Employment</div>
+  <table class="schedule"><tbody>
+    <tr><th>Employer</th><td>RedM Professional Services (Pty) Ltd</td></tr>
+    ${scheduleRows}
+  </tbody></table>
+
+  <div class="clause">
+    <h3>1. Appointment</h3>
+    <p>The Employer appoints the Employee in the position set out in the Schedule, and the Employee accepts such appointment, on the terms and conditions of this Agreement and the Employer's policies as amended from time to time.</p>
+    <h3>2. Remuneration</h3>
+    <p>The Employee shall receive a gross monthly salary of ${salary}, payable monthly in arrears, subject to such statutory and agreed deductions as may be applicable.</p>
+    <h3>3. Probation</h3>
+    <p>The Employee's appointment is subject to a probationary period as stated in the Schedule, during which the Employer may assess the Employee's suitability and conduct in accordance with the Labour Relations Act, 1995.</p>
+    <h3>4. Hours of Work</h3>
+    <p>Ordinary hours of work are as set out in the Schedule, in line with the Basic Conditions of Employment Act, 1997.</p>
+    <h3>5. Termination</h3>
+    <p>Either party may terminate this Agreement on the notice period set out in the Schedule, save for termination for cause in accordance with applicable law and fair procedure.</p>
+    <h3>6. Confidentiality &amp; Governing Law</h3>
+    <p>The Employee shall keep the Employer's confidential information secret during and after employment. This Agreement is governed by the laws of the Republic of South Africa.</p>
+  </div>
+
+  <div class="party-band">Signatures</div>
+  <div class="sign-grid">
+    <div class="sign-box">
+      <div class="sign-name">For RedM Professional Services (Pty) Ltd</div>
+      <div class="sign-line">Authorised signatory · Date</div>
+    </div>
+    <div class="sign-box">
+      <div class="sign-name">${escapeHtml(name)}</div>
+      <div class="sign-line">Employee signature · Date</div>
+    </div>
+  </div>
+
+  <div class="doc-footer">Generated by ContractIQ · RedMPS Management &amp; Professional Services · ${escapeHtml(c.contractNumber)} · This is a confidential document.</div>
+</body></html>`;
 }
 
 async function downloadContractRowPdf(contractId, contractName) {
-  showToast('Opening print window for PDF…', 'info');
+  showToast('Preparing contract document…', 'info');
   let html;
   try {
     const c = await apiFetch(`/api/contracts/${contractId}`);
-    const d = c.details || {};
     const name = c.employee?.name || contractName || '—';
-    html = `<!DOCTYPE html><html><head><title>${escapeHtml(c.contractNumber)} — ${escapeHtml(name)}</title>
-    <style>body{font-family:Georgia,serif;font-size:12pt;margin:40px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ccc;padding:6px 10px;text-align:left}th{background:#f5f5f5;width:40%}h1{font-size:14pt}h2{font-size:13pt}@media print{body{margin:20px}}</style></head><body>
-    <h1>RedM Professional Services</h1><h2>${escapeHtml(c.title || c.contractType || 'Contract')}</h2>
-    <p>Ref: ${escapeHtml(c.contractNumber)} | Status: ${escapeHtml(c.status)}</p>
-    <table><tbody>
-      <tr><th>Employee</th><td>${escapeHtml(name)}</td></tr>
-      <tr><th>Position</th><td>${escapeHtml(c.title || d.role || '—')}</td></tr>
-      <tr><th>Contract Type</th><td>${escapeHtml(c.contractType || '—')}</td></tr>
-      <tr><th>Commencement Date</th><td>${fmtDate(c.startDate) || '—'}</td></tr>
-      ${c.endDate ? `<tr><th>Termination Date</th><td>${fmtDate(c.endDate)}</td></tr>` : ''}
-      <tr><th>Monthly Salary</th><td>${fmt(c.salary)} ${c.currency || 'ZAR'}</td></tr>
-      <tr><th>Notice Period</th><td>${escapeHtml(d.noticePeriod || '—')}</td></tr>
-      <tr><th>Hours of Work</th><td>${escapeHtml(d.workHours || '—')}</td></tr>
-      <tr><th>Probation Period</th><td>${escapeHtml(d.probationPeriod ? d.probationPeriod + ' month(s)' : '—')}</td></tr>
-      <tr><th>ID Number</th><td>${escapeHtml(d.idNumber || '—')}</td></tr>
-      <tr><th>Address</th><td>${escapeHtml(d.address || '—')}</td></tr>
-    </tbody></table>
-    <p style="margin-top:40px">Generated by ContractIQ · RedM Professional Services</p>
-    </body></html>`;
+    html = buildContractDocumentHtml(c, c.details || {}, name);
   } catch {
     showToast('Could not load contract for PDF.', 'error');
     return;
@@ -517,7 +857,11 @@ function updateContractTabCounts(contracts, total) {
    APPROVALS  (extends existing initApprovals)
 ══════════════════════════════════════════════════════════════════ */
 
-async function initApprovalsFromApi() {
+let _approvalsPage = 1;
+
+async function initApprovalsFromApi(page = _approvalsPage || 1) {
+  _approvalsPage = page;
+  const limit = 8;
   // Show skeletons at top of list
   const listEl = document.getElementById('approvalsList');
   if (listEl) {
@@ -528,9 +872,7 @@ async function initApprovalsFromApi() {
   }
 
   try {
-    const data = await apiFetch('/api/approvals?status=all');
-    if (!data.data?.length) return;
-
+    const data = await apiFetch(`/api/approvals?status=all&limit=${limit}&page=${page}`);
     // Remove skeleton
     document.getElementById('approvals-skel')?.remove();
 
@@ -539,6 +881,11 @@ async function initApprovalsFromApi() {
 
     // Remove existing static cards (keep generated ones from localStorage)
     list.querySelectorAll('.approval-card:not([data-generated-approval])').forEach(c => c.remove());
+
+    if (!data.data?.length) {
+      renderApprovalsPagination(page, Math.ceil((data.total || 0) / limit) || 1, data.total || 0);
+      return;
+    }
 
     const pending = data.data.filter(a => a.status === 'Pending');
 
@@ -617,15 +964,33 @@ async function initApprovalsFromApi() {
     setEl('apstat-approved-month', approved);
 
     // Update sidebar badge
-    const badge = document.querySelector('#nav-approvals .nav-badge');
-    if (badge) badge.textContent = pending.length;
+    setNavBadge('#nav-approvals .nav-badge', pending.length);
 
     // Update filter tab counts
     updateApprovalStats();
+    renderApprovalsPagination(page, Math.ceil((data.total || 0) / limit) || 1, data.total || data.data.length);
   } catch (err) {
     document.getElementById('approvals-skel')?.remove();
     console.warn('[api] approvals:', err.message);
   }
+}
+
+function renderApprovalsPagination(page, totalPages, total) {
+  const list = document.getElementById('approvalsList');
+  if (!list) return;
+  let footer = document.getElementById('approvalsPaginationFooter');
+  if (!footer) {
+    footer = document.createElement('div');
+    footer.id = 'approvalsPaginationFooter';
+    footer.className = 'table-footer';
+    list.insertAdjacentElement('afterend', footer);
+  }
+  const controls = totalPages > 1 ? buildSimplePagination(page, totalPages, 'loadApprovalsPage') : '';
+  footer.innerHTML = `<span class="table-count">Showing page ${page} of ${totalPages} (${total} approval items)</span><div class="pagination">${controls}</div>`;
+}
+
+function loadApprovalsPage(page) {
+  initApprovalsFromApi(page);
 }
 
 async function approveFromApi(btn, approvalId, name) {
@@ -640,6 +1005,7 @@ async function approveFromApi(btn, approvalId, name) {
       card.remove();
       updateApprovalStats();
       await initApprovalsFromApi();
+      notifyDataChanged();
     }, 350);
     showToast(`${name} approved — routed to next stage.`, 'success');
   } catch (err) {
@@ -661,6 +1027,7 @@ async function rejectFromApi(btn, approvalId, name) {
     card.dataset.route = 'revision';
     showToast(`${name} returned for revision.`, 'warning');
     await initApprovalsFromApi();
+    notifyDataChanged();
   } catch (err) {
     btn.disabled = false;
     showToast(`Reject failed: ${err.message}`, 'error');
@@ -738,16 +1105,19 @@ const AUDIT_DOT_MAP = {
   template: 'purple', employee: 'blue', user: 'coal',
 };
 
-let _auditOffset = 0;
+let _auditPage = 1;
+let _auditTotalPages = 1;
+const AUDIT_PAGE_LIMIT = 50;
 
 async function initAuditLog() {
-  _auditOffset = 0;
+  _auditPage = 1;
   const container = document.getElementById('auditTimeline') ||
                     document.querySelector('#page-audit .audit-timeline');
   if (container) container.innerHTML = Array(6).fill(skelAuditEntry()).join('');
 
   try {
-    const data = await apiFetch('/api/audit-logs?limit=50');
+    const data = await apiFetch(`/api/audit-logs?limit=${AUDIT_PAGE_LIMIT}&page=1`);
+    _auditTotalPages = Math.ceil((data.total || 0) / AUDIT_PAGE_LIMIT) || 1;
     if (!container) return;
     if (!data.data?.length) {
       container.innerHTML = '<p style="color:var(--coal-400);padding:20px 0">No audit entries found.</p>';
@@ -797,6 +1167,7 @@ async function initAuditLog() {
     });
 
     container.innerHTML = html;
+    updateAuditLoadMoreButton();
   } catch (err) {
     console.warn('[api] audit:', err.message);
     if (container) container.innerHTML = '<p style="color:var(--coal-400);padding:20px 0">Could not load audit log — API offline.</p>';
@@ -804,15 +1175,22 @@ async function initAuditLog() {
 }
 
 async function loadMoreAuditEntries() {
-  _auditOffset += 50;
+  if (_auditPage >= _auditTotalPages) {
+    showToast('No older entries found.', 'info');
+    updateAuditLoadMoreButton();
+    return;
+  }
+  _auditPage += 1;
   const container = document.getElementById('auditTimeline');
   try {
-    const data = await apiFetch(`/api/audit-logs?limit=50&offset=${_auditOffset}`);
+    const data = await apiFetch(`/api/audit-logs?limit=${AUDIT_PAGE_LIMIT}&page=${_auditPage}`);
     if (!data.data?.length) {
       showToast('No older entries found.', 'info');
-      _auditOffset -= 50;
+      _auditPage -= 1;
+      updateAuditLoadMoreButton();
       return;
     }
+    _auditTotalPages = Math.ceil((data.total || 0) / AUDIT_PAGE_LIMIT) || _auditTotalPages;
     const docIcon = `<svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>`;
     const checkIcon = `<svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="9 11 12 14 22 4"/></svg>`;
     const infoIcon = `<svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`;
@@ -837,11 +1215,20 @@ async function loadMoreAuditEntries() {
       </div>`;
     });
     if (container) container.insertAdjacentHTML('beforeend', html);
+    updateAuditLoadMoreButton();
     showToast(`Loaded ${data.data.length} older entries.`, 'success');
   } catch (err) {
     showToast('Could not load older entries.', 'error');
-    _auditOffset -= 50;
+    _auditPage -= 1;
   }
+}
+
+function updateAuditLoadMoreButton() {
+  const btn = document.querySelector('#page-audit button[onclick="loadMoreAuditEntries()"]');
+  if (!btn) return;
+  const hasMore = _auditPage < _auditTotalPages;
+  btn.disabled = !hasMore;
+  btn.textContent = hasMore ? `Load older entries (${_auditPage}/${_auditTotalPages})` : 'No older entries';
 }
 
 /* ══════════════════════════════════════════════════════════════════
@@ -994,6 +1381,7 @@ async function sendToEmployee(btn, contractId, employeeName) {
     });
     btn.textContent = 'Sent ✓';
     showToast(`Contract sent to ${employeeName} at ${data.sentTo}.`, 'success');
+    notifyDataChanged();
   } catch (err) {
     btn.disabled = false;
     btn.textContent = original;
@@ -1005,44 +1393,82 @@ async function sendToEmployee(btn, contractId, employeeName) {
    NOTIFICATIONS
 ══════════════════════════════════════════════════════════════════ */
 
+// Colour the status dot by notification type.
+const NOTIF_DOT = {
+  approval_requested: 'warning', approval_reminder: 'warning',
+  contract_created: 'info', contract_sent: 'info',
+  contract_approved: 'success', user_welcome: 'success',
+  contract_rejected: 'danger', contract_expired: 'danger',
+  contract_expiring: 'warning',
+  password_reset: 'info', user_invite: 'info',
+};
+
+function notifRoute(type) {
+  const t = type || '';
+  if (t.startsWith('approval')) return 'approvals';
+  if (t.startsWith('contract')) return 'contracts';
+  if (t.startsWith('user')) return 'create-user';
+  return 'dashboard';
+}
+
+function setNotifUnreadCount(n) {
+  const dot = document.querySelector('.notif-dot');
+  if (dot) dot.classList.toggle('is-read', n === 0);
+  const badge = document.getElementById('notifCount');
+  if (badge) {
+    badge.textContent = n > 9 ? '9+' : String(n);
+    badge.hidden = n === 0;
+  }
+}
+
 async function loadNotifications() {
   const session = typeof getSession === 'function' ? getSession() : null;
   if (!session?.id) return;
 
+  const list = document.getElementById('notifList');
   try {
-    const data = await apiFetch(`/api/notifications?user_id=${encodeURIComponent(session.id)}`);
+    const data = await apiFetch('/api/notifications');
     const items = data.data || [];
+    const unread = items.filter(n => !n.is_read).length;
+    setNotifUnreadCount(unread);
 
-    const panel = document.getElementById('notificationPanel');
-    const dot = document.querySelector('.notif-dot');
-    if (!panel) return;
-
-    const unread = items.filter(n => !n.is_read);
-    if (dot) dot.classList.toggle('is-read', unread.length === 0);
-
-    const list = panel.querySelector('.notif-list') || panel;
-    const existingItems = list.querySelectorAll('.notif-item');
-    existingItems.forEach(el => el.remove());
-
+    if (!list) return;
     if (items.length === 0) {
-      const empty = document.createElement('div');
-      empty.className = 'notif-item notif-empty';
-      empty.textContent = 'No notifications.';
-      list.appendChild(empty);
+      list.innerHTML = '<div class="notif-empty">You\'re all caught up — no notifications.</div>';
       return;
     }
 
-    items.slice(0, 20).forEach(n => {
-      const el = document.createElement('div');
-      el.className = 'notif-item' + (n.is_read ? '' : ' notif-unread');
-      el.innerHTML = `<div class="notif-title">${escapeHtml(n.title || n.notification_type)}</div>
-        <div class="notif-body">${escapeHtml(n.message || '')}</div>
-        <div class="notif-time">${timeAgo(n.created_at)}</div>`;
-      list.appendChild(el);
-    });
+    list.innerHTML = items.slice(0, 30).map(n => {
+      const dotCls = NOTIF_DOT[n.notification_type] || 'info';
+      const route = notifRoute(n.notification_type);
+      return `<button class="notification-item${n.is_read ? '' : ' is-unread'}" type="button" onclick="openNotification('${route}')">
+        <span class="notification-dot ${dotCls}"></span>
+        <div class="notif-body-wrap">
+          <strong>${escapeHtml(n.title || n.notification_type)}</strong>
+          <small>${escapeHtml(n.message || '')}</small>
+          <span class="notif-time">${timeAgo(n.created_at)}</span>
+        </div>
+      </button>`;
+    }).join('');
   } catch (err) {
     console.warn('[notifications] load failed:', err.message);
+    if (list) list.innerHTML = '<div class="notif-empty">Could not load notifications — API offline.</div>';
   }
+}
+
+// Refresh just the unread badge without opening the panel (used by live updates).
+async function refreshNotifBadge() {
+  const session = typeof getSession === 'function' ? getSession() : null;
+  if (!session?.id) return;
+  try {
+    const data = await apiFetch('/api/notifications');
+    setNotifUnreadCount((data.data || []).filter(n => !n.is_read).length);
+  } catch { /* offline — leave as-is */ }
+}
+
+function openNotification(route) {
+  if (typeof toggleNotificationPanel === 'function') toggleNotificationPanel(false);
+  if (route && typeof routeTo === 'function') routeTo(route);
 }
 
 async function markAllNotificationsRead() {
@@ -1052,10 +1478,12 @@ async function markAllNotificationsRead() {
     await apiFetch('/api/notifications/read', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ user_id: session.id }),
+      body: '{}',
     });
-    const dot = document.querySelector('.notif-dot');
-    if (dot) dot.classList.add('is-read');
+    setNotifUnreadCount(0);
+    // Reflect read state in any currently rendered items.
+    document.querySelectorAll('#notifList .notification-item.is-unread')
+      .forEach(el => el.classList.remove('is-unread'));
   } catch (err) {
     console.warn('[notifications] mark-read failed:', err.message);
   }

@@ -187,10 +187,10 @@ function syncProfileMenu() {
   const signedIn = session.signedInAt ? new Date(session.signedInAt) : new Date();
   const memberSince = signedIn.toLocaleDateString('en-ZA', { month: 'short', year: 'numeric' });
 
-  set('profileMenuInitials', session.initials || 'SA');
-  set('profileMenuName', session.name || 'System Administrator');
-  set('profileMenuEmail', session.email || 'admin@redmps.com');
-  set('profileMenuRole', session.role || 'Administrator');
+  set('profileMenuInitials', session.initials || initialsFromName(session.name || session.email || 'User'));
+  set('profileMenuName', session.name || 'Signed-in user');
+  set('profileMenuEmail', session.email || '');
+  set('profileMenuRole', session.role || 'User');
   set('profileMemberSince', memberSince);
   set('profileSessionState', 'Active');
   set('profileAccessLevel', session.isSuperuser ? 'Full' : 'Standard');
@@ -225,7 +225,7 @@ async function copyProfileEmail() {
 const GLOBAL_SEARCH_ITEMS = [
   { label: 'Create a new contract', meta: 'Guided Contract Studio', route: 'wizard', keywords: 'new contract generate fixed permanent offer' },
   { label: 'Approval Queue', meta: 'Manager, director, and signature review', route: 'approvals', keywords: 'approval approve manager director signature returned' },
-  { label: 'Yuvaan Pather', meta: 'Employee record · Junior Platform Engineer', route: 'employees', keywords: 'yuvaan pather employee engineer id phone' },
+  { label: 'Employee Directory', meta: 'Active employee records', route: 'employees', keywords: 'employee directory staff people records phone' },
   { label: 'Fixed-Term Employment Agreement', meta: 'Published template', route: 'templates', keywords: 'fixed term template employment agreement' },
   { label: 'Permanent Employment Contract', meta: 'Draft template review', route: 'templates', keywords: 'permanent employment contract template' },
   { label: 'Contract Analytics', meta: 'Generation, SLA, and compliance signals', route: 'analytics', keywords: 'analytics reporting performance sla compliance' },
@@ -345,35 +345,34 @@ function userCanApproveStage(stage) {
   return false;
 }
 
-const APPROVAL_RECIPIENTS = [
-  {
-    key: 'tiara',
-    name: 'Tiara Ramouthar',
-    role: 'HR Manager',
-    email: 'tiara.ramouthar@redmps.com',
-    initials: 'TR',
-    color: '#0e7490'
-  },
-  {
-    key: 'kogie',
-    name: 'Kogiela Reddy',
-    role: 'Director / CEO',
-    email: 'kogiela.reddy@redmps.com',
-    initials: 'KR',
-    color: '#be123c'
-  }
-];
+let approvalRecipientsCache = null;
 
-function submitCurrentContractForApproval() {
+async function getApprovalRecipients() {
+  if (approvalRecipientsCache) return approvalRecipientsCache;
+  const data = await apiFetch('/api/users?roles=Director,HR Manager&active=true&limit=50');
+  approvalRecipientsCache = (data.data || [])
+    .filter(user => user.email)
+    .map(user => ({
+      key: user.id,
+      name: user.name || user.email,
+      role: user.role || 'Approver',
+      email: user.email,
+      initials: user.initials || initialsFromName(user.name || user.email),
+      color: user.role === 'Director' ? '#be123c' : '#0e7490'
+    }));
+  return approvalRecipientsCache;
+}
+
+async function submitCurrentContractForApproval() {
   const generated = readGeneratedContract();
   if (!generated) {
     showToast('Generate a contract preview before submitting for approval.', 'warning');
     return;
   }
-  showApprovalRecipientModal(generated);
+  await showApprovalRecipientModal(generated);
 }
 
-function showApprovalRecipientModal(generated) {
+async function showApprovalRecipientModal(generated) {
   document.getElementById('approvalRecipientModal')?.remove();
 
   const overlay = document.createElement('div');
@@ -396,7 +395,18 @@ function showApprovalRecipientModal(generated) {
 
   const list = modal.querySelector('#approvalRecipientList');
 
-  APPROVAL_RECIPIENTS.forEach(recipient => {
+  let recipients = [];
+  try {
+    recipients = await getApprovalRecipients();
+  } catch (err) {
+    console.warn('[api] approval recipients:', err.message);
+  }
+
+  if (!recipients.length) {
+    list.innerHTML = '<div style="font-size:13px;color:#6b7280;padding:12px 2px;">No active approval users were found in the database. Add a Director or HR Manager account first.</div>';
+  }
+
+  recipients.forEach(recipient => {
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.style.cssText = 'display:flex;align-items:center;gap:14px;padding:14px 16px;border:1.5px solid #e5e7eb;border-radius:12px;background:#fff;cursor:pointer;text-align:left;width:100%;transition:border-color .15s,background .15s;';
@@ -440,6 +450,7 @@ async function doSubmitForApproval(generated, recipient) {
         sessionStorage.setItem(GENERATED_CONTRACT_KEY, JSON.stringify({ ...generated, submittedForApproval: true }));
       } catch { /* ignore */ }
       showToast(`${generated.fullName} submitted for approval.`, 'success');
+      if (typeof notifyDataChanged === 'function') notifyDataChanged();
       routeTo('approvals');
       return;
     } catch (err) {
@@ -465,6 +476,7 @@ async function doSubmitForApproval(generated, recipient) {
       priority: 'normal',
       submittedAt: new Date().toISOString(),
       submittedBy: session?.name || 'Current user',
+      submittedByEmail: session?.email || '',
       currentOwner: recipient.name,
       recipientName: recipient.name,
       recipientEmail: recipient.email,
@@ -857,6 +869,13 @@ const FAQ_ANSWERS = [
     label: 'Open New Contract'
   },
 
+  {
+    keywords: ['termination', 'terminate', 'fire', 'dismiss', 'end employment', 'ending employment', 'resign', 'resignation', 'let go', 'retrench'],
+    answer: 'ContractIQ generates employment contracts, not termination letters. A contract\'s end terms live in the Notice Period and — for fixed-term contracts — the Termination Date. To end employment, follow the notice period in the signed contract and your HR disciplinary process; the contract status can be set to Archived once employment ends.',
+    route: 'contracts',
+    label: 'View Contracts'
+  },
+
   // ── Preview & export ─────────────────────────────────────────────────────────
   {
     keywords: ['preview', 'review contract', 'view contract', 'see contract', 'contract preview'],
@@ -898,7 +917,7 @@ const FAQ_ANSWERS = [
   },
   {
     keywords: ['submit for approval', 'send for approval', 'submit contract', 'how to submit'],
-    answer: 'On the Preview page, click "Submit for Approval". This sets the contract to Review status and automatically emails the Director (Kogiela Reddy) to action it. You do not need to manually notify anyone.',
+    answer: 'On the Preview page, click "Submit for Approval". This sets the contract to Review status and notifies the selected active approver from the database. You do not need to manually notify anyone.',
     route: 'preview',
     label: 'Open Preview'
   },
@@ -922,7 +941,7 @@ const FAQ_ANSWERS = [
   },
   {
     keywords: ['who approves', 'who can approve', 'approval permission', 'ceo approve', 'director approve'],
-    answer: 'Only users with the Director role (or superuser) can approve contracts. Currently that is Kogiela Reddy (CEO). HR Managers like Tiara Ramouthar can create contracts but cannot action the approval queue.',
+    answer: 'Only users with the Director role or superuser access can approve contracts. HR Manager users can create contracts; approval actions are controlled by the role assigned in the database.',
     route: 'approvals',
     label: 'View Approvals'
   },
@@ -964,19 +983,19 @@ const FAQ_ANSWERS = [
   // ── Users & roles ────────────────────────────────────────────────────────────
   {
     keywords: ['user', 'users', 'account', 'superuser', 'create user', 'add user'],
-    answer: 'Only superusers can create accounts. There are currently 3 users: admin@redmps.com (Administrator), tiara.ramouthar@redmps.com (HR Manager), and kogiela.reddy@redmps.com (Director/CEO). New users are given a temporary password and must change it on first login.',
+    answer: 'Only superusers can create accounts. Active users and their roles are stored in PostgreSQL, and new users receive a temporary password that must be changed on first login.',
     route: 'create-user',
     label: 'Create User'
   },
   {
     keywords: ['tiara', 'hr manager', 'hr officer', 'hr user', 'tiara ramouthar'],
-    answer: 'Tiara Ramouthar (tiara.ramouthar@redmps.com) is the HR Manager. She can create contracts, manage employees, view templates, analytics, and the audit log. She cannot action the approval queue — that is reserved for the Director role.',
+    answer: 'HR Manager users are loaded from the database. They can create contracts, manage employees, view templates, analytics, and the audit log; approval actions depend on the role assigned to their account.',
     route: 'dashboard',
     label: 'Open Dashboard'
   },
   {
     keywords: ['kogiela', 'ceo', 'director', 'kogiela reddy', 'chief executive'],
-    answer: 'Kogiela Reddy (kogiela.reddy@redmps.com) is the CEO and Director. She has full system access including the approval queue. When HR submits a contract, Kogiela receives an automatic email and can approve or reject directly in the Approvals page.',
+    answer: 'Director users are loaded from the database. When HR submits a contract, the selected active approver receives the workflow notification and can approve or reject from the Approvals page.',
     route: 'approvals',
     label: 'View Approvals'
   },
@@ -988,7 +1007,7 @@ const FAQ_ANSWERS = [
   },
   {
     keywords: ['password', 'reset', 'forgot', 'forgot password', 'change password', 'login problem'],
-    answer: 'Click "Forgot Password" on the sign-in screen and enter your email. A reset link is emailed to you. Temporary passwords for the current accounts are in the migration file. All three current users are set to force a password change on first login.',
+    answer: 'Click "Forgot Password" on the sign-in screen and enter your email. Reset codes are generated by the API and sent to provisioned PostgreSQL-backed accounts.',
     route: null,
     label: null
   },
@@ -1067,8 +1086,8 @@ const FAQ_ANSWERS = [
 
   // ── General help ─────────────────────────────────────────────────────────────
   {
-    keywords: ['help', 'how do i', 'what is', 'explain', 'how does', 'guide', 'instructions'],
-    answer: 'I am Contracta — ContractIQ\'s built-in assistant. I can explain any feature, walk you through the contract workflow, answer questions about roles and permissions, or navigate you to any page. Just ask in plain language.',
+    keywords: ['help', 'who are you', 'what are you', 'contracta'],
+    answer: 'I am Contracta — ContractIQ\'s built-in assistant. I can explain any feature, walk you through the contract workflow, answer questions about roles and permissions, report live workspace numbers, or navigate you to any page. Just ask in plain language.',
     route: null,
     label: null
   },
@@ -1087,7 +1106,7 @@ const FAQ_ROUTE_GUIDE = {
   preview: 'You are on Preview & Export. This shows the fully formatted contract. From here you can: download Word, download PDF, submit for approval, or save a draft. Once approved, the "Send to Employee" button appears in the Approvals page.',
   employees: 'You are on Employees. This lists all active staff. Click "Use in Contract" on any card to auto-fill the contract wizard with that person\'s details — saves re-typing name, email, phone, and job title.',
   templates: 'You are on Templates. Published templates are ready to use; draft templates are pending review. The two active templates are Fixed-Term Employment Agreement and Permanent Employment Contract.',
-  approvals: 'You are on Approvals. Pending contracts waiting for the Director\'s approval appear here. Approved contracts show a "Send to Employee" button. Only Director-role users (Kogiela Reddy) can approve or reject.',
+  approvals: 'You are on Approvals. Pending contracts waiting for approval appear here. Approved contracts show a "Send to Employee" button. Only Director-role users or superusers can approve or reject.',
   analytics: 'You are on Analytics. See contract volume by month, breakdown by type, average approval time, and bottleneck analysis. Useful for monthly HR reporting and identifying slow approval stages.',
   audit: 'You are on the Audit Log. Every action in the system is recorded here — contract creation, approvals, rejections, user changes, and emails. Use it to trace any discrepancy.',
   settings: 'You are on Settings. Configure security policy, document generation, approval routing, data retention, and feature flags. Most changes require superuser access and an API restart.',
@@ -1189,7 +1208,7 @@ function submitFaqQuestion(event) {
   if (!question) return;
   appendFaqMessage(question, 'user');
   input.value = '';
-  appendFaqTyping(resolveContractaIntent(question));
+  respondToContracta(question);
 }
 
 function askFaqSuggestion(question) {
@@ -1199,29 +1218,188 @@ function askFaqSuggestion(question) {
   submitFaqQuestion(new Event('submit'));
 }
 
-function resolveContractaIntent(question) {
-  const normalized = question.toLowerCase();
-  const directCommand = handleContractaCommand(normalized);
-  if (directCommand) return directCommand;
+// Show a typing indicator, resolve the best answer (which may require a live
+// API call), then replace the indicator with the response.
+async function respondToContracta(question) {
+  const typing = showContractaTyping();
+  let match;
+  try {
+    [match] = await Promise.all([
+      resolveContractaAnswer(question),
+      new Promise(r => setTimeout(r, 480)),
+    ]);
+  } catch {
+    match = { answer: 'Sorry, I hit a snag answering that. Please try again in a moment.' };
+  }
+  typing.remove();
+  appendFaqMessage(match.answer, 'bot', match, match.suggestions || null);
+}
 
-  const words = normalized.split(/\s+/);
-  const scored = FAQ_ANSWERS
-    .map(item => ({
-      item,
-      score: item.keywords.reduce((total, keyword) => {
-        if (normalized.includes(keyword)) return total + keyword.split(' ').length + 1;
-        if (words.some(w => keyword.includes(w) && w.length > 3)) return total + 0.5;
-        return total;
-      }, 0)
-    }))
-    .sort((a, b) => b.score - a.score);
+function showContractaTyping() {
+  const messages = document.getElementById('faqChatMessages');
+  const typing = document.createElement('div');
+  typing.className = 'ai-message bot typing';
+  typing.innerHTML = `<div class="ai-msg-avatar">${CONTRACTA_AVATAR_SVG}</div>` +
+    `<div class="ai-msg-content"><span class="ai-typing"><i></i><i></i><i></i></span></div>`;
+  messages.appendChild(typing);
+  messages.scrollTop = messages.scrollHeight;
+  return typing;
+}
 
-  if (scored[0]?.score > 0) return scored[0].item;
+/* ── Contracta intent resolution ────────────────────────────────────────────── */
+
+const CONTRACTA_STOPWORDS = new Set(['the','a','an','is','are','do','i','to','how','what','can','of','in','on','for','my','me','you','it','this','that','and','or','with','have','has','does','where','when','please','tell','about','show','get','need','want','am','my']);
+
+// Map everyday words onto the vocabulary used in the FAQ keywords.
+const CONTRACTA_SYNONYMS = {
+  boss:'director', ceo:'director', exec:'director', executive:'director',
+  fire:'termination', terminate:'termination', dismiss:'termination', sack:'termination',
+  money:'salary', wage:'salary', pay:'salary', remuneration:'salary', compensation:'salary', cost:'salary',
+  make:'create', generate:'create', build:'create',
+  deliver:'send', issue:'send',
+  accept:'approve', authorise:'approve', authorize:'approve', okay:'approve',
+  deny:'reject', decline:'reject',
+  staff:'employee', worker:'employee', people:'employee', person:'employee', headcount:'employee',
+  signin:'password', login:'password',
+  doc:'word', document:'word',
+};
+
+// Canonical questions used for the "did you mean" fallback.
+const CONTRACTA_TOPICS = [
+  { q: 'How do I create a contract?',                 t: 'create new contract generate wizard make' },
+  { q: 'What is the approval process?',               t: 'approval approve submit director review process flow' },
+  { q: 'How does the employee receive the contract?', t: 'send employee deliver email receive' },
+  { q: 'How do I download a PDF?',                    t: 'pdf download export word print letterhead' },
+  { q: 'What do the contract statuses mean?',         t: 'status draft review signed executed rejected archived' },
+  { q: 'Who can approve contracts?',                  t: 'who approve permission role director' },
+  { q: 'What is the probation period?',               t: 'probation period months' },
+  { q: 'How do I reset my password?',                 t: 'password reset forgot login change' },
+  { q: 'What can each role do?',                      t: 'role permission access hr manager director admin' },
+  { q: 'How many contracts are pending?',             t: 'how many pending count dashboard numbers total' },
+  { q: 'Which templates are available?',              t: 'template fixed term permanent' },
+  { q: 'How do I use an employee in a contract?',     t: 'employee prefill use directory staff' },
+];
+
+function normalizeContracta(text) {
+  return text.toLowerCase().replace(/[^\w\s-]/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+function tokenizeContracta(normalized) {
+  return normalized.split(' ')
+    .map(t => CONTRACTA_SYNONYMS[t] || t)
+    .filter(t => t && !CONTRACTA_STOPWORDS.has(t));
+}
+
+function contractaLevenshtein(a, b) {
+  const m = a.length, n = b.length;
+  if (!m) return n;
+  if (!n) return m;
+  let prev = Array.from({ length: n + 1 }, (_, j) => j);
+  for (let i = 1; i <= m; i++) {
+    const curr = [i];
+    for (let j = 1; j <= n; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      curr[j] = Math.min(prev[j] + 1, curr[j - 1] + 1, prev[j - 1] + cost);
+    }
+    prev = curr;
+  }
+  return prev[n];
+}
+
+// 0 (no match) → 1 (exact), tolerant of typos and partial words.
+function fuzzyTokenMatch(a, b) {
+  if (a === b) return 1;
+  if (a.length > 3 && b.length > 3) {
+    if (a.includes(b) || b.includes(a)) return 0.85;
+    const d = contractaLevenshtein(a, b);
+    if (d <= 1) return 0.9;
+    if (a.length > 5 && d <= 2) return 0.7;
+  }
+  return 0;
+}
+
+async function resolveContractaAnswer(question) {
+  const normalized = normalizeContracta(question);
+  const command = handleContractaCommand(normalized);
+  if (command) return command;
+  const live = await answerWithLiveData(normalized);
+  if (live) return live;
+  return matchFaq(normalized);
+}
+
+function matchFaq(normalized) {
+  const qTokens = tokenizeContracta(normalized);
+  const scored = FAQ_ANSWERS.map(item => {
+    let score = 0;
+    for (const kw of item.keywords) {
+      if (normalized.includes(kw)) score += kw.split(' ').length * 2 + 1; // phrase hit
+    }
+    const kwTokens = [...new Set(item.keywords.join(' ').split(/\s+/).filter(t => !CONTRACTA_STOPWORDS.has(t)))];
+    for (const qt of qTokens) {
+      let best = 0;
+      for (const kt of kwTokens) best = Math.max(best, fuzzyTokenMatch(qt, kt));
+      score += best;
+    }
+    return { item, score };
+  }).sort((a, b) => b.score - a.score);
+
+  if (scored[0] && scored[0].score >= 1.6) return scored[0].item;
+
+  // Low confidence — offer the closest questions instead of a dead end.
   return {
-    answer: 'I\'m not sure about that one. Try asking about: creating a contract, the approval flow, sending to an employee, roles and permissions, emails, salary, probation, templates, or any specific page. You can also say "open [page name]" to navigate.',
+    answer: "I'm not certain I caught that. Did you mean one of these? You can also rephrase, or ask about contracts, approvals, employees, emails, roles, or any page.",
     route: null,
-    label: null
+    label: null,
+    suggestions: closestContractaQuestions(qTokens),
   };
+}
+
+function closestContractaQuestions(qTokens) {
+  const ranked = CONTRACTA_TOPICS.map(topic => {
+    const tTokens = topic.t.split(' ');
+    let score = 0;
+    for (const qt of qTokens) for (const tt of tTokens) score += fuzzyTokenMatch(qt, tt);
+    return { q: topic.q, score };
+  }).sort((a, b) => b.score - a.score);
+  const top = ranked.filter(r => r.score > 0).slice(0, 3).map(r => r.q);
+  // Always offer three options — pad with sensible defaults if needed.
+  for (const q of CONTRACTA_SUGGESTIONS._default) {
+    if (top.length >= 3) break;
+    if (!top.includes(q)) top.push(q);
+  }
+  return top.slice(0, 3);
+}
+
+// Answer count / snapshot questions from live dashboard data.
+async function answerWithLiveData(normalized) {
+  const wantsSnapshot = /(summary|snapshot|overview|status report|workspace|how (are|is) (we|things|it)|what.s going on)/.test(normalized);
+  const wantsCount = /(how many|number of|count|total|how much)/.test(normalized);
+  const m = {
+    approvals: /approv|pending|awaiting|queue/.test(normalized),
+    drafts: /draft/.test(normalized),
+    signed: /signed|executed|completed|finished/.test(normalized),
+    employees: /employee|staff|people|headcount/.test(normalized),
+    contracts: /contract/.test(normalized),
+  };
+  const anyTopic = m.approvals || m.drafts || m.signed || m.employees || m.contracts;
+  if (!wantsSnapshot && !(wantsCount && anyTopic) && !(m.approvals && /pending|awaiting/.test(normalized))) return null;
+
+  let d;
+  try { d = await apiFetch('/api/dashboard'); } catch { return null; }
+  if (!d) return null;
+
+  if (wantsSnapshot || (wantsCount && !anyTopic)) {
+    return {
+      answer: `Live workspace snapshot: ${d.totalContracts} contracts total — ${d.draftCount} draft, ${d.reviewCount} in review, ${d.signedCount} signed. ${d.pendingApprovals} approval${d.pendingApprovals === 1 ? '' : 's'} pending, ${d.activeEmployees} active employees. Average processing time is ${d.avgProcessingDays} days.`,
+      route: 'dashboard', label: 'Open Dashboard',
+    };
+  }
+  if (m.approvals) return { answer: `There ${d.pendingApprovals === 1 ? 'is' : 'are'} currently ${d.pendingApprovals} approval${d.pendingApprovals === 1 ? '' : 's'} pending.`, route: 'approvals', label: 'View Approvals' };
+  if (m.drafts) return { answer: `There ${d.draftCount === 1 ? 'is' : 'are'} ${d.draftCount} contract${d.draftCount === 1 ? '' : 's'} in Draft.`, route: 'contracts', label: 'View Contracts' };
+  if (m.signed) return { answer: `${d.signedCount} contract${d.signedCount === 1 ? ' is' : 's are'} Signed.`, route: 'contracts', label: 'View Contracts' };
+  if (m.employees) return { answer: `There ${d.activeEmployees === 1 ? 'is' : 'are'} ${d.activeEmployees} active employee${d.activeEmployees === 1 ? '' : 's'}.`, route: 'employees', label: 'Open Employees' };
+  if (m.contracts) return { answer: `There are ${d.totalContracts} contracts in total — ${d.draftCount} draft, ${d.reviewCount} in review, ${d.signedCount} signed.`, route: 'contracts', label: 'View Contracts' };
+  return null;
 }
 
 function handleContractaCommand(normalized) {
@@ -1240,14 +1418,6 @@ function handleContractaCommand(normalized) {
       answer: FAQ_ROUTE_GUIDE[route] || 'This page is part of the ContractIQ workspace. I can explain workflows, navigate, or answer common questions.',
       route: route && route !== 'login' ? route : null,
       label: route && route !== 'login' ? 'Stay Here' : null
-    };
-  }
-
-  if (normalized.includes('summarize') || normalized.includes('workspace status') || normalized.includes('status report')) {
-    return {
-      answer: 'Workspace snapshot: 142 contracts generated, 5 pending approvals, 92% readiness, 3 templates needing compliance updates, and no critical POPIA findings in today’s drafts.',
-      route: 'dashboard',
-      label: 'Open Dashboard'
     };
   }
 
@@ -1292,33 +1462,37 @@ function getCurrentContractaRoute() {
   return active || 'dashboard';
 }
 
+// Compact robot mark reused for bot message avatars.
+const CONTRACTA_AVATAR_SVG = `<svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><line x1="20" y1="2" x2="20" y2="7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><circle cx="20" cy="1.4" r="2" fill="currentColor"/><rect x="5" y="8" width="30" height="22" rx="5" fill="currentColor" fill-opacity=".18" stroke="currentColor" stroke-width="2"/><rect x="2" y="14" width="3" height="7" rx="1.5" fill="currentColor" fill-opacity=".7"/><rect x="35" y="14" width="3" height="7" rx="1.5" fill="currentColor" fill-opacity=".7"/><circle cx="14" cy="18" r="3.5" fill="currentColor"/><circle cx="26" cy="18" r="3.5" fill="currentColor"/><circle cx="15.2" cy="16.8" r="1.2" fill="white"/><circle cx="27.2" cy="16.8" r="1.2" fill="white"/><rect x="12" y="24" width="16" height="3.5" rx="1.75" stroke="currentColor" stroke-width="1.6"/></svg>`;
+
 function clearFaqChat() {
   const messages = document.getElementById('faqChatMessages');
   if (!messages) return;
-  messages.innerHTML = `
-    <div class="ai-message bot">
-      <span>Hi, I'm Contracta — tap any question below to get started, or type your own.</span>
-    </div>
-  `;
+  messages.innerHTML = '';
+  appendFaqMessage("Hi, I'm Contracta — tap any question below to get started, or type your own.", 'bot');
   renderContractaSuggestions();
 }
 
-function appendFaqTyping(match) {
-  const typing = appendFaqMessage('Thinking...', 'bot typing');
-  setTimeout(() => {
-    typing?.remove();
-    appendFaqMessage(match.answer, 'bot', match);
-  }, 320);
-}
-
-function appendFaqMessage(text, type, action = null) {
+function appendFaqMessage(text, type, action = null, suggestions = null) {
   const messages = document.getElementById('faqChatMessages');
   if (!messages) return null;
+  const isBot = type.includes('bot');
+
   const message = document.createElement('div');
   message.className = `ai-message ${type}`;
+
+  if (isBot) {
+    const avatar = document.createElement('div');
+    avatar.className = 'ai-msg-avatar';
+    avatar.innerHTML = CONTRACTA_AVATAR_SVG;
+    message.appendChild(avatar);
+  }
+
+  const content = document.createElement('div');
+  content.className = 'ai-msg-content';
   const bubble = document.createElement('span');
   bubble.textContent = text;
-  message.appendChild(bubble);
+  content.appendChild(bubble);
 
   if (action?.route && action?.label) {
     const button = document.createElement('button');
@@ -1326,8 +1500,23 @@ function appendFaqMessage(text, type, action = null) {
     button.type = 'button';
     button.textContent = action.label;
     button.addEventListener('click', () => runContractaAction(action));
-    message.appendChild(button);
+    content.appendChild(button);
   }
+
+  if (Array.isArray(suggestions) && suggestions.length) {
+    const chips = document.createElement('div');
+    chips.className = 'ai-inline-suggestions';
+    suggestions.forEach(q => {
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      chip.textContent = q;
+      chip.addEventListener('click', () => askFaqSuggestion(q));
+      chips.appendChild(chip);
+    });
+    content.appendChild(chips);
+  }
+
+  message.appendChild(content);
 
   messages.appendChild(message);
   messages.scrollTop = messages.scrollHeight;
@@ -1432,7 +1621,7 @@ function setContractsTab(btn, filter) {
   });
 
   const countEl = document.getElementById('contractsCount');
-  if (countEl) countEl.textContent = `Showing ${visible} of 142 contracts`;
+  if (countEl) countEl.textContent = `Showing ${visible} contracts`;
 }
 
 function filterContracts(query) {
@@ -1447,7 +1636,7 @@ function filterContracts(query) {
   });
 
   const countEl = document.getElementById('contractsCount');
-  if (countEl) countEl.textContent = `Showing ${visible} of 142 contracts`;
+  if (countEl) countEl.textContent = `Showing ${visible} contracts`;
 }
 
 /* ═══════════════════════════════════════════
@@ -1591,7 +1780,7 @@ function refreshApprovalActions() {
   });
 }
 
-function approveItem(btn, name) {
+async function approveItem(btn, name) {
   const card = btn.closest('.approval-card');
   if (!card) return;
   const stage = card.dataset.route || 'manager';
@@ -1634,29 +1823,38 @@ function approveItem(btn, name) {
 
   if (nextStage === 'approved') {
     // Final approval — email HR/submitter that contract is fully approved
-    const hrEmail = submitterSession.email || 'admin@redmps.com';
-    sendNotificationEmail({
-      type: 'contract_approved',
-      to: hrEmail,
-      recipientName: submitterSession.name || 'HR',
-      contractTitle: queueItem?.documentType || 'Employment Contract',
-      contractRef: ref || '',
-      approverName: submitterSession.name || 'Approver',
-    });
+    const hrEmail = queueItem?.submittedByEmail || submitterSession.email;
+    if (hrEmail) {
+      sendNotificationEmail({
+        type: 'contract_approved',
+        to: hrEmail,
+        recipientName: queueItem?.submittedBy || submitterSession.name || 'HR',
+        contractTitle: queueItem?.documentType || 'Employment Contract',
+        contractRef: ref || '',
+        approverName: submitterSession.name || 'Approver',
+      });
+    }
   } else if (queueItem?.recipientEmail) {
     // Intermediate stage — email the next approver in the chain
-    const nextRecipient = APPROVAL_RECIPIENTS.find(r => r.email === queueItem.recipientEmail);
-    const nextApproverEmail = nextRecipient
-      ? (nextStage === 'director' ? 'kogiela.reddy@redmps.com' : nextRecipient.email)
-      : 'kogiela.reddy@redmps.com';
-    sendNotificationEmail({
-      type: 'approval_requested',
-      to: nextApproverEmail,
-      recipientName: nextApproverEmail.includes('kogiela') ? 'Kogiela Reddy' : 'Tiara Ramouthar',
-      contractTitle: queueItem?.documentType || 'Employment Contract',
-      contractRef: ref || '',
-      submittedBy: submitterSession.name || 'HR',
-    });
+    let nextRecipient = null;
+    try {
+      const recipients = await getApprovalRecipients();
+      nextRecipient = nextStage === 'director'
+        ? recipients.find(user => user.role === 'Director')
+        : recipients.find(user => user.email === queueItem.recipientEmail);
+    } catch (err) {
+      console.warn('[api] next approver:', err.message);
+    }
+    if (nextRecipient?.email) {
+      sendNotificationEmail({
+        type: 'approval_requested',
+        to: nextRecipient.email,
+        recipientName: nextRecipient.name,
+        contractTitle: queueItem?.documentType || 'Employment Contract',
+        contractRef: ref || '',
+        submittedBy: submitterSession.name || 'HR',
+      });
+    }
   }
 
   setTimeout(() => {
@@ -1701,16 +1899,18 @@ function flagApprovalItem(btn, name) {
 
       // Email HR/submitter that contract was returned for revision
       const session = getSession?.() || {};
-      const hrEmail = session.email || 'admin@redmps.com';
-      sendNotificationEmail({
-        type: 'contract_rejected',
-        to: hrEmail,
-        recipientName: session.name || 'HR',
-        contractTitle: item.documentType || 'Employment Contract',
-        contractRef: item.ref || '',
-        approverName: session.name || 'Reviewer',
-        reason: note || 'Reviewer requested revisions.',
-      });
+      const hrEmail = item.submittedByEmail || session.email;
+      if (hrEmail) {
+        sendNotificationEmail({
+          type: 'contract_rejected',
+          to: hrEmail,
+          recipientName: item.submittedBy || session.name || 'HR',
+          contractTitle: item.documentType || 'Employment Contract',
+          contractRef: item.ref || '',
+          approverName: session.name || 'Reviewer',
+          reason: note || 'Reviewer requested revisions.',
+        });
+      }
     }
     renderGeneratedApprovals();
     refreshApprovalActions();
@@ -2299,41 +2499,12 @@ async function cuHandleSubmit(e) {
     }
 
   } catch {
-    // ── Demo / offline fallback ─────────────────────────────────────
     apiMode = false;
-
-    createdUser = {
-      id:         'demo-' + Math.random().toString(36).slice(2, 10),
-      email:      data.email,
-      first_name: data.firstName,
-      last_name:  data.lastName,
-      role:       CU_ROLE_LABELS[data.roleId] || data.roleId,
-    };
-
-    // Persist in DEMO_USERS so the new account can sign in this session
-    if (typeof DEMO_USERS !== 'undefined') {
-      const initials = ((data.firstName[0] || '') + (data.lastName[0] || '')).toUpperCase();
-      DEMO_USERS.push({
-        email:               data.email,
-        password:            data.password,
-        name:                `${data.firstName} ${data.lastName}`,
-        initials,
-        role:                CU_ROLE_LABELS[data.roleId] || 'HR Officer',
-        isSuperuser:         data.isSuperuser,
-        forcePasswordChange: data.forceChange,
-      });
-    }
-
-    // Write audit entry to sessionStorage (offline audit log)
-    cuWriteAuditEntry({
-      action:  'USER_CREATED',
-      target:  data.email,
-      actor:   session?.email || 'superuser',
-      details: `Role: ${CU_ROLE_LABELS[data.roleId] || data.roleId} | Superuser: ${data.isSuperuser} | Demo mode`,
-      source:  'demo',
-    });
-
-    success = true;
+    cuShowApiErr('API offline. User creation requires a PostgreSQL connection.');
+    btnEl?.classList.remove('is-loading');
+    if (labelEl) labelEl.textContent = 'Create User';
+    spinEl?.classList.add('hidden');
+    return;
   }
 
   // Restore button state

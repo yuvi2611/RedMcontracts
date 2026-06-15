@@ -2307,7 +2307,71 @@
 .notification-dot.warning { background: var(--warning); }
 .notification-dot.info { background: var(--info); }
 .notification-dot.success { background: var(--success); }
+.notification-dot.danger { background: var(--red-500); }
 .notif-dot.is-read { display: none; }
+
+/* Scrollable list of live notifications */
+.notif-list {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.notif-body-wrap {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.notification-item .notif-time {
+  display: block;
+  margin-top: 4px;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: .02em;
+  text-transform: uppercase;
+  color: var(--coal-300);
+}
+
+.notification-item small {
+  line-height: 1.45;
+  white-space: normal;
+}
+
+/* Unread accent */
+.notification-item.is-unread {
+  background: var(--red-50);
+  box-shadow: inset 3px 0 0 var(--red-500);
+}
+.notification-item.is-unread:hover { background: var(--red-100); }
+.notification-item.is-unread strong { color: var(--coal-900); }
+
+/* Empty / loading state */
+.notif-empty {
+  padding: 32px 18px;
+  text-align: center;
+  color: var(--coal-400);
+  font-size: 12.5px;
+}
+
+/* Unread count badge on the bell */
+.notif-count {
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--red-500);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 16px;
+  text-align: center;
+  border: 2px solid var(--white);
+  pointer-events: none;
+}
 
 .experience-strip,
 .analytics-command-strip {

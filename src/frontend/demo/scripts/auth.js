@@ -1,30 +1,6 @@
 const AUTH_STORAGE_KEY = 'contractiq.session';
 const AUTH_API_BASE = window.CONTRACTIQ_API_BASE || 'http://localhost:5000';
 
-// Random per-session reset code — not guessable across page loads
-const DEMO_RESET_CODE = 'RESET-' + Math.random().toString(36).slice(2, 8).toUpperCase();
-
-const DEMO_USERS = [
-  {
-    email: 'admin@redmps.com',
-    password: 'ChangeMe!2026',
-    name: 'System Administrator',
-    initials: 'SA',
-    role: 'Administrator',
-    isSuperuser: true,
-    forcePasswordChange: true
-  },
-  {
-    email: 'yuvi.pather@gmail.com',
-    password: 'ChangeMe!2026',
-    name: 'Yuvaan Pather',
-    initials: 'YP',
-    role: 'Administrator',
-    isSuperuser: true,
-    forcePasswordChange: false
-  }
-];
-
 function getSession() {
   try {
     return JSON.parse(sessionStorage.getItem(AUTH_STORAGE_KEY) || 'null');
@@ -111,9 +87,9 @@ function signOut() {
 function fillDemoLogin() {
   const email = document.getElementById('loginEmail');
   const password = document.getElementById('loginPassword');
-  if (email) email.value = 'admin@redmps.com';
-  if (password) password.value = 'ChangeMe!2026';
-  showToast?.('Demo administrator credentials filled.', 'success');
+  if (email) email.value = '';
+  if (password) password.value = '';
+  showToast?.('Demo credentials are disabled. Sign in with a database account.', 'info');
 }
 
 function bindLogin() {
@@ -129,7 +105,6 @@ function bindLogin() {
     const errorText = document.getElementById('loginErrorText');
     const submit = form.querySelector('.login-submit');
     let user = null;
-    let apiReachable = true;
 
     submit?.classList.add('is-loading');
 
@@ -150,21 +125,22 @@ function bindLogin() {
         } catch {
           // Ignore storage failures in restricted browser modes.
         }
-      } else if (res.status === 401) {
-        apiReachable = true;
       } else {
         const details = await res.json().catch(() => ({}));
-        if (errorText) errorText.textContent = details.message || 'Sign in failed. Please try again.';
+        if (errorText) errorText.textContent = details.message || (res.status === 401
+          ? 'Invalid credentials. Check the PostgreSQL users table or ask a superuser to create an account.'
+          : 'Sign in failed. Please try again.');
         if (error) error.style.display = 'flex';
         submit?.classList.remove('is-loading');
         return;
       }
-    } catch {
-      apiReachable = false;
-    }
-
-    if (!user && !apiReachable) {
-      user = DEMO_USERS.find(candidate => candidate.email === email && candidate.password === password);
+    } catch (loginError) {
+      if (error) error.style.display = 'flex';
+      if (errorText) errorText.textContent = loginError.name === 'TimeoutError'
+        ? 'API timeout. Sign in requires a PostgreSQL-backed account.'
+        : 'API offline. Sign in requires a PostgreSQL-backed account.';
+      submit?.classList.remove('is-loading');
+      return;
     }
 
     submit?.classList.remove('is-loading');
@@ -172,26 +148,129 @@ function bindLogin() {
     if (!user) {
       if (error) error.style.display = 'flex';
       if (errorText) {
-        errorText.textContent = apiReachable
-          ? 'Invalid credentials. Check the PostgreSQL users table or ask a superuser to create an account.'
-          : 'API offline. Demo fallback only accepts the seeded superuser or accounts created in this session.';
+        errorText.textContent = 'Invalid credentials. Check the PostgreSQL users table or ask a superuser to create an account.';
       }
       return;
     }
 
     if (error) error.style.display = 'none';
     setSession(user);
-    showAuthenticatedApp();
-    let storedDestination = null;
-    try {
-      storedDestination = sessionStorage.getItem('contractiq.pendingRoute');
-      sessionStorage.removeItem('contractiq.pendingRoute');
-    } catch {
-      storedDestination = null;
+
+    // Force a password change before granting access on first login.
+    if (user.forcePasswordChange) {
+      window.__flEmail = email;
+      window.__flCurrentPassword = password;
+      showFirstLoginModal();
+      return;
     }
-    const destination = window.__pendingRoute || storedDestination || 'dashboard';
-    window.__pendingRoute = null;
-    navigateTo?.(destination, { replace: true });
+
+    enterAppAfterLogin();
+  });
+}
+
+// Reveal the app and route to the intended destination after a clean login.
+function enterAppAfterLogin() {
+  showAuthenticatedApp();
+  if (typeof refreshNotifBadge === 'function') refreshNotifBadge();
+  if (typeof updateLiveBadges === 'function') updateLiveBadges();
+  let storedDestination = null;
+  try {
+    storedDestination = sessionStorage.getItem('contractiq.pendingRoute');
+    sessionStorage.removeItem('contractiq.pendingRoute');
+  } catch {
+    storedDestination = null;
+  }
+  const destination = window.__pendingRoute || storedDestination || 'dashboard';
+  window.__pendingRoute = null;
+  navigateTo?.(destination, { replace: true });
+}
+
+function showFirstLoginModal() {
+  document.getElementById('loginScreen')?.classList.add('hidden');
+  document.getElementById('appShell')?.classList.add('hidden');
+  const modal = document.getElementById('firstLoginModal');
+  modal?.classList.remove('hidden');
+  document.getElementById('flNewPassword')?.focus();
+}
+
+function hideFirstLoginModal() {
+  document.getElementById('firstLoginModal')?.classList.add('hidden');
+}
+
+function bindFirstLogin() {
+  const form = document.getElementById('firstLoginForm');
+  if (!form || form.dataset.bound === 'true') return;
+  form.dataset.bound = 'true';
+
+  // Password visibility toggle for the new-password field.
+  const pwd = document.getElementById('flNewPassword');
+  const toggle = document.getElementById('flPasswordToggle');
+  const wrapper = pwd?.closest('.password-field');
+  if (pwd && toggle && wrapper) {
+    toggle.addEventListener('click', () => {
+      const visible = pwd.type === 'text';
+      pwd.type = visible ? 'password' : 'text';
+      wrapper.classList.toggle('is-visible', !visible);
+      toggle.setAttribute('aria-pressed', String(!visible));
+    });
+  }
+
+  form.addEventListener('submit', async event => {
+    event.preventDefault();
+    const email = window.__flEmail;
+    const current = window.__flCurrentPassword || '';
+    const next = document.getElementById('flNewPassword')?.value || '';
+    const confirm = document.getElementById('flConfirmPassword')?.value || '';
+    const error = document.getElementById('flError');
+    const errorText = document.getElementById('flErrorText');
+    const submit = document.getElementById('flSubmit');
+
+    const fail = message => {
+      if (errorText) errorText.textContent = message;
+      if (error) error.style.display = 'flex';
+    };
+
+    if (next.length < 12) return fail('New password must be at least 12 characters.');
+    if (next !== confirm) return fail('Passwords do not match.');
+    if (next === current) return fail('New password must be different from the temporary one.');
+
+    submit?.classList.add('is-loading');
+    let changed = false;
+    try {
+      const res = await fetch(`${AUTH_API_BASE}/api/auth/change-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, current_password: current, new_password: next }),
+        signal: AbortSignal.timeout(5000)
+      });
+      if (res.ok) {
+        changed = true;
+      } else {
+        const details = await res.json().catch(() => ({}));
+        throw new Error(details.message || 'Password change failed.');
+      }
+    } catch (changeError) {
+      if (!changed) {
+        fail(changeError.message || 'Password change failed. Please try again.');
+        submit?.classList.remove('is-loading');
+        return;
+      }
+    }
+
+    submit?.classList.remove('is-loading');
+    if (!changed) return;
+
+    // Update the stored session so the flag is cleared and clean up.
+    const session = getSession();
+    if (session) { session.forcePasswordChange = false; setSession(session); }
+    window.__flCurrentPassword = null;
+    document.getElementById('flNewPassword').value = '';
+    document.getElementById('flConfirmPassword').value = '';
+    if (error) error.style.display = 'none';
+
+    hideFirstLoginModal();
+    showToast?.('Password updated. Welcome to ContractIQ.', 'success');
+    enterAppAfterLogin();
   });
 }
 
@@ -228,20 +307,17 @@ function bindPasswordReset() {
         const details = await res.json().catch(() => ({}));
         throw new Error(details.message || 'Reset request failed.');
       }
-    } catch {
-      const demoUser = DEMO_USERS.find(user => user.email === email);
-      if (!demoUser) {
-        if (errorText) errorText.textContent = 'No demo account found for that email.';
-        if (error) error.style.display = 'flex';
-        submit?.classList.remove('is-loading');
-        return;
-      }
+    } catch (resetRequestError) {
+      if (errorText) errorText.textContent = resetRequestError.message || 'Reset request failed. Please try again.';
+      if (error) error.style.display = 'flex';
+      submit?.classList.remove('is-loading');
+      return;
     }
 
     submit?.classList.remove('is-loading');
     if (error) error.style.display = 'none';
     sessionStorage.setItem('contractiq.resetEmail', email);
-    document.getElementById('resetCodeNote').textContent = `Reset code prepared for ${email}. Demo code: ${DEMO_RESET_CODE}`;
+    document.getElementById('resetCodeNote').textContent = `A reset code has been sent to ${email}.`;
     showResetConfirm();
   });
 
@@ -278,14 +354,9 @@ function bindPasswordReset() {
         throw new Error(details.message || 'Password reset failed.');
       }
     } catch (resetError) {
-      const demoUser = DEMO_USERS.find(user => user.email === email);
-      if (!demoUser || code !== DEMO_RESET_CODE) {
-        fail(resetError.message || 'Invalid reset code or account email.');
-        submit?.classList.remove('is-loading');
-        return;
-      }
-      demoUser.password = password;
-      demoUser.forcePasswordChange = false;
+      fail(resetError.message || 'Invalid reset code or account email.');
+      submit?.classList.remove('is-loading');
+      return;
     }
 
     submit?.classList.remove('is-loading');
@@ -345,6 +416,7 @@ function bindPasswordToggle() {
 function initAuthShell() {
   bindLogin();
   bindPasswordReset();
+  bindFirstLogin();
   window.__pendingRoute = null;
   clearSession();
   setPreviewAccess?.(false);

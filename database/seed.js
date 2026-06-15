@@ -6,6 +6,7 @@
  */
 
 const { Pool } = require('pg');
+const crypto = require('crypto');
 const path = require('path');
 const fs = require('fs');
 
@@ -32,8 +33,12 @@ async function seed() {
     await client.query('BEGIN');
 
     // ── Get admin user id ─────────────────────────────────────────────
-    const adminRes = await client.query(`SELECT id FROM users WHERE email = 'admin@redmps.com' LIMIT 1`);
+    const adminEmail = process.env.SEED_ADMIN_EMAIL;
+    if (!adminEmail) throw new Error('SEED_ADMIN_EMAIL is required to run database/seed.js');
+    const adminRes = await client.query(`SELECT id FROM users WHERE lower(email) = lower($1) LIMIT 1`, [adminEmail]);
+    if (!adminRes.rows[0]) throw new Error(`Seed admin user not found: ${adminEmail}`);
     const adminId = adminRes.rows[0].id;
+    const seedTempPassword = process.env.SEED_TEMP_PASSWORD || crypto.randomUUID() + 'Aa!';
 
     // ── Get role IDs ──────────────────────────────────────────────────
     const rolesRes = await client.query(`SELECT id, name FROM roles`);
@@ -80,7 +85,7 @@ async function seed() {
         adminId, u.email, u.first, u.last, u.phone,
         roles[u.role] || roles['HR Officer'],
         deptMap[u.dept] || null,
-        'RedMPS@2026!', false, true, false
+        seedTempPassword, true, true, false
       ]);
       userIds[u.email] = res.rows[0].id;
     }
@@ -103,7 +108,6 @@ async function seed() {
       { eid: 'EMP-013', first: 'Chantelle',last: 'Du Plessis',   email: 'chantelle.duplessis@redmps.com', phone: '0744440013', dob: '1983-03-11', id_number: '8303110678093', dept: 'LEG', title: 'Compliance Officer',            type: 'Permanent',  status: 'Active',     hire: '2017-07-03' },
       { eid: 'EMP-014', first: 'Sibusiso', last: 'Ndlovu',       email: 'sibusiso.ndlovu@redmps.com',     phone: '0755550014', dob: '1990-11-05', id_number: '9011050789094', dept: 'IT',  title: 'Data Engineer',                 type: 'Permanent',  status: 'On Leave',   hire: '2021-09-13' },
       { eid: 'EMP-015', first: 'Andile',   last: 'Nxumalo',      email: 'andile.nxumalo@redmps.com',      phone: '0766660015', dob: '1998-06-17', id_number: '9806170123095', dept: 'SAL', title: 'Marketing Coordinator',         type: 'Fixed-Term', status: 'Active',     hire: '2025-06-01' },
-      { eid: 'EMP-016', first: 'Yuvaan',   last: 'Pather',       email: 'yuvi.pather@gmail.com',          phone: '0831234567', dob: '2000-04-15', id_number: '0004150234096', dept: 'IT',  title: 'Junior Platform Engineer',      type: 'Permanent',  status: 'Active',     hire: '2024-01-15' },
     ];
 
     const empIds = {};

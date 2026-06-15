@@ -27,10 +27,10 @@ INSERT INTO users (
     password_changed_at
 )
 SELECT
-    'admin@redmps.com',
-    'System',
-    'Administrator',
-    crypt('ChangeMe!2026', gen_salt('bf', 12)),
+    current_setting('app.bootstrap_admin_email', true),
+    coalesce(current_setting('app.bootstrap_admin_first_name', true), 'System'),
+    coalesce(current_setting('app.bootstrap_admin_last_name', true), 'Administrator'),
+    crypt(current_setting('app.bootstrap_admin_password', true), gen_salt('bf', 12)),
     r.id,
     true,
     true,
@@ -38,8 +38,12 @@ SELECT
     CURRENT_TIMESTAMP
 FROM roles r
 WHERE r.name = 'Administrator'
+  AND nullif(current_setting('app.bootstrap_admin_email', true), '') IS NOT NULL
+  AND nullif(current_setting('app.bootstrap_admin_password', true), '') IS NOT NULL
   AND NOT EXISTS (
-      SELECT 1 FROM users u WHERE lower(u.email) = lower('admin@redmps.com')
+      SELECT 1
+      FROM users u
+      WHERE lower(u.email) = lower(current_setting('app.bootstrap_admin_email', true))
   );
 
 CREATE OR REPLACE FUNCTION create_user_as_superuser(
