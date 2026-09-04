@@ -7,7 +7,7 @@
   <meta name="referrer" content="strict-origin-when-cross-origin">
   <title>RedMPS ContractIQ - HR Contract Automation</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Outfit:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
 
   <script>
     window.CONTRACTIQ_ASSET_VERSION = Date.now();
@@ -25,7 +25,9 @@
       'demo/styles/pages/preview.css',
       'demo/styles/pages/contracts.css',
       'demo/styles/pages/analytics.css',
-      'demo/styles/pages/enhancements.css'
+      'demo/styles/pages/enhancements.css',
+      'demo/styles/premium.css',
+      'demo/styles/login-experience.css'
     ].forEach(href => {
       document.write(`<link rel="stylesheet" href="${href}?dev=${window.CONTRACTIQ_ASSET_VERSION}">`);
     });
@@ -44,175 +46,467 @@
   <section id="loginScreen" class="login-screen hidden">
     <div class="login-stage">
       <div class="login-card-panel">
-        <form id="loginForm" class="login-form" autocomplete="on">
+        <form id="loginForm" class="login-form" autocomplete="on" novalidate>
           <div class="login-brand-row">
-            <img src="demo/assets/templates/RedMPS-Logo_Black.png" alt="RedMPS" class="login-brand-logo">
-            <div class="login-brand-sub">
-              <span>ContractIQ</span>
-              <span>Secure HR contract workspace</span>
-            </div>
-          </div>
-          <div class="login-copy">
-            <span class="login-eyebrow">Internal access</span>
-            <h1>Welcome back</h1>
-            <p>Sign in to generate, review, approve, and export RedMPS employment contracts.</p>
+            <span class="login-logo-plate">
+              <img src="demo/assets/templates/RedMPS-Logo_Black.png" alt="RedMPS" class="login-brand-logo">
+            </span>
+            <span class="login-brand-sub">
+              <span class="login-brand-product">ContractIQ</span>
+              <span class="login-brand-desc">Secure HR contract workspace</span>
+            </span>
           </div>
 
-          <div class="login-security-strip">
-            <span>Role-based access</span>
-            <span>Audit trail enabled</span>
-            <span>POPIA aware</span>
+          <div class="login-copy">
+            <h1>Welcome back</h1>
+            <p>Sign in to continue managing contracts, approvals and secure exports.</p>
+          </div>
+
+          <div id="loginNotice" class="login-notice" role="status" hidden>
+            <span id="loginNoticeText"></span>
           </div>
 
           <div class="form-group">
-            <label class="form-label" for="loginEmail">Email</label>
-            <input class="form-input login-input" id="loginEmail" type="email" autocomplete="username" required>
+            <label class="form-label" for="loginEmail">Work email</label>
+            <input class="form-input login-input" id="loginEmail" name="email" type="email"
+                   placeholder="name@company.com" autocomplete="username" inputmode="email"
+                   autocapitalize="none" spellcheck="false" required aria-describedby="emailError loginError">
+            <p class="field-error" id="emailError" role="alert" hidden></p>
           </div>
 
           <div class="form-group">
             <label class="form-label" for="loginPassword">Password</label>
             <div class="password-field">
-              <input class="form-input login-input" id="loginPassword" type="password" autocomplete="current-password" required>
+              <input class="form-input login-input" id="loginPassword" name="password" type="password" autocomplete="current-password" required aria-describedby="passwordError loginError">
               <button class="password-toggle" id="passwordToggle" type="button" aria-label="Show password" aria-pressed="false">
                 <svg class="password-eye password-eye-open" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6z"/><circle cx="12" cy="12" r="3"/></svg>
                 <svg class="password-eye password-eye-closed" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3l18 18"/><path d="M10.6 10.6A3 3 0 0 0 13.4 13.4"/><path d="M9.9 4.2A10.5 10.5 0 0 1 12 4c6.5 0 10 8 10 8a16.5 16.5 0 0 1-3.1 4.1"/><path d="M6.6 6.6C3.6 8.6 2 12 2 12s3.5 8 10 8a10.6 10.6 0 0 0 4.1-.8"/></svg>
               </button>
             </div>
+            <p class="field-error" id="passwordError" role="alert" hidden></p>
           </div>
 
           <div class="login-options">
             <span class="login-session-note">Secure session only</span>
-            <button class="link-button" type="button" onclick="navigateTo('reset-password')">Forgot Password</button>
+            <button class="link-button" type="button" onclick="navigateTo('reset-password')">Forgot your password?</button>
           </div>
 
-          <div id="loginError" class="validation-alert compact" style="display:none;">
-            <span class="validation-alert-icon">!</span>
-            <span id="loginErrorText">Invalid email or password.</span>
+          <div id="loginError" class="validation-alert compact login-error" role="alert" aria-live="assertive" tabindex="-1" style="display:none;">
+            <span class="validation-alert-icon" aria-hidden="true">!</span>
+            <span id="loginErrorText"></span>
           </div>
 
-          <button class="login-submit" type="submit">Sign in</button>
-          <div class="login-admin-note">No public registration. A superuser must create and activate your account.</div>
+          <button class="login-submit" type="submit">
+            <span class="login-submit-spinner" aria-hidden="true"></span>
+            <span class="login-submit-label">Sign in</span>
+          </button>
+          <p class="login-admin-note">Accounts are created and activated by an authorised administrator.</p>
         </form>
 
         <aside class="login-assurance-panel">
-          <nav class="login-landing-nav" aria-label="Login page highlights">
-            <span>ContractIQ</span>
-          </nav>
-          <div class="login-hero-copy">
-            <span class="login-hero-eyebrow">RedMPS HR automation</span>
-            <h2>Contracts move from draft to approval with control.</h2>
-            <p>Generate compliant agreements, validate every schedule field, route approvals, and export, the RedMPS Way.</p>
+          <!-- "The Contract Signature Journey" — an abstract contract sheet whose
+               signature baseline becomes a crimson stroke that threads the four
+               workflow stages and arrives, sealed, at the sign-in card.
+               Draft → Validate → Approve → Export.  Purely decorative. -->
+          <div class="contract-flow" aria-hidden="true">
+            <svg class="contract-flow__svg" viewBox="0 0 680 600" preserveAspectRatio="none" role="presentation" focusable="false">
+              <defs>
+                <linearGradient id="cfRibbon" x1="0" y1="1" x2="1" y2="0">
+                  <stop offset="0" stop-color="#2A0711" stop-opacity="0"/>
+                  <stop offset=".30" stop-color="#8B0010" stop-opacity=".50"/>
+                  <stop offset=".62" stop-color="#D6002F" stop-opacity=".82"/>
+                  <stop offset=".90" stop-color="#B00020" stop-opacity=".40"/>
+                  <stop offset="1" stop-color="#B00020" stop-opacity="0"/>
+                </linearGradient>
+                <linearGradient id="cfCore" x1="0" y1="1" x2="1" y2="0">
+                  <stop offset="0" stop-color="#FF1749" stop-opacity="0"/>
+                  <stop offset=".14" stop-color="#FF4D6A" stop-opacity=".9"/>
+                  <stop offset=".52" stop-color="#FF2A48"/>
+                  <stop offset=".78" stop-color="#FF5C7A" stop-opacity=".78"/>
+                  <stop offset=".92" stop-color="#FF7893" stop-opacity=".4"/>
+                  <stop offset="1" stop-color="#FF7893" stop-opacity=".12"/>
+                </linearGradient>
+                <linearGradient id="cfEdge" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0" stop-color="#FF1749" stop-opacity="0"/>
+                  <stop offset=".5" stop-color="#FF1749" stop-opacity=".55"/>
+                  <stop offset="1" stop-color="#FF1749" stop-opacity="0"/>
+                </linearGradient>
+                <linearGradient id="cfDocFill" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0" stop-color="#2A0D14" stop-opacity=".5"/>
+                  <stop offset="1" stop-color="#100609" stop-opacity=".62"/>
+                </linearGradient>
+                <linearGradient id="cfTrail" x1="0" y1="0" x2="1" y2="0">
+                  <stop offset="0" stop-color="#FF3355" stop-opacity=".82"/>
+                  <stop offset=".5" stop-color="#FF5C7A" stop-opacity=".46"/>
+                  <stop offset="1" stop-color="#FF7893" stop-opacity=".1"/>
+                </linearGradient>
+                <radialGradient id="cfBloom" cx=".5" cy=".5" r=".5">
+                  <stop offset="0" stop-color="#FF1749" stop-opacity=".55"/>
+                  <stop offset=".55" stop-color="#D6002F" stop-opacity=".16"/>
+                  <stop offset="1" stop-color="#D6002F" stop-opacity="0"/>
+                </radialGradient>
+                <radialGradient id="cfAtmos" cx=".5" cy=".5" r=".5">
+                  <stop offset="0" stop-color="#7F000F" stop-opacity=".5"/>
+                  <stop offset="1" stop-color="#2A0711" stop-opacity="0"/>
+                </radialGradient>
+                <radialGradient id="cfAtmos2" cx=".5" cy=".5" r=".5">
+                  <stop offset="0" stop-color="#D6002F" stop-opacity=".28"/>
+                  <stop offset="1" stop-color="#D6002F" stop-opacity="0"/>
+                </radialGradient>
+                <filter id="cfSoft" x="-35%" y="-35%" width="170%" height="170%"><feGaussianBlur stdDeviation="10"/></filter>
+              </defs>
+
+              <!-- 1 · atmospheric depth — burgundy behind the sheet, a restrained
+                   crimson wash along the workflow row -->
+              <ellipse class="cf-atmos"  cx="88" cy="176" rx="186" ry="196" fill="url(#cfAtmos)"/>
+              <ellipse class="cf-atmos2" cx="430" cy="376" rx="280" ry="132" fill="url(#cfAtmos2)"/>
+
+              <!-- 2 · the abstract contract sheet — its signature baseline becomes
+                   the journey path.  Abstract; no readable text. -->
+              <g class="cf-doc" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                <rect class="cf-doc-page" x="6" y="38" width="150" height="208" rx="10" fill="url(#cfDocFill)"/>
+                <path class="cf-doc-edge" d="M6 54 V232" stroke="url(#cfEdge)" stroke-width="2.5"/>
+                <path class="cf-doc-fold-fill" d="M134 38 L156 38 L156 60 Z"/>
+                <path class="cf-doc-fold" d="M134 38 L156 60"/>
+                <g class="cf-doc-lines">
+                  <path d="M24 80 H126"/><path d="M24 98 H100"/><path d="M24 116 H126"/><path d="M24 134 H86"/>
+                </g>
+                <g class="cf-doc-fields">
+                  <rect x="24" y="156" width="44" height="15" rx="4"/>
+                  <rect x="76" y="156" width="34" height="15" rx="4"/>
+                </g>
+                <path class="cf-doc-vcheck" d="M100 163 l3 3.5 6 -7.5"/>
+                <path class="cf-doc-base" d="M24 206 H140"/>
+                <path class="cf-doc-sign" d="M30 206 c6 -11 14 -11 18 -1 c3 8 11 8 16 0 c5 -8 14 -9 20 -2 c4 4 10 4 14 -1 c4 -4 9 -2 12 2"/>
+              </g>
+
+              <!-- 3 · one static decorative stroke — the sheet's signature baseline
+                   runs down the gutter, threads BEHIND the four workflow nodes
+                   (each opaque node keeps its number visible) and settles at the
+                   sign-in card's edge. Drawn once on entrance, then inert. -->
+              <path class="cf-ribbon" pathLength="100" fill="none" stroke="url(#cfRibbon)" stroke-width="12" stroke-linecap="round" filter="url(#cfSoft)"
+                    d="M110 204 C 118 224 116 256 122 288 C 128 314 142 340 186 352"/>
+              <path class="cf-core" pathLength="100" vector-effect="non-scaling-stroke" fill="none" stroke="url(#cfCore)" stroke-width="1.5" stroke-linecap="round"
+                    d="M110 204 C 118 224 116 256 122 288 C 128 314 140 342 180 353 C 240 360 300 358 380 356 C 460 354 520 355 560 356 C 640 358 690 336 740 306 C 782 282 814 256 838 240 C 848 235 853 233 857 232"/>
+              <path class="cf-spark" pathLength="100" vector-effect="non-scaling-stroke" fill="none" stroke="#FFB3C2" stroke-width="1" stroke-linecap="round"
+                    d="M110 204 C 118 224 116 256 122 288 C 128 314 140 342 180 353 C 240 360 300 358 380 356 C 460 354 520 355 560 356 C 640 358 690 336 740 306 C 782 282 814 256 838 240 C 848 235 853 233 857 232"/>
+            </svg>
           </div>
+
+          <div class="login-hero-copy">
+            <span class="login-hero-eyebrow">ContractIQ &middot; by RedMPS</span>
+            <h2>From first draft<br>to final signature.</h2>
+            <p>Create compliant employment contracts, validate every detail, and move approvals forward through one secure, controlled workflow.</p>
+          </div>
+
           <div class="login-workspace-preview">
             <div class="login-preview-head">
               <span>Inside ContractIQ</span>
               <strong>Guided workflow</strong>
             </div>
-            <div class="login-preview-flow">
-              <span class="done">Capture</span>
-              <span class="done">Validate</span>
-              <span class="active">Approve</span>
-              <span>Export</span>
-            </div>
-            <p class="login-preview-note">A contract studio with validation, approval routing, and letterhead-ready exports waiting after sign in.</p>
+            <ol class="login-preview-flow" aria-label="How a contract moves through ContractIQ">
+              <li class="login-step" data-stage="draft">
+                <span class="login-step__node" aria-hidden="true">1</span>
+                <span class="login-step__text">
+                  <span class="login-step__label">Draft</span>
+                  <span class="login-step__desc">Capture employee details</span>
+                </span>
+              </li>
+              <li class="login-step" data-stage="validate">
+                <span class="login-step__node" aria-hidden="true">2</span>
+                <span class="login-step__text">
+                  <span class="login-step__label">Validate</span>
+                  <span class="login-step__desc">Check required fields</span>
+                </span>
+              </li>
+              <li class="login-step" data-stage="approve">
+                <span class="login-step__node" aria-hidden="true">3</span>
+                <span class="login-step__text">
+                  <span class="login-step__label">Approve</span>
+                  <span class="login-step__desc">Route for sign-off</span>
+                </span>
+              </li>
+              <li class="login-step" data-stage="export">
+                <span class="login-step__node" aria-hidden="true">4</span>
+                <span class="login-step__text">
+                  <span class="login-step__label">Export</span>
+                  <span class="login-step__desc">Produce the final contract</span>
+                </span>
+              </li>
+            </ol>
           </div>
-          <div class="login-hero-stack">
-            <div class="login-stack-card primary">
-              <span>Contract generation</span>
-              <strong>From employee details to polished agreement</strong>
-            </div>
-            <div class="login-stack-card">
-              <span>Approval experience</span>
-              <strong>Review, return, approve, and sign with context</strong>
-            </div>
-          </div>
+
+          <p class="login-flow-statement">Every detail captured. Every decision traceable. Every contract under control.</p>
+
           <div class="assurance-author">
-            <strong>RedMPS HR Operations</strong>
-            <span>Secure internal access - Audit trail active</span>
+            <strong>RedMPS</strong>
+            <span>Secure HR contract workspace</span>
           </div>
         </aside>
-
-        <div class="login-floating-card">
-          <strong>Private workspace</strong>
-          <span>Sign in to open the contract studio, approval queue, and export tools.</span>
-          <div class="login-avatar-stack">
-            <i>RED</i> <i>MPS</i>
-          </div>
-        </div>
       </div>
     </div>
   </section>
 
-  <section id="resetPasswordScreen" class="login-screen reset-screen hidden">
-    <div class="reset-stage">
-      <form id="resetRequestForm" class="reset-card" autocomplete="on">
-        <button class="reset-back" type="button" onclick="navigateTo('login')" aria-label="Back to sign in">Back to Sign In</button>
-        <img src="demo/assets/templates/RedMPS-Logo_Black.png" alt="RedMPS" class="reset-brand-logo">
-        <div class="login-copy">
-          <h1>Reset password</h1>
-          <p>Request a reset code for your ContractIQ account.</p>
-        </div>
+  <section id="resetPasswordScreen" class="login-screen reset-screen hidden" aria-labelledby="resetHeading">
+    <div class="login-stage">
+      <div class="login-card-panel">
 
-        <div class="form-group">
-          <label class="form-label" for="resetEmail">Email</label>
-          <input class="form-input login-input" id="resetEmail" type="email" placeholder="user@redmps.com" autocomplete="username" required>
-        </div>
-
-        <div id="resetRequestError" class="validation-alert compact" style="display:none;">
-          <span class="validation-alert-icon">!</span>
-          <span id="resetRequestErrorText">Enter a valid account email.</span>
-        </div>
-
-        <button class="login-submit" id="resetRequestSubmit" type="submit">Send reset code</button>
-        <div class="login-admin-note">Reset codes are issued only for accounts already provisioned by a superuser.</div>
-      </form>
-
-      <form id="resetConfirmForm" class="reset-card hidden" autocomplete="off">
-        <button class="reset-back" type="button" onclick="showResetRequest()" aria-label="Back to request code">Back</button>
-        <img src="demo/assets/templates/RedMPS-Logo_Black.png" alt="RedMPS" class="reset-brand-logo">
-        <div class="login-copy">
-          <h1>Set new password</h1>
-          <p>Enter the reset code and choose a new password.</p>
-        </div>
-
-        <div class="reset-code-note" id="resetCodeNote">A reset code has been prepared for this account.</div>
-
-        <div class="form-group">
-          <label class="form-label" for="resetCode">Reset Code</label>
-          <input class="form-input login-input" id="resetCode" type="text" inputmode="numeric" placeholder="6-digit code" autocomplete="one-time-code" required>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label" for="resetNewPassword">New Password</label>
-          <div class="password-field">
-            <input class="form-input login-input" id="resetNewPassword" type="password" placeholder="Min. 12 characters" autocomplete="new-password" required>
-            <button class="password-toggle" id="resetPasswordToggle" type="button" aria-label="Show password" aria-pressed="false">
-              <svg class="password-eye password-eye-open" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6z"/><circle cx="12" cy="12" r="3"/></svg>
-              <svg class="password-eye password-eye-closed" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3l18 18"/><path d="M10.6 10.6A3 3 0 0 0 13.4 13.4"/><path d="M9.9 4.2A10.5 10.5 0 0 1 12 4c6.5 0 10 8 10 8a16.5 16.5 0 0 1-3.1 4.1"/><path d="M6.6 6.6C3.6 8.6 2 12 2 12s3.5 8 10 8a10.6 10.6 0 0 0 4.1-.8"/></svg>
-            </button>
+        <!-- ── Step 1 · request verification code ── -->
+        <form id="resetRequestForm" class="login-form auth-card" autocomplete="on" novalidate>
+          <div class="login-brand-row">
+            <span class="login-logo-plate">
+              <img src="demo/assets/templates/RedMPS-Logo_Black.png" alt="RedMPS" class="login-brand-logo">
+            </span>
+            <span class="login-brand-sub">
+              <span class="login-brand-product">ContractIQ</span>
+              <span class="login-brand-desc">Secure HR contract workspace</span>
+            </span>
           </div>
+
+          <ol class="auth-progress" aria-label="Password recovery progress">
+            <li class="auth-progress__step is-current" aria-current="step"><span class="auth-progress__dot">1</span><span class="auth-progress__label">Email</span></li>
+            <li class="auth-progress__step"><span class="auth-progress__dot">2</span><span class="auth-progress__label">Verify</span></li>
+            <li class="auth-progress__step"><span class="auth-progress__dot">3</span><span class="auth-progress__label">Reset</span></li>
+          </ol>
+
+          <div class="login-copy">
+            <h1 id="resetHeading">Reset your password</h1>
+            <p>Enter your work email and we&rsquo;ll send you a secure verification code.</p>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="resetEmail">Work email</label>
+            <input class="form-input login-input" id="resetEmail" name="email" type="email"
+                   placeholder="name@company.com" autocomplete="username" inputmode="email"
+                   autocapitalize="none" spellcheck="false" maxlength="254" required
+                   aria-describedby="resetEmailError">
+            <p class="field-error" id="resetEmailError" role="alert" hidden></p>
+          </div>
+
+          <div id="resetRequestError" class="login-error" role="alert" aria-live="assertive" tabindex="-1" style="display:none;">
+            <span class="validation-alert-icon" aria-hidden="true">!</span>
+            <span id="resetRequestErrorText"></span>
+          </div>
+
+          <p id="resetRequestNotice" class="auth-notice" role="status" hidden></p>
+
+          <button class="login-submit" id="resetRequestSubmit" type="submit">
+            <span class="login-submit-spinner" aria-hidden="true"></span>
+            <span class="login-submit-label">Send verification code</span>
+          </button>
+
+          <p class="login-admin-note">Codes can only be issued for active ContractIQ accounts.</p>
+          <button class="auth-back link-button" type="button" onclick="navigateTo('login')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+            Back to sign in
+          </button>
+        </form>
+
+        <!-- ── Step 2 · enter verification code ── -->
+        <form id="resetConfirmForm" class="login-form auth-card hidden" autocomplete="off" novalidate>
+          <div class="login-brand-row">
+            <span class="login-logo-plate">
+              <img src="demo/assets/templates/RedMPS-Logo_Black.png" alt="RedMPS" class="login-brand-logo">
+            </span>
+            <span class="login-brand-sub">
+              <span class="login-brand-product">ContractIQ</span>
+              <span class="login-brand-desc">Secure HR contract workspace</span>
+            </span>
+          </div>
+
+          <ol class="auth-progress" aria-label="Password recovery progress">
+            <li class="auth-progress__step is-done"><span class="auth-progress__dot" aria-hidden="true">&#10003;</span><span class="auth-progress__label">Email <span class="sr-only">(completed)</span></span></li>
+            <li class="auth-progress__step is-current" aria-current="step"><span class="auth-progress__dot">2</span><span class="auth-progress__label">Verify</span></li>
+            <li class="auth-progress__step"><span class="auth-progress__dot">3</span><span class="auth-progress__label">Reset</span></li>
+          </ol>
+
+          <div class="login-copy">
+            <h1>Check your email</h1>
+            <p>We sent a verification code to <strong id="resetCodeNote">your inbox</strong>. Enter it below to continue.</p>
+          </div>
+
+          <p class="auth-notice">If an active ContractIQ account exists for that email, a verification code has been sent. It expires in 1&nbsp;hour.</p>
+
+          <div class="form-group">
+            <label class="form-label" for="resetCode">Verification code</label>
+            <input class="form-input login-input auth-code-input" id="resetCode" name="code" type="text"
+                   inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code"
+                   maxlength="6" placeholder="000000" aria-describedby="resetCodeError" required>
+            <p class="field-error" id="resetCodeError" role="alert" hidden></p>
+          </div>
+
+          <div id="resetConfirmError" class="login-error" role="alert" aria-live="assertive" tabindex="-1" style="display:none;">
+            <span class="validation-alert-icon" aria-hidden="true">!</span>
+            <span id="resetConfirmErrorText"></span>
+          </div>
+
+          <button class="login-submit" id="resetVerifySubmit" type="submit">
+            <span class="login-submit-spinner" aria-hidden="true"></span>
+            <span class="login-submit-label">Verify code</span>
+          </button>
+
+          <div class="auth-linkrow">
+            <button class="link-button" type="button" id="resetResendBtn" onclick="resendResetCode()">Resend code</button>
+            <button class="link-button" type="button" onclick="showResetRequest()">Use a different email</button>
+          </div>
+          <button class="auth-back link-button" type="button" onclick="navigateTo('login')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+            Back to sign in
+          </button>
+        </form>
+
+        <!-- ── Step 3 · create a new password ── -->
+        <form id="resetNewPassForm" class="login-form auth-card hidden" autocomplete="off" novalidate>
+          <div class="login-brand-row">
+            <span class="login-logo-plate">
+              <img src="demo/assets/templates/RedMPS-Logo_Black.png" alt="RedMPS" class="login-brand-logo">
+            </span>
+            <span class="login-brand-sub">
+              <span class="login-brand-product">ContractIQ</span>
+              <span class="login-brand-desc">Secure HR contract workspace</span>
+            </span>
+          </div>
+
+          <ol class="auth-progress" aria-label="Password recovery progress">
+            <li class="auth-progress__step is-done"><span class="auth-progress__dot" aria-hidden="true">&#10003;</span><span class="auth-progress__label">Email <span class="sr-only">(completed)</span></span></li>
+            <li class="auth-progress__step is-done"><span class="auth-progress__dot" aria-hidden="true">&#10003;</span><span class="auth-progress__label">Verify <span class="sr-only">(completed)</span></span></li>
+            <li class="auth-progress__step is-current" aria-current="step"><span class="auth-progress__dot">3</span><span class="auth-progress__label">Reset</span></li>
+          </ol>
+
+          <div class="login-copy">
+            <h1>Create a new password</h1>
+            <p>Choose a strong password you haven&rsquo;t used for this account before.</p>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="resetNewPassword">New password</label>
+            <div class="password-field">
+              <input class="form-input login-input" id="resetNewPassword" name="new-password" type="password"
+                     autocomplete="new-password" maxlength="128" required
+                     aria-describedby="resetPwReqs resetNewPassError">
+              <button class="password-toggle" id="resetPasswordToggle" type="button" aria-label="Show password" aria-pressed="false">
+                <svg class="password-eye password-eye-open" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6z"/><circle cx="12" cy="12" r="3"/></svg>
+                <svg class="password-eye password-eye-closed" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3l18 18"/><path d="M10.6 10.6A3 3 0 0 0 13.4 13.4"/><path d="M9.9 4.2A10.5 10.5 0 0 1 12 4c6.5 0 10 8 10 8a16.5 16.5 0 0 1-3.1 4.1"/><path d="M6.6 6.6C3.6 8.6 2 12 2 12s3.5 8 10 8a10.6 10.6 0 0 0 4.1-.8"/></svg>
+              </button>
+            </div>
+            <p class="field-error" id="resetNewPassError" role="alert" hidden></p>
+          </div>
+
+          <ul class="auth-reqs" id="resetPwReqs" aria-label="Password requirements">
+            <li class="auth-req" data-req="len">
+              <span class="auth-req__mark" aria-hidden="true"></span>
+              <span class="auth-req__text">At least 12 characters</span>
+            </li>
+          </ul>
+
+          <div class="form-group">
+            <label class="form-label" for="resetConfirmPassword">Confirm new password</label>
+            <div class="password-field">
+              <input class="form-input login-input" id="resetConfirmPassword" name="confirm-password" type="password"
+                     autocomplete="new-password" maxlength="128" required aria-describedby="resetConfirmPassError">
+              <button class="password-toggle" id="resetConfirmToggle" type="button" aria-label="Show password" aria-pressed="false">
+                <svg class="password-eye password-eye-open" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6z"/><circle cx="12" cy="12" r="3"/></svg>
+                <svg class="password-eye password-eye-closed" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3l18 18"/><path d="M10.6 10.6A3 3 0 0 0 13.4 13.4"/><path d="M9.9 4.2A10.5 10.5 0 0 1 12 4c6.5 0 10 8 10 8a16.5 16.5 0 0 1-3.1 4.1"/><path d="M6.6 6.6C3.6 8.6 2 12 2 12s3.5 8 10 8a10.6 10.6 0 0 0 4.1-.8"/></svg>
+              </button>
+            </div>
+            <p class="field-error" id="resetConfirmPassError" role="alert" hidden></p>
+          </div>
+
+          <div id="resetNewPassAlert" class="login-error" role="alert" aria-live="assertive" tabindex="-1" style="display:none;">
+            <span class="validation-alert-icon" aria-hidden="true">!</span>
+            <span id="resetNewPassAlertText"></span>
+          </div>
+
+          <button class="login-submit" id="resetConfirmSubmit" type="submit">
+            <span class="login-submit-spinner" aria-hidden="true"></span>
+            <span class="login-submit-label">Update password</span>
+          </button>
+
+          <button class="auth-back link-button" type="button" onclick="navigateTo('login')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+            Back to sign in
+          </button>
+        </form>
+
+        <!-- ── Success ── -->
+        <div id="resetSuccessPanel" class="login-form auth-card hidden" role="status" aria-live="polite">
+          <div class="auth-success-mark" aria-hidden="true">
+            <svg viewBox="0 0 52 52" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round">
+              <circle class="auth-success-ring" cx="26" cy="26" r="23"/>
+              <path class="auth-success-tick" d="M16 27l7 7 14-15"/>
+            </svg>
+          </div>
+          <div class="login-copy" style="text-align:center">
+            <h1>Password updated</h1>
+            <p>Your password has been changed successfully. You can now sign in to ContractIQ.</p>
+          </div>
+          <button class="login-submit" type="button" onclick="navigateTo('login')">
+            <span class="login-submit-label">Return to sign in</span>
+          </button>
         </div>
 
-        <div class="form-group">
-          <label class="form-label" for="resetConfirmPassword">Confirm Password</label>
-          <input class="form-input login-input" id="resetConfirmPassword" type="password" autocomplete="new-password" required>
-        </div>
+        <!-- LEFT · recovery story + vector -->
+        <aside class="login-assurance-panel">
+          <div class="contract-flow rc-flow" aria-hidden="true">
+            <svg class="contract-flow__svg" viewBox="0 0 300 620" preserveAspectRatio="none" role="presentation" focusable="false">
+              <defs>
+                <linearGradient id="rcCore" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0" stop-color="#FF1749" stop-opacity="0"/>
+                  <stop offset=".14" stop-color="#FF4D6A" stop-opacity=".9"/>
+                  <stop offset=".6" stop-color="#FF2A48"/>
+                  <stop offset=".92" stop-color="#FF6E8A" stop-opacity=".75"/>
+                  <stop offset="1" stop-color="#FF6E8A" stop-opacity=".2"/>
+                </linearGradient>
+                <linearGradient id="rcEdge" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0" stop-color="#FF1749" stop-opacity="0"/>
+                  <stop offset=".5" stop-color="#FF1749" stop-opacity=".55"/>
+                  <stop offset="1" stop-color="#FF1749" stop-opacity="0"/>
+                </linearGradient>
+                <linearGradient id="rcDocFill" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0" stop-color="#2A0D14" stop-opacity=".5"/>
+                  <stop offset="1" stop-color="#100609" stop-opacity=".62"/>
+                </linearGradient>
+                <radialGradient id="rcAtmos" cx=".5" cy=".5" r=".5">
+                  <stop offset="0" stop-color="#7F000F" stop-opacity=".5"/>
+                  <stop offset="1" stop-color="#2A0711" stop-opacity="0"/>
+                </radialGradient>
+              </defs>
+              <ellipse class="cf-atmos" cx="120" cy="320" rx="200" ry="260" fill="url(#rcAtmos)"/>
+              <g class="cf-doc" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                <rect class="cf-doc-page" x="30" y="46" width="150" height="180" rx="10" fill="url(#rcDocFill)"/>
+                <path class="cf-doc-edge" d="M30 62 V210" stroke="url(#rcEdge)" stroke-width="2.5"/>
+                <g class="cf-doc-lines">
+                  <path d="M50 82 H160"/><path d="M50 104 H128"/><path d="M50 126 H160"/><path d="M50 148 H108"/>
+                </g>
+              </g>
+              <path class="cf-core" pathLength="100" vector-effect="non-scaling-stroke" fill="none" stroke="url(#rcCore)" stroke-width="1.6" stroke-linecap="round"
+                    d="M70 220 C 96 260 74 300 96 340 C 118 380 84 420 104 460 C 122 496 100 536 118 572"/>
+              <path class="cf-spark" pathLength="100" vector-effect="non-scaling-stroke" fill="none" stroke="#FFB3C2" stroke-width="1" stroke-linecap="round"
+                    d="M70 220 C 96 260 74 300 96 340 C 118 380 84 420 104 460 C 122 496 100 536 118 572"/>
+              <g class="rc-node rc-node--lock" transform="translate(90 336)">
+                <circle r="13" fill="#1a0a10" stroke="#FF5C79" stroke-opacity=".7" stroke-width="1.4"/>
+                <rect x="-4.6" y="-1.8" width="9.2" height="7.4" rx="1.6" fill="none" stroke="#FFB3C2" stroke-width="1.6"/>
+                <path d="M-3 -1.8 v-2.6 a3 3 0 0 1 6 0 V-1.8" fill="none" stroke="#FFB3C2" stroke-width="1.6"/>
+              </g>
+              <g class="rc-node rc-node--verify" transform="translate(104 456)">
+                <circle r="13" fill="#1a0a10" stroke="#FF5C79" stroke-opacity=".7" stroke-width="1.4"/>
+                <path d="M-5 0 l3.4 4 l7 -8.4" fill="none" stroke="#FFB3C2" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+              </g>
+              <g class="rc-node rc-node--home" transform="translate(118 574)">
+                <circle r="14" fill="none" stroke="#FF3355" stroke-opacity=".55" stroke-width="1.5"/>
+                <circle r="5" fill="#FF4D6A"/>
+              </g>
+            </svg>
+          </div>
 
-        <div id="resetConfirmError" class="validation-alert compact" style="display:none;">
-          <span class="validation-alert-icon">!</span>
-          <span id="resetConfirmErrorText">Check the reset details and try again.</span>
-        </div>
+          <div class="login-hero-copy">
+            <span class="login-hero-eyebrow">Secure account recovery</span>
+            <h2>Return to your<br>contract workspace.</h2>
+            <p>Verify your work email and we&rsquo;ll guide you securely back into ContractIQ.</p>
+          </div>
 
-        <button class="login-submit" id="resetConfirmSubmit" type="submit">Update password</button>
-      </form>
-
-      <div id="resetSuccessPanel" class="reset-card hidden">
-        <div class="reset-success-mark" aria-hidden="true">&#10003;</div>
-        <div class="login-copy">
-          <h1>Password updated</h1>
-          <p>Your password has been reset. You can now sign in with the new password.</p>
-        </div>
-        <button class="login-submit" type="button" onclick="navigateTo('login')">Okay</button>
+          <p class="login-flow-statement">Secure recovery. Protected access. No contract data interrupted.</p>
+        </aside>
       </div>
     </div>
   </section>
@@ -347,7 +641,7 @@
         <div class="topbar-spacer"></div>
         <div class="topbar-search">
           <svg width="14" height="14" fill="none" stroke="#b0b0c8" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <input id="globalSearchInput" type="text" placeholder="Search contracts, employees..." oninput="updateGlobalSearch(this.value)" onfocus="openGlobalSearch()" onkeydown="handleGlobalSearchKey(event)">
+          <input id="globalSearchInput" type="text" placeholder="Search contracts or employees…" oninput="updateGlobalSearch(this.value)" onfocus="openGlobalSearch()" onkeydown="handleGlobalSearchKey(event)">
         </div>
         <section class="global-search-panel hidden" id="globalSearchPanel" aria-label="Global search results">
           <div class="global-search-head">
@@ -547,7 +841,8 @@
       'demo/scripts/auth.js',
       'demo/scripts/contract.js',
       'demo/scripts/app.js',
-      'demo/scripts/api.js'
+      'demo/scripts/api.js',
+      'demo/scripts/premium.js'
     ].forEach(src => {
       document.write(`<script src="${src}?dev=${window.CONTRACTIQ_ASSET_VERSION}"><\/script>`);
     });

@@ -137,62 +137,200 @@ function timeAgo(iso) {
 }
 
 /* ══════════════════════════════════════════════════════════════════
-   DASHBOARD
+   DASHBOARD — contract operations command centre
+   Everything below is populated only from /api/dashboard (real data)
+   plus any locally-saved draft. No fabricated trends or alerts.
 ══════════════════════════════════════════════════════════════════ */
 
-async function initDashboard(silent = false) {
-  // Personalise greeting from session
-  const session = typeof getSession === 'function' ? getSession() : null;
-  if (session?.firstName || session?.name) {
-    const hour = new Date().getHours();
-    const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
-    setEl('dash-greeting', `${greeting}, ${session.firstName || session.name.split(' ')[0]}`);
-  }
+// Friendly relative date for recent events, absolute for older ones.
+function friendlyDate(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  if (isNaN(d)) return '—';
+  const now = new Date();
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const dayDiff = Math.round((startOfToday - new Date(d.getFullYear(), d.getMonth(), d.getDate())) / 86400000);
+  const hm = d.toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit', hour12: false });
+  if (dayDiff <= 0) return (now - d) < 60000 ? 'Just now' : `Today, ${hm}`;
+  if (dayDiff === 1) return 'Yesterday';
+  if (dayDiff < 7) return `${dayDiff} days ago`;
+  return d.toLocaleDateString('en-ZA', { day: 'numeric', month: 'long', year: 'numeric' });
+}
 
-  // Show skeletons immediately — skipped on silent refreshes (polling / live updates)
-  // so the numbers update in place without flashing.
+// Salary is sensitive. Every current role in this HR tool (Administrator,
+// HR Manager, Director) is authorised to view it; an unrecognised role hides
+// the column. Backend authorisation is unchanged — this only mirrors it.
+function canViewSalary() {
+  const session = typeof getSession === 'function' ? getSession() : null;
+  if (!session) return false;
+  if (session.isSuperuser) return true;
+  const role = (session.role || '').toLowerCase();
+  return ['administrator', 'admin', 'hr manager', 'director'].some(r => role.includes(r));
+}
+
+// Route to Contracts and apply one of its status tabs (all | review | draft | signed).
+function dashGoToContracts(filter) {
+  if (typeof routeTo === 'function') routeTo('contracts');
+  if (!filter || filter === 'all') return;
+  setTimeout(() => {
+    const btn = document.querySelector(`#contractsTabs .filter-tab[onclick*="'${filter}'"]`);
+    btn?.click();
+  }, 140);
+}
+
+const DASH_ATTN_ICONS = {
+  approvals: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>',
+  drafts:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>',
+  ok:        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>',
+};
+
+const PIPE_STAGES = [
+  { key: 'draft',    label: 'Draft',            tone: 'neutral', filter: 'draft'  },
+  { key: 'review',   label: 'Awaiting approval', tone: 'wait',    filter: 'review' },
+  { key: 'approved', label: 'Approved',          tone: 'brand',   filter: null     },
+  { key: 'signed',   label: 'Signed',            tone: 'good',    filter: 'signed' },
+];
+
+async function initDashboard(silent = false) {
+  const session = typeof getSession === 'function' ? getSession() : null;
+
+  // Personalised, time-of-day greeting from the real clock + session name.
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+  const firstName = session?.firstName || session?.name?.split(' ')[0];
+  setEl('dash-greeting', firstName ? `${greeting}, ${firstName}` : greeting);
+
   if (!silent) {
-    ['dash-total-contracts','dash-pending-approvals','dash-active-employees','dash-signed-count'].forEach(id => {
+    ['dash-m-total', 'dash-m-drafts', 'dash-m-pending', 'dash-m-signed', 'dash-m-employees'].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.innerHTML = '<span class="skel skel-num"></span>';
     });
-    ['dash-review-count','dash-draft-count','dash-signed-count-2'].forEach(id => {
-      const el = document.getElementById(id);
-      if (el) el.innerHTML = '<span class="skel skel-text" style="width:40px;display:inline-block"></span>';
-    });
+    const attn = document.getElementById('dash-attention');
+    if (attn) attn.innerHTML = '<li class="dash-attn__skel"><span class="skel skel-line"></span></li><li class="dash-attn__skel"><span class="skel skel-line"></span></li>';
     const tbody = document.getElementById('dash-recent-contracts');
-    if (tbody) tbody.innerHTML = Array(4).fill(skelTableRow(5)).join('');
+    if (tbody) tbody.innerHTML = Array(4).fill('<tr>' + '<td><span class="skel skel-line"></span></td>'.repeat(5) + '</tr>').join('');
+    const legend = document.getElementById('dash-pipe-legend');
+    if (legend) legend.innerHTML = '<li class="dash-pipe__skel"><span class="skel skel-line"></span></li>'.repeat(3);
   }
 
+  let data;
   try {
-    const data = await apiFetch('/api/dashboard');
-    setEl('dash-total-contracts',  data.totalContracts);
-    setEl('dash-pending-approvals', data.pendingApprovals);
-    setEl('dash-active-employees',  data.activeEmployees);
-    setEl('dash-signed-count',      data.signedCount);
-    setEl('dash-review-count',      data.reviewCount);
-    setEl('dash-draft-count',       data.draftCount);
-    setEl('dash-signed-count-2',    data.signedCount);
-
-    // Update sidebar approval badge
-    setNavBadge('#nav-approvals .nav-badge', data.pendingApprovals);
-
-    const tbody = document.getElementById('dash-recent-contracts');
-    if (tbody && data.recentContracts?.length) {
-      tbody.innerHTML = data.recentContracts.map(c => `
-        <tr style="border-bottom:1px solid var(--coal-100);">
-          <td style="padding:10px 14px;"><strong>${escapeHtml(c.contractNumber)}</strong></td>
-          <td style="padding:10px 14px;">${escapeHtml(c.employee?.name || '—')}</td>
-          <td style="padding:10px 14px;">${statusBadge(c.status)}</td>
-          <td style="padding:10px 14px;">${fmt(c.salary)}</td>
-          <td style="padding:10px 14px;color:var(--coal-400);">${timeAgo(c.createdAt)}</td>
-        </tr>
-      `).join('');
-    }
+    data = await apiFetch('/api/dashboard');
   } catch (err) {
     console.warn('[api] dashboard:', err.message);
+    ['dash-m-total', 'dash-m-drafts', 'dash-m-pending', 'dash-m-signed', 'dash-m-employees'].forEach(id => setEl(id, '—'));
+    const attn = document.getElementById('dash-attention');
+    if (attn) attn.innerHTML = '<li class="dash-attn__state dash-attn__state--err" role="status">Could not reach the workspace — the API is offline. <button type="button" class="dash-linkbtn" onclick="initDashboard()">Retry</button></li>';
     const tbody = document.getElementById('dash-recent-contracts');
-    if (tbody) tbody.innerHTML = '<tr><td colspan="5" style="padding:16px 14px;color:var(--coal-400);">Could not load live data — API offline.</td></tr>';
+    if (tbody) tbody.innerHTML = '<tr><td colspan="5" class="dash-table__state dash-table__state--err">Could not load contracts — the API is offline. <button type="button" class="dash-linkbtn" onclick="initDashboard()">Retry</button></td></tr>';
+    const legend = document.getElementById('dash-pipe-legend');
+    if (legend) legend.innerHTML = '<li class="dash-pipe__state">Pipeline unavailable while offline.</li>';
+    const total = document.getElementById('dash-pipe-total');
+    if (total) total.textContent = '—';
+    return;
+  }
+
+  const n = k => Number(data?.[k]) || 0;
+  const plural = (c, s) => c === 1 ? s : s + 's';
+
+  /* ── Metric strip ──────────────────────────────────────────────── */
+  setEl('dash-m-total',     n('totalContracts'));
+  setEl('dash-m-drafts',    n('draftCount'));
+  setEl('dash-m-pending',   n('pendingApprovals'));
+  setEl('dash-m-signed',    n('signedCount'));
+  setEl('dash-m-employees', n('activeEmployees'));
+  setEl('dash-mc-drafts',   n('draftCount') > 0 ? 'still need details' : 'none in progress');
+  setEl('dash-mc-pending',  n('pendingApprovals') > 0 ? 'awaiting a decision' : 'queue clear');
+
+  setNavBadge('#nav-approvals .nav-badge', n('pendingApprovals'));
+
+  /* ── Needs your attention ──────────────────────────────────────── */
+  const attn = document.getElementById('dash-attention');
+  if (attn) {
+    const items = [];
+    if (n('pendingApprovals') > 0) items.push({
+      sev: 'action', icon: 'approvals',
+      title: `${n('pendingApprovals')} ${plural(n('pendingApprovals'), 'contract')} awaiting approval`,
+      desc: 'In review and waiting for a decision before they can move forward.',
+      cta: 'Review approvals', run: "routeTo('approvals')",
+    });
+    if (n('draftCount') > 0) items.push({
+      sev: 'info', icon: 'drafts',
+      title: `${n('draftCount')} ${plural(n('draftCount'), 'draft')} in progress`,
+      desc: 'Unfinished contracts that still need details before they can be submitted.',
+      cta: 'Open drafts', run: "dashGoToContracts('draft')",
+    });
+
+    if (!items.length) {
+      attn.innerHTML = `
+        <li class="dash-attn__state" role="status">
+          <span class="dash-attn__ok" aria-hidden="true">${DASH_ATTN_ICONS.ok}</span>
+          <span><strong>You&rsquo;re all caught up</strong><br>No contracts currently require your attention.</span>
+        </li>`;
+    } else {
+      attn.innerHTML = items.map(it => `
+        <li class="dash-attn__item dash-attn__item--${it.sev}">
+          <span class="dash-attn__icon" aria-hidden="true">${DASH_ATTN_ICONS[it.icon] || ''}</span>
+          <span class="dash-attn__text">
+            <strong>${escapeHtml(it.title)}</strong>
+            <span>${escapeHtml(it.desc)}</span>
+          </span>
+          <button type="button" class="dash-attn__cta" onclick="${it.run}">${escapeHtml(it.cta)}<span aria-hidden="true"> &rarr;</span></button>
+        </li>`).join('');
+    }
+  }
+
+  /* ── Recent contracts ──────────────────────────────────────────── */
+  const tbody = document.getElementById('dash-recent-contracts');
+  const table = tbody?.closest('.dash-table');
+  if (table) table.classList.toggle('dash-table--nosalary', !canViewSalary());
+  if (tbody) {
+    const rows = data.recentContracts || [];
+    if (!rows.length) {
+      tbody.innerHTML = '<tr><td colspan="5" class="dash-table__state">No contracts yet. <button type="button" class="dash-linkbtn" onclick="routeTo(\'wizard\')">Create the first one</button></td></tr>';
+    } else {
+      tbody.innerHTML = rows.map(c => {
+        const ref = escapeHtml(c.contractNumber || '—');
+        return `
+        <tr class="dash-row" onclick="routeTo('contracts')">
+          <td class="dash-cell-ref" data-label="Reference"><button type="button" class="dash-ref" onclick="event.stopPropagation();routeTo('contracts')">${ref}</button></td>
+          <td data-label="Employee">${escapeHtml(c.employee?.name || '—')}</td>
+          <td data-label="Status">${statusBadge(c.status)}</td>
+          <td class="dash-table__num dash-cell-salary" data-label="Salary">${fmt(c.salary)}</td>
+          <td class="dash-cell-date" data-label="Updated">${friendlyDate(c.createdAt)}</td>
+        </tr>`;
+      }).join('');
+    }
+  }
+
+  /* ── Contract pipeline ─────────────────────────────────────────── */
+  const counts = { draft: n('draftCount'), review: n('reviewCount'), approved: n('approvedCount'), signed: n('signedCount') };
+  const pipeTotal = PIPE_STAGES.reduce((sum, s) => sum + counts[s.key], 0);
+  const bar = document.getElementById('dash-pipe-bar');
+  const legend = document.getElementById('dash-pipe-legend');
+  const totalEl = document.getElementById('dash-pipe-total');
+  if (totalEl) totalEl.textContent = pipeTotal ? `${pipeTotal} in pipeline` : 'Pipeline empty';
+  if (bar) {
+    bar.setAttribute('aria-label',
+      'Contract pipeline — ' + PIPE_STAGES.map(s => `${s.label} ${counts[s.key]}`).join(', ') + `; ${pipeTotal} total`);
+    bar.innerHTML = pipeTotal
+      ? PIPE_STAGES.filter(s => counts[s.key] > 0).map(s =>
+          `<span class="dash-pipe__seg dash-pipe__seg--${s.tone}" style="flex:${counts[s.key]}" title="${s.label}: ${counts[s.key]}"></span>`).join('')
+      : '<span class="dash-pipe__seg dash-pipe__seg--empty" style="flex:1"></span>';
+  }
+  if (legend) {
+    legend.innerHTML = PIPE_STAGES.map(s => {
+      const c = counts[s.key];
+      const run = s.filter ? `dashGoToContracts('${s.filter}')` : "routeTo('contracts')";
+      return `
+        <li class="dash-pipe__row">
+          <button type="button" class="dash-pipe__link" onclick="${run}">
+            <span class="dash-pipe__dot dash-pipe__dot--${s.tone}" aria-hidden="true"></span>
+            <span class="dash-pipe__name">${s.label}</span>
+            <span class="dash-pipe__count">${c}</span>
+          </button>
+        </li>`;
+    }).join('');
   }
 }
 

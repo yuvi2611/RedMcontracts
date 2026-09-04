@@ -444,7 +444,11 @@ async function doSubmitForApproval(generated, recipient) {
       await apiFetch(`/api/contracts/${generated.contractId}/submit`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ submitted_by_name: session?.name || 'HR' }),
+        body: JSON.stringify({
+          submitted_by_name: session?.name || 'HR',
+          approver_id: recipient?.key || null,
+          approver_email: recipient?.email || null,
+        }),
       });
       try {
         sessionStorage.setItem(GENERATED_CONTRACT_KEY, JSON.stringify({ ...generated, submittedForApproval: true }));
@@ -911,7 +915,7 @@ const FAQ_ANSWERS = [
   // ── Approval workflow ────────────────────────────────────────────────────────
   {
     keywords: ['approval', 'approve', 'approval queue', 'pending approval', 'awaiting approval'],
-    answer: 'The approval flow is: HR generates the contract → submits it → the CEO/Director receives an automatic email → approves in the Approvals queue → HR receives an approval email → HR clicks "Send to Employee" → the employee receives their contract by email.',
+    answer: 'The approval flow is: HR generates the contract → clicks Submit for Approval and picks an approver (e.g. Kogiela Reddy or Tiara Ramouthar) → that approver gets an email → they approve or return it in the Approvals queue → HR is notified → HR clicks "Send to Employee" → the employee receives their contract by email.',
     route: 'approvals',
     label: 'View Approvals'
   },
@@ -940,8 +944,8 @@ const FAQ_ANSWERS = [
     label: 'View Approvals'
   },
   {
-    keywords: ['who approves', 'who can approve', 'approval permission', 'ceo approve', 'director approve'],
-    answer: 'Only users with the Director role or superuser access can approve contracts. HR Manager users can create contracts; approval actions are controlled by the role assigned in the database.',
+    keywords: ['who approves', 'who can approve', 'approval permission', 'ceo approve', 'director approve', 'can tiara approve'],
+    answer: 'When submitting a contract, HR chooses the approver from the active Director and HR Manager users — currently Kogiela Reddy (Director) or Tiara Ramouthar (HR Manager). The selected person receives the request and approves or returns it from the Approvals queue.',
     route: 'approvals',
     label: 'View Approvals'
   },
@@ -989,7 +993,7 @@ const FAQ_ANSWERS = [
   },
   {
     keywords: ['tiara', 'hr manager', 'hr officer', 'hr user', 'tiara ramouthar'],
-    answer: 'HR Manager users are loaded from the database. They can create contracts, manage employees, view templates, analytics, and the audit log; approval actions depend on the role assigned to their account.',
+    answer: 'Tiara Ramouthar is an HR Manager. She can create contracts, manage employees, view templates, analytics, and the audit log — and she can also approve contracts when she is chosen as the approver at submission.',
     route: 'dashboard',
     label: 'Open Dashboard'
   },
@@ -1001,7 +1005,7 @@ const FAQ_ANSWERS = [
   },
   {
     keywords: ['role', 'roles', 'permissions', 'access', 'what can i do', 'access level'],
-    answer: 'There are three active roles: Administrator (full access + user management), HR Manager (contracts, employees, templates, analytics, audit — no approvals), and Director (full access including approvals). Roles are assigned when a user account is created.',
+    answer: 'There are three active roles: Administrator (full access + user management), HR Manager (contracts, employees, templates, analytics, audit, and approvals when chosen as the approver), and Director (full access including approvals). Roles are assigned when a user account is created.',
     route: 'create-user',
     label: 'Create User'
   },

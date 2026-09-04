@@ -55,6 +55,24 @@ function showLogin() {
   document.getElementById('loginScreen')?.classList.remove('hidden');
   document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+  resetLoginForm();
+  syncLoginNotice();
+}
+
+// Return the login form to a pristine state whenever the screen is shown
+// (fresh visit, sign-out, session end). Errors during a live attempt are not
+// affected because showLogin() does not run while the screen stays visible.
+function resetLoginForm() {
+  const form = document.getElementById('loginForm');
+  if (!form) return;
+  form.dataset.submitting = 'false';
+  setLoginBusy(form, false);
+  clearLoginError();
+  setLoginFlowStage(null);
+  const email = document.getElementById('loginEmail');
+  const password = document.getElementById('loginPassword');
+  if (email) email.value = '';
+  if (password) password.value = '';
 }
 
 function showResetPassword() {
@@ -64,6 +82,17 @@ function showResetPassword() {
   document.getElementById('resetPasswordScreen')?.classList.remove('hidden');
   document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+
+  // Start every recovery attempt from a clean step 1 — no stale code or password.
+  ['resetCode', 'resetNewPassword', 'resetConfirmPassword'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  document.querySelectorAll('#resetPasswordScreen .field-error').forEach(s => { s.hidden = true; s.textContent = ''; });
+  document.querySelectorAll('#resetPasswordScreen [aria-invalid]').forEach(el => el.removeAttribute('aria-invalid'));
+  document.querySelectorAll('#resetPwReqs .auth-req').forEach(li => li.classList.remove('is-valid', 'is-invalid'));
+  clearTimeout(_resendTimer);
+  const resend = document.getElementById('resetResendBtn');
+  if (resend) { resend.disabled = false; resend.textContent = 'Resend code'; }
   showResetRequest();
 
   const loginEmail = document.getElementById('loginEmail')?.value.trim();
@@ -92,22 +121,125 @@ function fillDemoLogin() {
   showToast?.('Demo credentials are disabled. Sign in with a database account.', 'info');
 }
 
+/* A UI-safe error: message is already user-appropriate, `field` marks the
+   control(s) to flag. Never carries backend/internal detail. */
+class AuthUiError extends Error {
+  constructor(message, field) {
+    super(message);
+    this.name = 'AuthUiError';
+    this.field = field || null;
+  }
+}
+
+function isValidEmailShape(value) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
+
+// The login-screen workflow strip and its vector are purely decorative — they
+// illustrate the four stages and never react to input. Kept as a no-op so the
+// existing callers (setLoginBusy, the success path) don't need to change.
+function setLoginFlowStage() {}
+
+function setLoginBusy(form, busy) {
+  const submit = form.querySelector('.login-submit');
+  if (!submit) return;
+  const label = submit.querySelector('.login-submit-label');
+  submit.classList.toggle('is-loading', busy);
+  submit.disabled = busy;
+  submit.setAttribute('aria-busy', String(busy));
+  if (label) label.textContent = busy ? 'Signing in…' : 'Sign in';
+  setLoginFlowStage(busy ? 'validating' : null);
+}
+
+// Compact, inline error under a single field — used for client-side format /
+// completeness checks (email shape, empty fields).
+function showFieldError(field, message) {
+  const input = document.getElementById(field === 'email' ? 'loginEmail' : 'loginPassword');
+  const slot = document.getElementById(field === 'email' ? 'emailError' : 'passwordError');
+  if (slot) { slot.textContent = message; slot.hidden = false; }
+  input?.setAttribute('aria-invalid', 'true');
+  requestAnimationFrame(() => input?.focus());
+}
+
+function clearFieldErrors() {
+  ['emailError', 'passwordError'].forEach(id => {
+    const slot = document.getElementById(id);
+    if (slot) { slot.hidden = true; slot.textContent = ''; }
+  });
+  document.getElementById('loginEmail')?.removeAttribute('aria-invalid');
+  document.getElementById('loginPassword')?.removeAttribute('aria-invalid');
+}
+
+// Form-level alert — reserved for authentication failures and service errors.
+function showLoginError(message, field) {
+  clearFieldErrors();
+  const box = document.getElementById('loginError');
+  const text = document.getElementById('loginErrorText');
+  const emailEl = document.getElementById('loginEmail');
+  const passwordEl = document.getElementById('loginPassword');
+  if (text) text.textContent = message;
+  if (box) box.style.display = 'flex';
+  emailEl?.setAttribute('aria-invalid', field === 'email' || field === 'both' ? 'true' : 'false');
+  passwordEl?.setAttribute('aria-invalid', field === 'password' || field === 'both' ? 'true' : 'false');
+  const target = field === 'email' ? emailEl : field === 'password' ? passwordEl : box;
+  requestAnimationFrame(() => target?.focus());
+}
+
+function clearLoginError() {
+  const box = document.getElementById('loginError');
+  if (box) box.style.display = 'none';
+  clearFieldErrors();
+}
+
+// A protected route was requested while signed out — invite sign-in without alarming.
+function syncLoginNotice() {
+  const notice = document.getElementById('loginNotice');
+  const text = document.getElementById('loginNoticeText');
+  if (!notice || !text) return;
+  let pending = null;
+  try { pending = sessionStorage.getItem('contractiq.pendingRoute'); } catch { pending = null; }
+  if (pending && pending !== 'login') {
+    text.textContent = 'Please sign in to continue.';
+    notice.hidden = false;
+  } else {
+    notice.hidden = true;
+  }
+}
+
 function bindLogin() {
   const form = document.getElementById('loginForm');
   if (!form) return;
   bindPasswordToggle();
+  syncLoginNotice();
+
+  const emailEl = document.getElementById('loginEmail');
+  const passwordEl = document.getElementById('loginPassword');
+  [[emailEl, 'emailError'], [passwordEl, 'passwordError']].forEach(([el, slotId]) => {
+    if (!el) return;
+    el.addEventListener('input', () => {
+      el.removeAttribute('aria-invalid');
+      const slot = document.getElementById(slotId);
+      if (slot && !slot.hidden) { slot.hidden = true; slot.textContent = ''; }
+    });
+  });
 
   form.addEventListener('submit', async event => {
     event.preventDefault();
-    const email = document.getElementById('loginEmail')?.value.trim().toLowerCase();
-    const password = document.getElementById('loginPassword')?.value || '';
-    const error = document.getElementById('loginError');
-    const errorText = document.getElementById('loginErrorText');
-    const submit = form.querySelector('.login-submit');
+    if (form.dataset.submitting === 'true') return;   // block repeat submissions
+
+    const email = (emailEl?.value || '').trim().toLowerCase();
+    const password = passwordEl?.value || '';
+
+    // Client-side gate — compact inline errors, no spinner for incomplete input.
+    if (!email) return showFieldError('email', 'Enter your work email.');
+    if (!isValidEmailShape(email)) return showFieldError('email', 'Enter a valid work email, such as name@company.com.');
+    if (!password) return showFieldError('password', 'Enter your password.');
+
+    clearLoginError();
+    form.dataset.submitting = 'true';
+    setLoginBusy(form, true);
+
     let user = null;
-
-    submit?.classList.add('is-loading');
-
     try {
       const res = await fetch(`${AUTH_API_BASE}/api/auth/login`, {
         method: 'POST',
@@ -125,45 +257,52 @@ function bindLogin() {
         } catch {
           // Ignore storage failures in restricted browser modes.
         }
+      } else if (res.status === 400) {
+        throw new AuthUiError('Enter your work email and password.', 'both');
+      } else if (res.status === 401 || res.status === 403) {
+        throw new AuthUiError('That email and password don’t match an active account.', 'both');
+      } else if (res.status === 429) {
+        throw new AuthUiError('Too many sign-in attempts. Wait a moment and try again.', 'both');
       } else {
-        const details = await res.json().catch(() => ({}));
-        if (errorText) errorText.textContent = details.message || (res.status === 401
-          ? 'Invalid credentials. Check the PostgreSQL users table or ask a superuser to create an account.'
-          : 'Sign in failed. Please try again.');
-        if (error) error.style.display = 'flex';
-        submit?.classList.remove('is-loading');
-        return;
+        throw new AuthUiError('Something went wrong signing in. Please try again.', null);
       }
-    } catch (loginError) {
-      if (error) error.style.display = 'flex';
-      if (errorText) errorText.textContent = loginError.name === 'TimeoutError'
-        ? 'API timeout. Sign in requires a PostgreSQL-backed account.'
-        : 'API offline. Sign in requires a PostgreSQL-backed account.';
-      submit?.classList.remove('is-loading');
+    } catch (err) {
+      form.dataset.submitting = 'false';
+      setLoginBusy(form, false);
+      if (err instanceof AuthUiError) {
+        showLoginError(err.message, err.field);
+      } else if (err.name === 'TimeoutError' || err.name === 'AbortError') {
+        showLoginError('The sign-in service is taking too long to respond. Please try again.', null);
+      } else {
+        showLoginError('We can’t reach the sign-in service right now. Please try again shortly.', null);
+      }
       return;
     }
-
-    submit?.classList.remove('is-loading');
 
     if (!user) {
-      if (error) error.style.display = 'flex';
-      if (errorText) {
-        errorText.textContent = 'Invalid credentials. Check the PostgreSQL users table or ask a superuser to create an account.';
-      }
+      form.dataset.submitting = 'false';
+      setLoginBusy(form, false);
+      showLoginError('That email and password don’t match an active account.', 'both');
       return;
     }
 
-    if (error) error.style.display = 'none';
+    // Success — clear errors and persist the session. enterAppAfterLogin()
+    // consumes contractiq.pendingRoute to route to the intended destination.
+    clearLoginError();
     setSession(user);
 
-    // Force a password change before granting access on first login.
     if (user.forcePasswordChange) {
       window.__flEmail = email;
       window.__flCurrentPassword = password;
+      form.dataset.submitting = 'false';
+      setLoginBusy(form, false);
       showFirstLoginModal();
       return;
     }
 
+    // Let the approval pulse complete toward the card, but never hold up navigation.
+    setLoginFlowStage('approved');
+    form.dataset.submitting = 'false';
     enterAppAfterLogin();
   });
 }
@@ -274,118 +413,293 @@ function bindFirstLogin() {
   });
 }
 
+/* ══════════════════════════════════════════════════════════════════
+   PASSWORD RECOVERY — 3 steps (email → verify → reset) + success.
+   Backend contract is unchanged: /password-reset/request {email} and
+   /password-reset/confirm {email, code, password}. The code is only
+   verified by the backend at the final /confirm call. Nothing here
+   discloses whether an account exists, and no code/token/password is
+   stored in web storage or logged.
+══════════════════════════════════════════════════════════════════ */
+
+let _recoveryEmail = '';
+let _resendTimer = null;
+
+const AUTH_MIN_PASSWORD = 12;   // matches the backend policy (length only)
+
+function authShowFieldError(inputId, slotId, message, alsoFocus = false) {
+  const input = document.getElementById(inputId);
+  const slot = document.getElementById(slotId);
+  if (slot) { slot.textContent = message; slot.hidden = false; }
+  input?.setAttribute('aria-invalid', 'true');
+  if (alsoFocus) requestAnimationFrame(() => input?.focus());
+}
+function authClearFieldError(inputId, slotId) {
+  const slot = document.getElementById(slotId);
+  if (slot) { slot.hidden = true; slot.textContent = ''; }
+  document.getElementById(inputId)?.removeAttribute('aria-invalid');
+}
+function authShowAlert(boxId, textId, message) {
+  const box = document.getElementById(boxId);
+  const text = document.getElementById(textId);
+  if (text) text.textContent = message;
+  if (box) { box.style.display = 'flex'; requestAnimationFrame(() => box.focus()); }
+}
+function authHideAlert(boxId) {
+  const box = document.getElementById(boxId);
+  if (box) box.style.display = 'none';
+}
+function authSetBusy(form, busy, busyLabel) {
+  const submit = form?.querySelector('.login-submit');
+  if (!submit) return;
+  const label = submit.querySelector('.login-submit-label');
+  submit.classList.toggle('is-loading', busy);
+  submit.disabled = busy;
+  submit.setAttribute('aria-busy', String(busy));
+  if (label && submit.dataset.idleLabel === undefined) submit.dataset.idleLabel = label.textContent;
+  if (label) label.textContent = busy ? busyLabel : (submit.dataset.idleLabel || label.textContent);
+}
+
+// Mask an email for display: keep the first character + domain only.
+function maskEmail(email) {
+  const at = String(email || '').indexOf('@');
+  if (at < 1) return 'your inbox';
+  return email[0] + '•••••' + email.slice(at);
+}
+
 function bindPasswordReset() {
   const requestForm = document.getElementById('resetRequestForm');
   const confirmForm = document.getElementById('resetConfirmForm');
-  if (!requestForm || !confirmForm || requestForm.dataset.bound === 'true') return;
+  const newPassForm = document.getElementById('resetNewPassForm');
+  if (!requestForm || requestForm.dataset.bound === 'true') return;
   requestForm.dataset.bound = 'true';
-  bindResetPasswordToggle();
 
+  bindResetPasswordToggle('resetNewPassword', 'resetPasswordToggle');
+  bindResetPasswordToggle('resetConfirmPassword', 'resetConfirmToggle');
+
+  const emailEl = document.getElementById('resetEmail');
+  emailEl?.addEventListener('input', () => authClearFieldError('resetEmail', 'resetEmailError'));
+  const codeEl = document.getElementById('resetCode');
+  codeEl?.addEventListener('input', () => {
+    codeEl.value = codeEl.value.replace(/\D/g, '').slice(0, 6);
+    authClearFieldError('resetCode', 'resetCodeError');
+  });
+
+  // Live password-requirement feedback (length only — the backend policy).
+  const newPw = document.getElementById('resetNewPassword');
+  const reqLen = document.querySelector('#resetPwReqs [data-req="len"]');
+  newPw?.addEventListener('input', () => {
+    authClearFieldError('resetNewPassword', 'resetNewPassError');
+    if (!reqLen) return;
+    const ok = newPw.value.length >= AUTH_MIN_PASSWORD;
+    reqLen.classList.toggle('is-valid', ok && newPw.value.length > 0);
+    reqLen.classList.toggle('is-invalid', !ok && newPw.value.length > 0);
+  });
+  document.getElementById('resetConfirmPassword')?.addEventListener('input',
+    () => authClearFieldError('resetConfirmPassword', 'resetConfirmPassError'));
+
+  /* ── Step 1 · request a verification code ── */
   requestForm.addEventListener('submit', async event => {
     event.preventDefault();
-    const email = document.getElementById('resetEmail')?.value.trim().toLowerCase();
-    const error = document.getElementById('resetRequestError');
-    const errorText = document.getElementById('resetRequestErrorText');
-    const submit = document.getElementById('resetRequestSubmit');
+    if (requestForm.dataset.submitting === 'true') return;
 
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      if (errorText) errorText.textContent = 'Enter a valid account email.';
-      if (error) error.style.display = 'flex';
-      return;
+    const raw = document.getElementById('resetEmail')?.value || '';
+    const email = raw.trim().toLowerCase();
+    authHideAlert('resetRequestError');
+
+    if (!email) return authShowFieldError('resetEmail', 'resetEmailError', 'Enter your work email.', true);
+    if (email.length > 254 || !isValidEmailShape(email)) {
+      return authShowFieldError('resetEmail', 'resetEmailError', 'Enter a valid work email, such as name@company.com.', true);
     }
+    authClearFieldError('resetEmail', 'resetEmailError');
 
-    submit?.classList.add('is-loading');
+    requestForm.dataset.submitting = 'true';
+    authSetBusy(requestForm, true, 'Sending code…');
+
+    let status = 0;
     try {
       const res = await fetch(`${AUTH_API_BASE}/api/auth/password-reset/request`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
-        signal: AbortSignal.timeout(5000)
+        signal: AbortSignal.timeout(5000),
       });
-
-      if (!res.ok) {
-        const details = await res.json().catch(() => ({}));
-        throw new Error(details.message || 'Reset request failed.');
-      }
-    } catch (resetRequestError) {
-      if (errorText) errorText.textContent = resetRequestError.message || 'Reset request failed. Please try again.';
-      if (error) error.style.display = 'flex';
-      submit?.classList.remove('is-loading');
+      status = res.status;
+    } catch (err) {
+      requestForm.dataset.submitting = 'false';
+      authSetBusy(requestForm, false);
+      authShowAlert('resetRequestError', 'resetRequestErrorText',
+        err.name === 'TimeoutError' || err.name === 'AbortError'
+          ? 'The recovery service is taking too long to respond. Please try again.'
+          : 'We can’t reach the recovery service right now. Please try again shortly.');
       return;
     }
 
-    submit?.classList.remove('is-loading');
-    if (error) error.style.display = 'none';
-    sessionStorage.setItem('contractiq.resetEmail', email);
-    document.getElementById('resetCodeNote').textContent = `A reset code has been sent to ${email}.`;
+    requestForm.dataset.submitting = 'false';
+    authSetBusy(requestForm, false);
+
+    if (status === 429) {
+      authShowAlert('resetRequestError', 'resetRequestErrorText',
+        'Too many attempts. Wait a moment before requesting another code.');
+      return;
+    }
+    if (status >= 500) {
+      authShowAlert('resetRequestError', 'resetRequestErrorText',
+        'The recovery service is having trouble. Please try again shortly.');
+      return;
+    }
+
+    // 200 or 404 — respond identically so account existence is never disclosed.
+    _recoveryEmail = email;
+    const note = document.getElementById('resetCodeNote');
+    if (note) note.textContent = maskEmail(email);
+    const notice = document.getElementById('resetRequestNotice');
+    if (notice) {
+      notice.textContent = 'If an active ContractIQ account exists for that email, a verification code has been sent.';
+      notice.hidden = false;
+    }
     showResetConfirm();
   });
 
-  confirmForm.addEventListener('submit', async event => {
+  /* ── Step 2 · enter the verification code (verified server-side at step 3) ── */
+  confirmForm?.addEventListener('submit', event => {
     event.preventDefault();
-    const email = sessionStorage.getItem('contractiq.resetEmail') || document.getElementById('resetEmail')?.value.trim().toLowerCase();
-    const code = document.getElementById('resetCode')?.value.trim();
-    const password = document.getElementById('resetNewPassword')?.value || '';
+    const code = (document.getElementById('resetCode')?.value || '').trim();
+    authHideAlert('resetConfirmError');
+    if (!code) return authShowFieldError('resetCode', 'resetCodeError', 'Enter the 6-digit verification code.', true);
+    if (!/^\d{6}$/.test(code)) {
+      return authShowFieldError('resetCode', 'resetCodeError', 'The code is 6 digits. Check your email and re-enter it.', true);
+    }
+    authClearFieldError('resetCode', 'resetCodeError');
+    showResetNewPass();
+  });
+
+  /* ── Step 3 · set the new password (this is where the code is checked) ── */
+  newPassForm?.addEventListener('submit', async event => {
+    event.preventDefault();
+    if (newPassForm.dataset.submitting === 'true') return;
+
+    const email = _recoveryEmail;
+    const code = (document.getElementById('resetCode')?.value || '').trim();
+    const pw = document.getElementById('resetNewPassword')?.value || '';
     const confirm = document.getElementById('resetConfirmPassword')?.value || '';
-    const error = document.getElementById('resetConfirmError');
-    const errorText = document.getElementById('resetConfirmErrorText');
-    const submit = document.getElementById('resetConfirmSubmit');
+    authHideAlert('resetNewPassAlert');
+    authClearFieldError('resetNewPassword', 'resetNewPassError');
+    authClearFieldError('resetConfirmPassword', 'resetConfirmPassError');
 
-    const fail = message => {
-      if (errorText) errorText.textContent = message;
-      if (error) error.style.display = 'flex';
-    };
+    if (!pw) return authShowFieldError('resetNewPassword', 'resetNewPassError', 'Enter a new password.', true);
+    if (pw.length < AUTH_MIN_PASSWORD) {
+      return authShowFieldError('resetNewPassword', 'resetNewPassError', `Use at least ${AUTH_MIN_PASSWORD} characters.`, true);
+    }
+    if (confirm !== pw) {
+      return authShowFieldError('resetConfirmPassword', 'resetConfirmPassError', 'Passwords do not match.', true);
+    }
 
-    if (!code) return fail('Enter the reset code.');
-    if (password.length < 12) return fail('New password must be at least 12 characters.');
-    if (password !== confirm) return fail('Passwords do not match.');
+    newPassForm.dataset.submitting = 'true';
+    authSetBusy(newPassForm, true, 'Updating password…');
 
-    submit?.classList.add('is-loading');
+    let ok = false, message = '';
     try {
       const res = await fetch(`${AUTH_API_BASE}/api/auth/password-reset/confirm`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, code, password }),
-        signal: AbortSignal.timeout(5000)
+        body: JSON.stringify({ email, code, password: pw }),
+        signal: AbortSignal.timeout(5000),
       });
-
-      if (!res.ok) {
-        const details = await res.json().catch(() => ({}));
-        throw new Error(details.message || 'Password reset failed.');
-      }
-    } catch (resetError) {
-      fail(resetError.message || 'Invalid reset code or account email.');
-      submit?.classList.remove('is-loading');
+      ok = res.ok;
+      if (!ok) { const d = await res.json().catch(() => ({})); message = String(d.message || ''); }
+    } catch (err) {
+      newPassForm.dataset.submitting = 'false';
+      authSetBusy(newPassForm, false);
+      authShowAlert('resetNewPassAlert', 'resetNewPassAlertText',
+        err.name === 'TimeoutError' || err.name === 'AbortError'
+          ? 'The recovery service is taking too long to respond. Please try again.'
+          : 'We can’t reach the recovery service right now. Please try again shortly.');
       return;
     }
 
-    submit?.classList.remove('is-loading');
-    if (error) error.style.display = 'none';
-    showResetSuccess();
+    newPassForm.dataset.submitting = 'false';
+    authSetBusy(newPassForm, false);
+
+    if (ok) {
+      document.getElementById('resetNewPassword').value = '';
+      document.getElementById('resetConfirmPassword').value = '';
+      showResetSuccess();
+      return;
+    }
+
+    // Map the backend message to a safe, user-facing one. The confirm endpoint
+    // reports invalid and expired codes with a single combined message, so any
+    // code-related failure sends the user back to the verification step where
+    // they can re-enter the code or request a fresh one.
+    if (/at least|character|password/i.test(message)) {
+      authShowFieldError('resetNewPassword', 'resetNewPassError',
+        `Use at least ${AUTH_MIN_PASSWORD} characters.`, true);
+    } else if (/expire|invalid|code/i.test(message)) {
+      showResetConfirm();
+      authShowFieldError('resetCode', 'resetCodeError',
+        'That code is incorrect or has expired. Enter it again, or request a new one.', true);
+    } else {
+      authShowAlert('resetNewPassAlert', 'resetNewPassAlertText',
+        'We couldn’t update your password. Request a new code and try again.');
+    }
   });
 }
 
+// Resend a code — re-runs the request. There is no backend resend cooldown,
+// so no countdown is shown; the button is briefly disabled to prevent
+// accidental double-submits.
+async function resendResetCode() {
+  const btn = document.getElementById('resetResendBtn');
+  if (!btn || btn.disabled || !_recoveryEmail) return;
+  btn.disabled = true;
+  const idle = btn.textContent;
+  btn.textContent = 'Sending…';
+  authHideAlert('resetConfirmError');
+  try {
+    await fetch(`${AUTH_API_BASE}/api/auth/password-reset/request`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: _recoveryEmail }),
+      signal: AbortSignal.timeout(5000),
+    });
+  } catch { /* stay quiet — never disclose account state */ }
+  btn.textContent = 'Code sent';
+  const notice = document.getElementById('resetConfirmError');
+  clearTimeout(_resendTimer);
+  _resendTimer = setTimeout(() => { btn.disabled = false; btn.textContent = idle; }, 20000);
+}
+
 function showResetRequest() {
-  document.getElementById('resetRequestForm')?.classList.remove('hidden');
-  document.getElementById('resetConfirmForm')?.classList.add('hidden');
-  document.getElementById('resetSuccessPanel')?.classList.add('hidden');
+  _swapResetPanel('resetRequestForm');
+  authHideAlert('resetRequestError');
+  const notice = document.getElementById('resetRequestNotice');
+  if (notice) notice.hidden = true;
+  requestAnimationFrame(() => document.getElementById('resetEmail')?.focus());
 }
-
 function showResetConfirm() {
-  document.getElementById('resetRequestForm')?.classList.add('hidden');
-  document.getElementById('resetConfirmForm')?.classList.remove('hidden');
-  document.getElementById('resetSuccessPanel')?.classList.add('hidden');
+  _swapResetPanel('resetConfirmForm');
+  authHideAlert('resetConfirmError');
+  requestAnimationFrame(() => document.getElementById('resetCode')?.focus());
 }
-
+function showResetNewPass() {
+  _swapResetPanel('resetNewPassForm');
+  authHideAlert('resetNewPassAlert');
+  requestAnimationFrame(() => document.getElementById('resetNewPassword')?.focus());
+}
 function showResetSuccess() {
-  document.getElementById('resetRequestForm')?.classList.add('hidden');
-  document.getElementById('resetConfirmForm')?.classList.add('hidden');
-  document.getElementById('resetSuccessPanel')?.classList.remove('hidden');
+  _swapResetPanel('resetSuccessPanel');
+  requestAnimationFrame(() => document.querySelector('#resetSuccessPanel .login-submit')?.focus());
+}
+function _swapResetPanel(showId) {
+  ['resetRequestForm', 'resetConfirmForm', 'resetNewPassForm', 'resetSuccessPanel'].forEach(id => {
+    document.getElementById(id)?.classList.toggle('hidden', id !== showId);
+  });
 }
 
-function bindResetPasswordToggle() {
-  const password = document.getElementById('resetNewPassword');
-  const toggle = document.getElementById('resetPasswordToggle');
+function bindResetPasswordToggle(inputId, toggleId) {
+  const password = document.getElementById(inputId);
+  const toggle = document.getElementById(toggleId);
   const wrapper = password?.closest('.password-field');
   if (!password || !toggle || !wrapper) return;
 

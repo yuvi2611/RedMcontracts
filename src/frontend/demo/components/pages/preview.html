@@ -1,6 +1,9 @@
 <div class="page-padding animate-in">
+  <button class="page-back" type="button" onclick="routeTo('wizard')">
+    <svg fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+    Back to contract studio
+  </button>
   <div class="page-header">
-    <button class="btn-ghost" onclick="routeTo('wizard')">Back to studio</button>
     <div>
       <h1 class="page-title">Review, Approve and Export</h1>
       <p class="page-subtitle" id="preview-subtitle">Selected employee - Fixed-Term Employment Agreement</p>
@@ -20,7 +23,18 @@
         <div><span class="review-dot warn"></span>Salary requires manager acknowledgement</div>
       </div>
       <button class="btn-primary full-width" type="button" onclick="submitCurrentContractForApproval()">Submit for Approval</button>
-      <button class="btn-secondary full-width" type="button" onclick="saveCurrentContractDraft()">Save Draft</button>
+      <div class="export-menu">
+        <button class="btn-secondary full-width export-menu-trigger" type="button" onclick="toggleExportMenu()" aria-haspopup="true" aria-expanded="false">
+          Export
+          <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        <div class="export-menu-list hidden" id="exportMenuList" role="menu">
+          <button type="button" role="menuitem" onclick="toggleExportMenu(false); downloadContractPdf()">Download PDF</button>
+          <button type="button" role="menuitem" onclick="toggleExportMenu(false); downloadContractWord()">Download Word</button>
+          <button type="button" role="menuitem" onclick="toggleExportMenu(false); sendCurrentContractForSignature()">Send for Signature</button>
+        </div>
+      </div>
+      <button class="btn-ghost full-width" type="button" onclick="saveCurrentContractDraft()">Save Draft</button>
     </aside>
 
     <div>
@@ -334,11 +348,6 @@
         </div>
       </div>
 
-      <div class="preview-actions">
-        <button class="btn-primary" type="button" onclick="downloadContractPdf()">Download PDF</button>
-        <button class="btn-secondary" type="button" onclick="downloadContractWord()">Download Word</button>
-        <button class="btn-secondary" type="button" onclick="sendCurrentContractForSignature()">Send for Signature</button>
-      </div>
     </div>
   </div>
 </div>

@@ -1,0 +1,1088 @@
+/* ═══════════════════════════════════════════════════════════════════
+   CONTRACTIQ LOGIN — "THE CONTRACT SIGNATURE JOURNEY"
+   Loaded last. Everything scoped to :is(#loginScreen,#resetPasswordScreen) so the reset-password
+   screen (also .login-screen) and the rest of the app are untouched.
+
+   Final polish pass:
+     · one continuous journey — sheet → signature → Draft node → the
+       workflow's own rail → a thin approval trail → one arrival point
+       on the card's left edge (between the heading and the first field)
+     · the vector never crosses readable text and never enters the card
+     · left product story ~60%, login card ~40%, sharing one vertical centre
+     · the card answers the arrival point with a small crimson node, a
+       reflected edge glow and a burgundy ambient shadow on the left
+     · entrance sequence ≈1.1s; form usable throughout; reduced-motion
+       renders the final static composition immediately
+═══════════════════════════════════════════════════════════════════ */
+
+:is(#loginScreen,#resetPasswordScreen).login-screen {
+  --cf-black:    #08090D;
+  --cf-burgundy: #2A0711;
+  --cf-crimson:  #D6002F;
+  --cf-red:      #FF1749;
+  --cf-rose:     #FF7893;
+  --cf-warm:     #F7F4F2;
+  --cf-ease:     cubic-bezier(.16, 1, .3, 1);
+  --cf-emph:     cubic-bezier(.22, 1, .36, 1);
+}
+
+/* ───────────────────────────────────────────────
+   1 · THE SCENE
+─────────────────────────────────────────────── */
+
+:is(#loginScreen,#resetPasswordScreen).login-screen {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(20px, 4vw, 56px);
+  overflow: hidden;
+  isolation: isolate;
+  background:
+    radial-gradient(720px 620px at 19% 40%, rgba(120, 0, 18, .40), transparent 62%),
+    radial-gradient(460px 380px at 34% 66%, rgba(214, 0, 47, .09), transparent 70%),
+    radial-gradient(620px 220px at 76% 92%, rgba(214, 0, 47, .07), transparent 72%),
+    radial-gradient(700px 600px at 90% 66%, rgba(26, 40, 55, .26), transparent 66%),
+    linear-gradient(180deg, #0B0C11 0%, #08090D 58%, #060609 100%);
+}
+
+/* soft neutral vignette */
+:is(#loginScreen,#resetPasswordScreen).login-screen::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  top: 0;
+  left: 0;
+  width: auto;
+  height: auto;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 1;
+  filter: none;
+  animation: none;
+  background: radial-gradient(130% 130% at 50% 44%, transparent 38%, rgba(0, 0, 0, .60) 100%);
+}
+
+/* near-imperceptible grain */
+:is(#loginScreen,#resetPasswordScreen).login-screen::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: .04;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 150px 150px;
+}
+
+/* ───────────────────────────────────────────────
+   2 · COMPOSITION  ·  ~61 / 39, centred as one unit
+─────────────────────────────────────────────── */
+
+:is(#loginScreen,#resetPasswordScreen) .login-stage {
+  width: min(1340px, 100%);
+  min-height: 0;
+  margin: 0 auto;
+  padding: 0;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+:is(#loginScreen,#resetPasswordScreen) .login-card-panel {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1.52fr) minmax(0, 1fr);
+  align-items: center;
+  gap: clamp(28px, 4.5vw, 72px);
+  min-height: 0;
+  padding: 0;
+  border-radius: 0;
+  overflow: visible;
+  background: none;
+  box-shadow: none;
+}
+:is(#loginScreen,#resetPasswordScreen) .login-card-panel::before { display: none; }
+
+@media (min-width: 981px) {
+  :is(#loginScreen,#resetPasswordScreen) .login-assurance-panel { order: 1; }
+  :is(#loginScreen,#resetPasswordScreen) .login-form { order: 2; }
+}
+
+/* ───────────────────────────────────────────────
+   2a · LEFT — the product story
+─────────────────────────────────────────────── */
+
+:is(#loginScreen,#resetPasswordScreen) .login-assurance-panel {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: clamp(14px, 1.9vh, 20px);
+  min-height: 0;
+  padding: clamp(8px, 2vh, 26px) 0 clamp(8px, 2vh, 26px) clamp(0px, 5.5vw, 88px);
+  background: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  overflow: visible;
+}
+:is(#loginScreen,#resetPasswordScreen) .login-assurance-panel::after { display: none; }
+:is(#loginScreen,#resetPasswordScreen) .login-assurance-panel > * {
+  position: relative;
+  z-index: 1;
+  inset: auto;
+  transform: none;
+  width: auto;
+  max-width: 100%;
+  margin: 0;
+}
+
+/* the vector layer — spans the story column, noses toward the card */
+:is(#loginScreen,#resetPasswordScreen) .contract-flow {
+  position: absolute;
+  z-index: 0;
+  top: -8%;
+  bottom: -8%;
+  left: -13%;
+  right: 0;
+  pointer-events: none;
+}
+/* the container is clamped to the panel width (shared > * rule); the approval
+   trail is drawn past the viewBox and reaches the card via overflow: visible */
+:is(#loginScreen,#resetPasswordScreen) .contract-flow__svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  overflow: visible;
+}
+
+/* ── atmospheric layers ── */
+.cf-atmos  { opacity: .5; }
+.cf-atmos2 { opacity: .46; }
+
+/* ── the abstract contract sheet — dimensional, low-contrast, deliberate.
+   The page fill comes from the inline cfDocFill gradient; here we only tune
+   strokes.  The whole sheet is held below the headline in visual weight. ── */
+.cf-doc           { opacity: .92; }
+.cf-doc-page      { stroke: var(--cf-rose); stroke-opacity: .26; stroke-width: 1.2; }
+.cf-doc-fold-fill { fill: rgba(34, 13, 19, .95); stroke: none; }
+.cf-doc-fold      { stroke: var(--cf-rose); stroke-opacity: .42; stroke-width: 1.2; }
+.cf-doc-lines path{ stroke: #FF9DB2; stroke-opacity: .2; stroke-width: 1.3; }
+.cf-doc-fields rect { stroke: var(--cf-rose); stroke-opacity: .36; stroke-width: 1.2; }
+.cf-doc-vcheck    { stroke: #FF6B85; stroke-opacity: .72; stroke-width: 1.8; }
+.cf-doc-base      { stroke: var(--cf-rose); stroke-opacity: .42; stroke-width: 1.2; }
+.cf-doc-sign      { stroke: #FF5C79; stroke-opacity: .7; stroke-width: 1.6; }
+
+/* ── the decorative stroke — one continuous line, drawn once, then inert ── */
+.cf-ribbon { opacity: 0; }
+.cf-core,
+.cf-spark {
+  stroke-dasharray: 100 100;
+  stroke-dashoffset: 100;
+}
+.cf-core  { opacity: .88; }
+.cf-spark { stroke-dasharray: 8 92; opacity: .45; }
+
+/* ── entrance ≈1.1s: the sheet fades in, the line draws itself once.
+   Nothing here responds to hover, focus or a sign-in attempt. ── */
+:is(#loginScreen,#resetPasswordScreen):not(.hidden) .cf-doc    { animation: cfDocIn .5s var(--cf-ease) .02s both; }
+:is(#loginScreen,#resetPasswordScreen):not(.hidden) .cf-ribbon { animation: cfRibbonIn .6s var(--cf-ease) .16s both; }
+:is(#loginScreen,#resetPasswordScreen):not(.hidden) .cf-core   { animation: cfDraw 1.05s var(--cf-ease) .2s both; }
+:is(#loginScreen,#resetPasswordScreen):not(.hidden) .cf-spark  { animation: cfSparkIn 1.15s var(--cf-ease) .42s both; }
+
+@keyframes cfDocIn    { from { opacity: 0; transform: translateY(5px); } to { opacity: .92; transform: none; } }
+@keyframes cfRibbonIn { to { opacity: .26; } }
+@keyframes cfDraw     { to { stroke-dashoffset: 0; } }
+@keyframes cfSparkIn  { 0% { stroke-dashoffset: 100; opacity: 0; } 35% { opacity: .45; } 100% { stroke-dashoffset: 0; opacity: .22; } }
+
+/* ── eyebrow / headline / lede ── */
+:is(#loginScreen,#resetPasswordScreen) .login-hero-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  margin-bottom: 2px;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .17em;
+  text-transform: uppercase;
+  color: var(--cf-rose);
+}
+:is(#loginScreen,#resetPasswordScreen) .login-hero-eyebrow::before {
+  content: '';
+  width: 26px;
+  height: 1px;
+  background: currentColor;
+  opacity: .55;
+}
+:is(#loginScreen,#resetPasswordScreen) .login-hero-copy { display: grid; gap: 18px; }
+:is(#loginScreen,#resetPasswordScreen) .login-hero-copy h2 {
+  margin: 0;
+  max-width: 13ch;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: clamp(35px, 4vw, 50px);
+  line-height: 1.07;
+  letter-spacing: -.018em;
+  color: var(--cf-warm);
+  text-wrap: balance;
+}
+:is(#loginScreen,#resetPasswordScreen) .login-hero-copy p {
+  max-width: 40ch;
+  font-family: var(--font-ui);
+  font-size: 15px;
+  line-height: 1.62;
+  color: rgba(226, 224, 230, .84);
+  text-wrap: pretty;
+}
+
+/* ── the workflow — the product demonstration ── */
+:is(#loginScreen,#resetPasswordScreen) .login-workspace-preview {
+  position: relative;
+  width: 100%;
+  max-width: 530px;
+  margin: 0;
+  padding: 20px 26px 18px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, .04);
+  background:
+    linear-gradient(158deg, rgba(58, 20, 30, .30) 0%, rgba(24, 20, 26, .30) 46%, rgba(16, 16, 21, .34) 100%);
+  box-shadow: 0 30px 64px -40px rgba(0, 0, 0, .75);
+  overflow: hidden;
+}
+/* faint internal top highlight */
+:is(#loginScreen,#resetPasswordScreen) .login-workspace-preview::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .14), transparent);
+}
+:is(#loginScreen,#resetPasswordScreen) .login-preview-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+:is(#loginScreen,#resetPasswordScreen) .login-preview-head span {
+  font-family: var(--font-ui);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: rgba(247, 244, 242, .52);
+}
+:is(#loginScreen,#resetPasswordScreen) .login-preview-head strong {
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--cf-warm);
+}
+
+:is(#loginScreen,#resetPasswordScreen) .login-preview-flow {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+}
+/* connecting rail — one static hairline through every node centre.
+   These four stages are explanatory only: nothing here ever changes. */
+:is(#loginScreen,#resetPasswordScreen) .login-preview-flow::before {
+  content: '';
+  position: absolute;
+  top: 12px;
+  left: 13px;
+  right: 13px;
+  height: 2px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, .16);
+}
+
+/* strip legacy premium pill styling off the workflow spans */
+:is(#loginScreen,#resetPasswordScreen) .login-preview-flow span {
+  background: none;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  text-align: left;
+  font-weight: 400;
+  transition: none;
+}
+
+:is(#loginScreen,#resetPasswordScreen) .login-step {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 11px;
+}
+:is(#loginScreen,#resetPasswordScreen) .login-preview-flow span.login-step__node {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 700;
+  color: rgba(247, 244, 242, .74);
+  background: radial-gradient(120% 120% at 50% 20%, #1c1d24, #121319);
+  border: 1.5px solid rgba(255, 255, 255, .2);
+  box-shadow: 0 0 0 3px #101116;   /* mask the rail passing behind */
+}
+:is(#loginScreen,#resetPasswordScreen) .login-preview-flow span.login-step__text { display: grid; gap: 3px; }
+:is(#loginScreen,#resetPasswordScreen) .login-preview-flow span.login-step__label {
+  font-family: var(--font-ui);
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: .002em;
+  color: var(--cf-warm);
+}
+:is(#loginScreen,#resetPasswordScreen) .login-preview-flow span.login-step__desc {
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 450;
+  line-height: 1.38;
+  min-height: 2.76em;   /* reserve two lines so nodes/labels align */
+  color: rgba(228, 228, 234, .96);
+}
+
+/* the first stage carries a quiet crimson accent — purely a static cue that
+   Draft is where a contract begins */
+:is(#loginScreen,#resetPasswordScreen) .login-step[data-stage="draft"] .login-step__node {
+  border-color: var(--cf-red);
+  color: var(--cf-warm);
+  background: linear-gradient(180deg, #2a0a12, #1a0509);
+}
+
+/* one-time entrance stagger (not a reaction) */
+:is(#loginScreen,#resetPasswordScreen):not(.hidden) .login-preview-flow span { animation: none !important; }
+:is(#loginScreen,#resetPasswordScreen):not(.hidden) .login-step { animation: authRise .46s var(--cf-ease) both; }
+:is(#loginScreen,#resetPasswordScreen):not(.hidden) .login-step:nth-child(1) { animation-delay: .34s; }
+:is(#loginScreen,#resetPasswordScreen):not(.hidden) .login-step:nth-child(2) { animation-delay: .44s; }
+:is(#loginScreen,#resetPasswordScreen):not(.hidden) .login-step:nth-child(3) { animation-delay: .54s; }
+:is(#loginScreen,#resetPasswordScreen):not(.hidden) .login-step:nth-child(4) { animation-delay: .64s; }
+
+/* ── closing statement — the conclusion of the left-side story ── */
+:is(#loginScreen,#resetPasswordScreen) .login-flow-statement {
+  display: flex;
+  align-items: stretch;
+  gap: 13px;
+  margin: 2px 0 0;
+  max-width: 40ch;
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: clamp(15px, 1.5vw, 16.5px);
+  line-height: 1.45;
+  color: rgba(247, 244, 242, .92);
+}
+:is(#loginScreen,#resetPasswordScreen) .login-flow-statement::before {
+  content: '';
+  flex-shrink: 0;
+  width: 3px;
+  border-radius: 3px;
+  background: linear-gradient(180deg, var(--cf-red), rgba(214, 0, 47, .25));
+}
+
+:is(#loginScreen,#resetPasswordScreen) .assurance-author {
+  margin-top: 20px;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  max-width: 520px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, .1);
+}
+:is(#loginScreen,#resetPasswordScreen) .assurance-author strong {
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--cf-warm);
+}
+:is(#loginScreen,#resetPasswordScreen) .assurance-author strong::after {
+  content: '·';
+  margin: 0 6px 0 9px;
+  color: rgba(255, 255, 255, .32);
+}
+:is(#loginScreen,#resetPasswordScreen) .assurance-author span {
+  font-family: var(--font-ui);
+  font-size: 12px;
+  color: rgba(180, 180, 187, .9);
+}
+
+/* ───────────────────────────────────────────────
+   3 · RIGHT — the light authentication card
+─────────────────────────────────────────────── */
+
+:is(#loginScreen,#resetPasswordScreen) .login-form {
+  position: relative;
+  z-index: 2;
+  order: 2;
+  width: 100%;
+  max-width: 432px;
+  justify-self: center;
+  display: grid;
+  align-content: start;
+  gap: 13px;
+  padding: clamp(28px, 3vw, 40px);
+  border-radius: 20px;
+  background: linear-gradient(177deg, #FDFCFA 0%, #FAF8F5 100%);
+  color: var(--ink);
+  isolation: isolate;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, .55),
+    0 0 0 1.5px rgba(8, 9, 13, .04),
+    0 2px 8px rgba(6, 7, 11, .16),
+    0 26px 60px -24px rgba(6, 7, 11, .48),
+    -22px 20px 80px -46px rgba(120, 10, 25, .36);   /* burgundy ambient — left / lower only */
+}
+/* subtle top-edge highlight */
+:is(#loginScreen,#resetPasswordScreen) .login-form::before {
+  content: '';
+  position: absolute;
+  left: 18px;
+  right: 18px;
+  top: 0;
+  height: 1px;
+  border-radius: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .9), transparent);
+}
+/* the point where the decorative line settles against the card — a small
+   static crimson node with a reflected edge glow.  Purely visual. */
+:is(#loginScreen,#resetPasswordScreen) .login-form::after {
+  content: '';
+  position: absolute;
+  left: -8px;
+  top: 35.5%;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--cf-red);
+  box-shadow:
+    0 0 0 3px rgba(214, 0, 47, .16),
+    0 0 13px 3px rgba(255, 23, 73, .42),
+    9px 0 24px 3px rgba(214, 0, 47, .22);   /* ambient reflection onto the card edge */
+  opacity: .88;
+}
+
+/* deliberate vertical rhythm */
+:is(#loginScreen,#resetPasswordScreen) .login-brand-row { margin-bottom: 10px; display: flex; align-items: center; gap: 13px; }
+:is(#loginScreen,#resetPasswordScreen) .login-copy { margin-bottom: 4px; }
+:is(#loginScreen,#resetPasswordScreen) .login-options { margin-top: 2px; }
+:is(#loginScreen,#resetPasswordScreen) .login-submit { margin-top: 8px; }
+:is(#loginScreen,#resetPasswordScreen) .login-admin-note { margin-top: 2px; }
+
+/* brand lockup */
+:is(#loginScreen,#resetPasswordScreen) .login-logo-plate {
+  padding: 9px 12px;
+  border-radius: 11px;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(6, 7, 11, .14), inset 0 0 0 1px rgba(6, 7, 11, .07);
+  flex-shrink: 0;
+}
+:is(#loginScreen,#resetPasswordScreen) .login-brand-row .login-brand-logo { width: 96px; height: auto; display: block; }
+:is(#loginScreen,#resetPasswordScreen) .login-brand-sub { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+:is(#loginScreen,#resetPasswordScreen) .login-brand-sub .login-brand-product {
+  font-family: var(--font-ui);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -.01em;
+  text-transform: none;
+  color: var(--ink);
+}
+:is(#loginScreen,#resetPasswordScreen) .login-brand-sub .login-brand-desc {
+  font-family: var(--font-ui);
+  font-size: 11.5px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+  color: rgba(11, 12, 16, .62);
+}
+
+/* heading + lede */
+:is(#loginScreen,#resetPasswordScreen) .login-copy h1 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: clamp(27px, 3vw, 31px);
+  line-height: 1.08;
+  letter-spacing: -.02em;
+  color: var(--ink);
+}
+:is(#loginScreen,#resetPasswordScreen) .login-copy p {
+  margin-top: 6px;
+  max-width: 38ch;
+  font-family: var(--font-ui);
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: rgba(11, 12, 16, .66);
+}
+
+/* protected-route notice — light surface */
+:is(#loginScreen,#resetPasswordScreen) .login-notice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #fdeef0;
+  border: 1px solid rgba(214, 0, 47, .22);
+  font-family: var(--font-ui);
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: #8a0018;
+}
+:is(#loginScreen,#resetPasswordScreen) .login-notice[hidden] { display: none; }
+
+/* fields */
+:is(#loginScreen,#resetPasswordScreen) .form-group { display: grid; gap: 7px; }
+:is(#loginScreen,#resetPasswordScreen) .form-label {
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: .01em;
+  color: rgba(11, 12, 16, .8);
+}
+:is(#loginScreen,#resetPasswordScreen) .login-input {
+  height: 48px;
+  width: 100%;
+  padding: 0 16px;
+  border-radius: 11px;
+  border: 1.5px solid rgba(11, 12, 16, .16);
+  background: #fff;
+  box-shadow: none;
+  font-family: var(--font-ui);
+  font-size: 14px;
+  color: #15161b;
+  transition: border-color .18s ease, box-shadow .18s ease, background .18s ease;
+}
+:is(#loginScreen,#resetPasswordScreen) .password-field .login-input { padding-right: 52px; }
+:is(#loginScreen,#resetPasswordScreen) .login-input::placeholder { color: #9a9aa4; }
+:is(#loginScreen,#resetPasswordScreen) .login-input:hover:not(:focus):not([aria-invalid="true"]) { border-color: rgba(11, 12, 16, .32); }
+:is(#loginScreen,#resetPasswordScreen) .login-input:focus {
+  border-color: var(--cf-crimson);
+  box-shadow: 0 0 0 3px rgba(214, 0, 47, .15);
+  background: #fff;
+  transform: none;
+  animation: none;
+}
+:is(#loginScreen,#resetPasswordScreen) .login-input[aria-invalid="true"] {
+  border-color: var(--cf-crimson);
+  box-shadow: 0 0 0 3px rgba(214, 0, 47, .12);
+  background: #fffafa;
+}
+:is(#loginScreen,#resetPasswordScreen) .login-input[aria-invalid="true"]:focus { box-shadow: 0 0 0 3px rgba(214, 0, 47, .18); }
+
+/* compact inline field error — directly under the offending field */
+:is(#loginScreen,#resetPasswordScreen) .field-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 5px;
+  margin: 1px 0 -2px;
+  font-family: var(--font-ui);
+  font-size: 11.5px;
+  line-height: 1.35;
+  color: #a3001d;
+}
+:is(#loginScreen,#resetPasswordScreen) .field-error[hidden] { display: none; }
+:is(#loginScreen,#resetPasswordScreen) .field-error::before {
+  content: '';
+  flex-shrink: 0;
+  width: 12px;
+  height: 12px;
+  margin-top: .5px;
+  border-radius: 50%;
+  background: var(--cf-crimson);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%23000' d='M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1Zm-.9 3.6h1.8l-.25 5H7.35l-.25-5ZM8 12.4a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z'/%3E%3C/svg%3E") center / contain no-repeat;
+          mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%23000' d='M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1Zm-.9 3.6h1.8l-.25 5H7.35l-.25-5ZM8 12.4a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+
+/* password visibility — 44px target */
+:is(#loginScreen,#resetPasswordScreen) .password-toggle {
+  width: 44px;
+  height: 44px;
+  right: 3px;
+  border-radius: 9px;
+  color: rgba(11, 12, 16, .5);
+}
+:is(#loginScreen,#resetPasswordScreen) .password-toggle:hover { background: rgba(11, 12, 16, .06); color: var(--cf-crimson); }
+:is(#loginScreen,#resetPasswordScreen) .password-toggle:focus-visible { outline: 2px solid var(--cf-crimson); outline-offset: 1px; }
+
+/* options row — aligned */
+:is(#loginScreen,#resetPasswordScreen) .login-options {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+:is(#loginScreen,#resetPasswordScreen) .login-session-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  line-height: 1;
+  color: rgba(11, 12, 16, .64);
+}
+:is(#loginScreen,#resetPasswordScreen) .login-session-note::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--cf-crimson);
+  box-shadow: 0 0 0 3px rgba(214, 0, 47, .15);
+}
+:is(#loginScreen,#resetPasswordScreen) .link-button {
+  padding: 10px 4px;
+  margin: -10px -4px;
+  border-radius: 6px;
+  background: none;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--cf-crimson);
+  text-decoration: none;
+}
+:is(#loginScreen,#resetPasswordScreen) .link-button:hover { color: var(--cf-red); text-decoration: underline; text-underline-offset: 3px; }
+:is(#loginScreen,#resetPasswordScreen) .link-button:focus-visible { outline: 2px solid var(--cf-crimson); outline-offset: 2px; text-decoration: none; }
+
+/* form-level alert — compact; reserved for authentication / service failures.
+   Icon + shape + colour, never colour alone. */
+:is(#loginScreen,#resetPasswordScreen) .login-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: -1px 0 -2px;
+  padding: 8px 11px;
+  border-radius: 10px;
+  background: #fdeef0;
+  border: 1px solid rgba(214, 0, 47, .28);
+  animation: authRise .22s var(--cf-ease) both;
+}
+:is(#loginScreen,#resetPasswordScreen) .login-error .validation-alert-icon {
+  width: 16px;
+  height: 16px;
+  margin-top: .5px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--cf-crimson);
+  color: #fff;
+  font-size: 10.5px;
+  font-weight: 800;
+}
+:is(#loginScreen,#resetPasswordScreen) #loginErrorText {
+  font-family: var(--font-ui);
+  font-size: 12px;
+  line-height: 1.4;
+  color: #8a0018;
+}
+
+/* primary action — dark→bright crimson, top highlight, controlled shadow */
+:is(#loginScreen,#resetPasswordScreen) .login-submit {
+  position: relative;
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border-radius: 12px;
+  font-family: var(--font-ui);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: .01em;
+  color: #fff;
+  background: linear-gradient(180deg, #AE0018 0%, #CE002C 48%, #E11B3A 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .24),
+    0 10px 22px -10px rgba(174, 0, 20, .5),
+    0 3px 8px -4px rgba(174, 0, 20, .38);
+  transition: transform .16s var(--cf-ease), box-shadow .2s ease, filter .2s ease;
+}
+:is(#loginScreen,#resetPasswordScreen) .login-submit::before,
+:is(#loginScreen,#resetPasswordScreen) .login-submit::after { display: none !important; }
+:is(#loginScreen,#resetPasswordScreen) .login-submit:hover:not([disabled]) {
+  transform: translateY(-1px);
+  filter: saturate(1.05) brightness(1.025);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .26),
+    0 16px 32px -12px rgba(184, 0, 15, .52),
+    0 4px 10px -4px rgba(184, 0, 15, .4);
+}
+/* pressed — no layout movement */
+:is(#loginScreen,#resetPasswordScreen) .login-submit:active:not([disabled]) {
+  transform: none;
+  filter: saturate(.98) brightness(.96);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .18), 0 8px 18px -8px rgba(184, 0, 15, .45);
+}
+:is(#loginScreen,#resetPasswordScreen) .login-submit:focus-visible { outline: 3px solid rgba(214, 0, 47, .5); outline-offset: 2px; }
+:is(#loginScreen,#resetPasswordScreen) .login-submit[disabled] { cursor: default; }
+:is(#loginScreen,#resetPasswordScreen) .login-submit.is-loading { filter: saturate(.95); }
+:is(#loginScreen,#resetPasswordScreen) .login-submit-spinner {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  display: none;
+  border: 2.5px solid rgba(255, 255, 255, .35);
+  border-top-color: #fff;
+  border-radius: 50%;
+}
+:is(#loginScreen,#resetPasswordScreen) .login-submit.is-loading .login-submit-spinner {
+  display: block;
+  animation: submitSpinner .7s linear infinite;
+}
+
+:is(#loginScreen,#resetPasswordScreen) .login-admin-note {
+  font-family: var(--font-ui);
+  font-size: 11.5px;
+  line-height: 1.5;
+  text-align: left;
+  color: rgba(11, 12, 16, .66);
+}
+
+/* ───────────────────────────────────────────────
+   4 · NO REACTIONS
+   The left-hand artwork and the four-stage strip are decoration.  They draw
+   themselves once on entrance and then never respond to hover, focus, a
+   sign-in attempt, or its result.  The only feedback during sign-in lives on
+   the button itself (spinner + "Signing in…", handled in auth.js).
+─────────────────────────────────────────────── */
+
+/* ───────────────────────────────────────────────
+   RESPONSIVE
+─────────────────────────────────────────────── */
+
+/* wider laptops — keep the split, ease the gap and headline */
+@media (max-width: 1200px) {
+  :is(#loginScreen,#resetPasswordScreen) .login-card-panel { grid-template-columns: minmax(0, 1.42fr) minmax(0, 1fr); gap: clamp(20px, 3.5vw, 44px); }
+  :is(#loginScreen,#resetPasswordScreen) .login-assurance-panel { padding-left: clamp(0px, 3.5vw, 52px); }
+  :is(#loginScreen,#resetPasswordScreen) .login-hero-copy h2 { font-size: clamp(31px, 3.8vw, 44px); }
+}
+
+/* short viewports — cut vertical gaps before type sizes */
+@media (min-width: 981px) and (max-height: 840px) {
+  :is(#loginScreen,#resetPasswordScreen) .login-assurance-panel { gap: clamp(12px, 1.8vh, 20px); }
+  :is(#loginScreen,#resetPasswordScreen) .login-hero-copy { gap: 12px; }
+  :is(#loginScreen,#resetPasswordScreen) .login-workspace-preview { padding: 16px 22px 14px; }
+  :is(#loginScreen,#resetPasswordScreen) .login-preview-head { margin-bottom: 16px; }
+  :is(#loginScreen,#resetPasswordScreen) .login-form { gap: 11px; padding: 26px 30px; }
+  :is(#loginScreen,#resetPasswordScreen) .login-preview-flow span.login-step__desc { min-height: 0; }
+}
+
+/* tablet — stack; form leads; the vector simplifies */
+@media (max-width: 980px) {
+  :is(#loginScreen,#resetPasswordScreen).login-screen {
+    align-items: flex-start;
+    padding: clamp(18px, 5vw, 40px);
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+  :is(#loginScreen,#resetPasswordScreen) .login-stage { width: min(560px, 100%); }
+  :is(#loginScreen,#resetPasswordScreen) .login-card-panel {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 32px;
+  }
+  :is(#loginScreen,#resetPasswordScreen) .login-form { order: 0; max-width: none; }
+  :is(#loginScreen,#resetPasswordScreen) .login-assurance-panel {
+    order: 1;
+    display: flex;
+    align-items: stretch;
+    padding: 0;
+  }
+  :is(#loginScreen,#resetPasswordScreen) .login-hero-copy h2 { font-size: clamp(28px, 6vw, 36px); max-width: 20ch; }
+  :is(#loginScreen,#resetPasswordScreen) .login-workspace-preview,
+  :is(#loginScreen,#resetPasswordScreen) .assurance-author { max-width: none; }
+  /* stacked: keep only the sheet + its signature curl + a soft glow at the
+     top of the story.  The cross-column line is a desktop composition detail. */
+  :is(#loginScreen,#resetPasswordScreen) .contract-flow { top: -2%; bottom: auto; height: 54%; left: -6%; right: 0; opacity: .8; }
+  :is(#loginScreen,#resetPasswordScreen) .cf-core,
+  :is(#loginScreen,#resetPasswordScreen) .cf-ribbon,
+  :is(#loginScreen,#resetPasswordScreen) .cf-spark,
+  :is(#loginScreen,#resetPasswordScreen) .cf-atmos2,
+  :is(#loginScreen,#resetPasswordScreen) .cf-doc-lines,
+  :is(#loginScreen,#resetPasswordScreen) .cf-doc-fields,
+  :is(#loginScreen,#resetPasswordScreen) .cf-doc-vcheck { display: none; }
+  :is(#loginScreen,#resetPasswordScreen) .login-form::after { display: none; }
+}
+
+/* mobile — compact intro, card first, a small static signature stroke only */
+@media (max-width: 560px) {
+  :is(#loginScreen,#resetPasswordScreen).login-screen { padding: 14px; }
+  :is(#loginScreen,#resetPasswordScreen) .login-stage { width: 100%; }
+  :is(#loginScreen,#resetPasswordScreen) .login-card-panel { gap: 24px; }
+  :is(#loginScreen,#resetPasswordScreen) .login-form { padding: 22px 18px; border-radius: 18px; }
+  :is(#loginScreen,#resetPasswordScreen) .login-hero-copy { gap: 12px; }
+  :is(#loginScreen,#resetPasswordScreen) .login-hero-copy h2 { font-size: clamp(25px, 7vw, 31px); }
+  :is(#loginScreen,#resetPasswordScreen) .login-hero-copy p { font-size: 14px; }
+  :is(#loginScreen,#resetPasswordScreen) .login-flow-statement,
+  :is(#loginScreen,#resetPasswordScreen) .assurance-author { display: none; }
+  :is(#loginScreen,#resetPasswordScreen) .login-workspace-preview { padding: 16px 18px 14px; }
+  :is(#loginScreen,#resetPasswordScreen) .login-preview-flow { grid-template-columns: 1fr 1fr; gap: 18px 14px; }
+  :is(#loginScreen,#resetPasswordScreen) .login-preview-flow::before,
+  :is(#loginScreen,#resetPasswordScreen) .login-preview-flow::after { display: none; }
+  :is(#loginScreen,#resetPasswordScreen) .login-preview-flow span.login-step__desc { min-height: 0; }
+  /* a small static signature line near the branding, nothing else */
+  :is(#loginScreen,#resetPasswordScreen) .contract-flow { top: -1%; bottom: auto; height: 40%; left: -4%; right: 0; opacity: .4; }
+  :is(#loginScreen,#resetPasswordScreen) .cf-core,
+  :is(#loginScreen,#resetPasswordScreen) .cf-ribbon,
+  :is(#loginScreen,#resetPasswordScreen) .cf-spark,
+  :is(#loginScreen,#resetPasswordScreen) .cf-atmos2,
+  :is(#loginScreen,#resetPasswordScreen) .cf-doc-lines,
+  :is(#loginScreen,#resetPasswordScreen) .cf-doc-fields,
+  :is(#loginScreen,#resetPasswordScreen) .cf-doc-vcheck { display: none; }
+  :is(#loginScreen,#resetPasswordScreen) .login-form::after { display: none; }
+}
+
+/* ───────────────────────────────────────────────
+   REDUCED MOTION — render the final composition, no motion
+─────────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  :is(#loginScreen,#resetPasswordScreen) .cf-doc,
+  :is(#loginScreen,#resetPasswordScreen) .cf-ribbon,
+  :is(#loginScreen,#resetPasswordScreen) .cf-core,
+  :is(#loginScreen,#resetPasswordScreen) .cf-spark,
+  :is(#loginScreen,#resetPasswordScreen):not(.hidden) .login-step {
+    animation: none !important;
+  }
+  :is(#loginScreen,#resetPasswordScreen) .cf-doc { opacity: .92; transform: none; }
+  :is(#loginScreen,#resetPasswordScreen) .cf-ribbon { opacity: .26; }
+  :is(#loginScreen,#resetPasswordScreen) .cf-core { stroke-dashoffset: 0; }
+  :is(#loginScreen,#resetPasswordScreen) .cf-spark { stroke-dashoffset: 0; opacity: .22; }
+  :is(#loginScreen,#resetPasswordScreen) .login-step,
+  :is(#loginScreen,#resetPasswordScreen) .login-submit,
+  :is(#loginScreen,#resetPasswordScreen) .login-input { transition: none !important; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   PASSWORD RECOVERY — reuses the login shell (scene, card, inputs,
+   buttons, brand lockup, vector). Adds only the recovery-specific
+   pieces: 3-step progress, code input, password requirements, the
+   neutral security notice, and the success state.
+═══════════════════════════════════════════════════════════════════ */
+
+.sr-only {
+  position: absolute !important;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0);
+  white-space: nowrap; border: 0;
+}
+
+/* legacy dark reset chrome must not bleed through */
+#resetPasswordScreen.reset-screen::before,
+.reset-screen::before { display: none !important; }
+#resetPasswordScreen .login-form::after { display: none; }   /* no arrival-dot on recovery cards */
+#resetPasswordScreen .login-card-panel { align-items: start; }
+#resetPasswordScreen .login-form { align-self: center; }
+
+/* ── 3-step progress ── */
+.auth-progress {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 14px;
+  padding: 0;
+}
+.auth-progress__step { display: flex; align-items: center; gap: 7px; flex: 0 0 auto; }
+.auth-progress__step:not(:last-child)::after {
+  content: '';
+  width: 18px;
+  height: 1.5px;
+  margin: 0 2px;
+  border-radius: 2px;
+  background: rgba(11, 12, 16, .16);
+}
+.auth-progress__step.is-done:not(:last-child)::after { background: rgba(214, 0, 47, .4); }
+.auth-progress__dot {
+  width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  font-family: var(--font-ui, 'Manrope', sans-serif);
+  font-size: 10.5px;
+  font-weight: 700;
+  color: rgba(11, 12, 16, .55);
+  background: rgba(11, 12, 16, .06);
+  border: 1.5px solid transparent;
+}
+.auth-progress__label {
+  font-family: var(--font-ui, 'Manrope', sans-serif);
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(11, 12, 16, .5);
+}
+.auth-progress__step.is-current .auth-progress__dot {
+  color: #fff;
+  background: var(--cf-crimson, #D6002F);
+  border-color: var(--cf-crimson, #D6002F);
+}
+.auth-progress__step.is-current .auth-progress__label { color: var(--ink, #16161c); }
+.auth-progress__step.is-done .auth-progress__dot {
+  color: var(--cf-crimson, #D6002F);
+  background: rgba(214, 0, 47, .12);
+  border-color: rgba(214, 0, 47, .3);
+}
+.auth-progress__step.is-done .auth-progress__label { color: rgba(11, 12, 16, .62); }
+
+/* ── neutral security notice ── */
+.auth-notice {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(11, 12, 16, .04);
+  border: 1px solid rgba(11, 12, 16, .1);
+  font-family: var(--font-ui, 'Manrope', sans-serif);
+  font-size: 12px;
+  line-height: 1.45;
+  color: rgba(11, 12, 16, .68);
+}
+.auth-notice[hidden] { display: none; }
+
+/* ── back link + link rows — never plain body text ── */
+#resetPasswordScreen .auth-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  align-self: center;
+  margin-top: 2px;
+  padding: 8px 6px;
+  font-weight: 650;
+  color: var(--cf-crimson, #D6002F);
+}
+#resetPasswordScreen .auth-back svg { flex-shrink: 0; }
+#resetPasswordScreen .auth-back:hover { color: var(--cf-red, #FF1749); text-decoration: underline; text-underline-offset: 3px; }
+.auth-linkrow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  justify-content: center;
+  margin-top: 2px;
+}
+#resetPasswordScreen .auth-linkrow .link-button { padding: 8px 4px; font-size: 12px; }
+#resetPasswordScreen .auth-linkrow .link-button:disabled { color: rgba(11, 12, 16, .4); text-decoration: none; cursor: default; }
+
+/* ── verification code input ── */
+.auth-code-input {
+  font-family: var(--font-display, 'Fraunces', Georgia, serif);
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: .5em;
+  text-align: center;
+  padding-left: calc(16px + .25em);
+  font-variant-numeric: tabular-nums;
+}
+.auth-code-input::placeholder { letter-spacing: .5em; color: #c9c9d0; }
+
+/* ── password requirements (not colour alone: icon + text state) ── */
+.auth-reqs {
+  list-style: none;
+  margin: -4px 0 2px;
+  padding: 0;
+  display: grid;
+  gap: 5px;
+}
+.auth-req {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-ui, 'Manrope', sans-serif);
+  font-size: 11.5px;
+  color: rgba(11, 12, 16, .58);
+}
+.auth-req__mark {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: 1.5px solid rgba(11, 12, 16, .28);
+  background: center / 9px 9px no-repeat;
+}
+.auth-req.is-valid { color: #0b6a44; }
+.auth-req.is-valid .auth-req__mark {
+  border-color: #0b6a44;
+  background-color: #0b6a44;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E");
+}
+.auth-req.is-invalid { color: #a3001d; }
+.auth-req.is-invalid .auth-req__mark {
+  border-color: #a3001d;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a3001d' stroke-width='3.5' stroke-linecap='round'%3E%3Cpath d='M18 6 6 18M6 6l12 12'/%3E%3C/svg%3E");
+}
+
+/* ── success state ── */
+#resetPasswordScreen #resetSuccessPanel {
+  justify-items: center;
+  gap: 14px;
+  text-align: center;
+}
+#resetPasswordScreen #resetSuccessPanel:not(.hidden) { display: grid; }
+.auth-success-mark { width: 64px; height: 64px; color: var(--cf-crimson, #D6002F); }
+.auth-success-mark svg { width: 100%; height: 100%; overflow: visible; }
+.auth-success-ring,
+.auth-success-tick { stroke-dasharray: 160; stroke-dashoffset: 160; }
+#resetPasswordScreen:not(.hidden) #resetSuccessPanel:not(.hidden) .auth-success-ring {
+  animation: authRingIn .5s var(--cf-ease) both;
+}
+#resetPasswordScreen:not(.hidden) #resetSuccessPanel:not(.hidden) .auth-success-tick {
+  animation: authTickIn .4s var(--cf-ease) .32s both;
+}
+@keyframes authRingIn { to { stroke-dashoffset: 0; } }
+@keyframes authTickIn { to { stroke-dashoffset: 0; } }
+
+/* ── recovery vector — a subtle vertical journey down the left gutter,
+   entirely clear of the story text. Nodes fade only (a CSS transform
+   would replace their SVG translate attribute). ── */
+#resetPasswordScreen .rc-flow {
+  top: -6%;
+  bottom: -6%;
+  left: -14%;
+  right: auto;
+  width: clamp(160px, 27%, 270px);
+}
+#resetPasswordScreen .rc-flow .cf-core  { opacity: .7; }
+#resetPasswordScreen .rc-flow .cf-spark { opacity: .35; }
+.rc-node { opacity: 0; }
+#resetPasswordScreen:not(.hidden) .rc-node { animation: rcFadeIn .45s var(--cf-ease) both; }
+#resetPasswordScreen:not(.hidden) .rc-node--lock   { animation-delay: .5s; }
+#resetPasswordScreen:not(.hidden) .rc-node--verify { animation-delay: .66s; }
+#resetPasswordScreen:not(.hidden) .rc-node--home   { animation-delay: .82s; }
+@keyframes rcFadeIn { from { opacity: 0; } to { opacity: .9; } }
+
+/* the recovery headline sits on two lines */
+#resetPasswordScreen .login-hero-copy h2 { max-width: 22ch; font-size: clamp(32px, 3.6vw, 46px); }
+
+#resetPasswordScreen .login-flow-statement { margin-top: 6px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-success-ring,
+  .auth-success-tick { stroke-dashoffset: 0 !important; animation: none !important; }
+  #resetPasswordScreen .rc-node { opacity: .9; animation: none !important; }
+}
+
+@media (max-width: 980px) {
+  #resetPasswordScreen .rc-flow { width: 34%; opacity: .75; }
+}
+@media (max-width: 560px) {
+  .auth-progress { gap: 4px; }
+  .auth-progress__step:not(:last-child)::after { width: 12px; }
+  .auth-progress__label { font-size: 10px; }
+  .auth-code-input { font-size: 19px; letter-spacing: .35em; padding-left: calc(14px + .175em); }
+}

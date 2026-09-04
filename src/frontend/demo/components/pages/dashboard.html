@@ -1,104 +1,129 @@
-<div class="page-padding animate-in">
-  <div class="page-header">
-    <div>
-      <h1 class="page-title" id="dash-greeting">Welcome back</h1>
-      <p class="page-subtitle">Your automated contract desk is ready. Priority work is already surfaced.</p>
-    </div>
-    <button class="btn-primary" onclick="routeTo('wizard')">New Contract</button>
+<div class="page-padding animate-in dash">
+  <header class="dash-greet">
+    <h1 class="dash-greet__title" id="dash-greeting">Good afternoon</h1>
+    <p class="dash-greet__sub">Here&rsquo;s what needs attention across your contract workspace.</p>
+  </header>
+
+  <div id="dash-resume-slot"></div>
+
+  <div class="dash-top">
+    <!-- Command bar — compact operational surface -->
+    <section class="dash-cmd" aria-labelledby="dash-cmd-h">
+      <div class="dash-cmd__body">
+        <span class="dash-cmd__eyebrow">ContractIQ workspace</span>
+        <h2 class="dash-cmd__h" id="dash-cmd-h">Move contracts forward.</h2>
+        <p class="dash-cmd__p">Create a contract, continue active work, or review decisions waiting for you.</p>
+        <div class="dash-cmd__actions">
+          <button class="btn-primary" type="button" onclick="routeTo('wizard')">New contract</button>
+          <button class="btn-secondary" type="button" onclick="routeTo('approvals')">Review approvals</button>
+        </div>
+      </div>
+      <div class="dash-cmd__flow" aria-hidden="true">
+        <svg class="dash-flow" viewBox="0 0 240 56" preserveAspectRatio="none" role="presentation" focusable="false">
+          <defs>
+            <linearGradient id="dashFlowStroke" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0" stop-color="#FF4D6A" stop-opacity=".2"/>
+              <stop offset=".35" stop-color="#FF3355" stop-opacity=".9"/>
+              <stop offset=".85" stop-color="#FF5C7A"/>
+              <stop offset="1" stop-color="#FF7893" stop-opacity=".35"/>
+            </linearGradient>
+            <radialGradient id="dashFlowGlow" cx=".5" cy=".5" r=".5">
+              <stop offset="0" stop-color="#7F000F" stop-opacity=".5"/>
+              <stop offset="1" stop-color="#2A0711" stop-opacity="0"/>
+            </radialGradient>
+          </defs>
+          <ellipse class="dash-flow__glow" cx="130" cy="30" rx="130" ry="40" fill="url(#dashFlowGlow)"/>
+          <path class="dash-flow__path" pathLength="100" fill="none" stroke="url(#dashFlowStroke)" stroke-width="1.6" stroke-linecap="round"
+                d="M30 34 C 55 34 62 20 90 20 C 122 20 128 32 150 30 C 178 27 186 16 210 14"/>
+          <path class="dash-flow__spark" pathLength="100" fill="none" stroke="#FFE1E7" stroke-width="1.6" stroke-linecap="round"
+                d="M30 34 C 55 34 62 20 90 20 C 122 20 128 32 150 30 C 178 27 186 16 210 14"/>
+          <g class="dash-flow__nodes">
+            <circle cx="30" cy="34" r="4"/><circle cx="90" cy="20" r="4"/>
+            <circle cx="150" cy="30" r="4"/><circle cx="210" cy="14" r="4"/>
+          </g>
+        </svg>
+        <ol class="dash-flow__labels" aria-hidden="true">
+          <li>Draft</li><li>Validate</li><li>Approve</li><li>Export</li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- Needs your attention -->
+    <section class="dash-attn" aria-labelledby="dash-attn-h">
+      <div class="dash-attn__head">
+        <h2 class="dash-attn__h" id="dash-attn-h">Needs your attention</h2>
+      </div>
+      <ul class="dash-attn__list" id="dash-attention" aria-live="polite">
+        <li class="dash-attn__skel"><span class="skel skel-line"></span></li>
+        <li class="dash-attn__skel"><span class="skel skel-line"></span></li>
+      </ul>
+    </section>
   </div>
 
-  <section class="automation-hero">
-    <div>
-      <div class="eyebrow">RedMPS ContractIQ</div>
-      <h2>Generate the right document, route it, and export it without chasing details.</h2>
-      <p>ContractIQ combines guided capture, reusable employee data, compliance checks, and approval automation so HR can move confidently without technical training.</p>
-      <div class="hero-actions">
-        <button class="btn-primary" onclick="routeTo('wizard')">Start Guided Contract</button>
-        <button class="btn-secondary" onclick="routeTo('contracts')">Review Queue</button>
-      </div>
-    </div>
-    <div class="hero-panel">
-      <div class="hero-panel-row">
-        <span>Automation readiness</span>
-        <strong>92%</strong>
-      </div>
-      <div class="readiness-track"><span style="width:92%"></span></div>
-      <div class="hero-checks">
-        <span>Template matched</span>
-        <span>POPIA check clean</span>
-        <span>Approval route prepared</span>
-      </div>
-    </div>
-  </section>
-
-  <div class="kpi-grid">
-    <div class="kpi-card red">
-      <div class="kpi-icon red">01</div>
-      <div class="kpi-label">Contracts Generated</div>
-      <div class="kpi-value" id="dash-total-contracts">—</div>
-      <div class="kpi-trend up">All time</div>
-    </div>
-    <div class="kpi-card gold">
-      <div class="kpi-icon gold">02</div>
-      <div class="kpi-label">Pending Approvals</div>
-      <div class="kpi-value" id="dash-pending-approvals">—</div>
-      <div class="kpi-trend neutral">Awaiting decision</div>
-    </div>
-    <div class="kpi-card blue">
-      <div class="kpi-icon blue">03</div>
-      <div class="kpi-label">Active Employees</div>
-      <div class="kpi-value" id="dash-active-employees">—</div>
-      <div class="kpi-trend up">In the system</div>
-    </div>
-    <div class="kpi-card green">
-      <div class="kpi-icon green">04</div>
-      <div class="kpi-label">Signed Contracts</div>
-      <div class="kpi-value" id="dash-signed-count">—</div>
-      <div class="kpi-trend up">Executed &amp; live</div>
-    </div>
-  </div>
+  <!-- Compact metric strip -->
+  <nav class="dash-metrics" aria-label="Workspace metrics">
+    <button class="dash-metric" type="button" onclick="routeTo('contracts')">
+      <span class="dash-metric__label">Total contracts</span>
+      <span class="dash-metric__value" id="dash-m-total">&mdash;</span>
+      <span class="dash-metric__ctx" id="dash-mc-total">across all statuses</span>
+    </button>
+    <button class="dash-metric" type="button" onclick="dashGoToContracts('draft')">
+      <span class="dash-metric__label">Drafts in progress</span>
+      <span class="dash-metric__value" id="dash-m-drafts">&mdash;</span>
+      <span class="dash-metric__ctx" id="dash-mc-drafts">&nbsp;</span>
+    </button>
+    <button class="dash-metric" type="button" onclick="routeTo('approvals')">
+      <span class="dash-metric__label">Pending approvals</span>
+      <span class="dash-metric__value" id="dash-m-pending">&mdash;</span>
+      <span class="dash-metric__ctx" id="dash-mc-pending">&nbsp;</span>
+    </button>
+    <button class="dash-metric" type="button" onclick="dashGoToContracts('signed')">
+      <span class="dash-metric__label">Signed contracts</span>
+      <span class="dash-metric__value" id="dash-m-signed">&mdash;</span>
+      <span class="dash-metric__ctx" id="dash-mc-signed">executed &amp; live</span>
+    </button>
+    <button class="dash-metric" type="button" onclick="routeTo('employees')">
+      <span class="dash-metric__label">Active employees</span>
+      <span class="dash-metric__value" id="dash-m-employees">&mdash;</span>
+      <span class="dash-metric__ctx" id="dash-mc-employees">available for contracts</span>
+    </button>
+  </nav>
 
   <div class="dash-grid">
-    <section class="card">
+    <section class="card dash-recent" aria-labelledby="dash-recent-h">
       <div class="card-header">
-        <div class="card-title">Recent Contracts</div>
-        <button class="card-action" onclick="routeTo('contracts')">View all</button>
+        <h2 class="card-title" id="dash-recent-h">Recent contracts</h2>
+        <button class="card-action" type="button" onclick="routeTo('contracts')">View all</button>
       </div>
-      <div class="card-body" style="padding:0;overflow:auto;">
-        <table style="width:100%;border-collapse:collapse;font-size:13px;">
+      <div class="card-body dash-recent__body">
+        <table class="dash-table">
           <thead>
-            <tr style="border-bottom:1px solid var(--coal-100);">
-              <th style="padding:10px 14px;text-align:left;font-weight:600;color:var(--coal-400);font-size:11px;text-transform:uppercase;">Ref</th>
-              <th style="padding:10px 14px;text-align:left;font-weight:600;color:var(--coal-400);font-size:11px;text-transform:uppercase;">Employee</th>
-              <th style="padding:10px 14px;text-align:left;font-weight:600;color:var(--coal-400);font-size:11px;text-transform:uppercase;">Status</th>
-              <th style="padding:10px 14px;text-align:left;font-weight:600;color:var(--coal-400);font-size:11px;text-transform:uppercase;">Salary</th>
-              <th style="padding:10px 14px;text-align:left;font-weight:600;color:var(--coal-400);font-size:11px;text-transform:uppercase;">Created</th>
+            <tr>
+              <th scope="col">Reference</th>
+              <th scope="col">Employee</th>
+              <th scope="col">Status</th>
+              <th scope="col" class="dash-table__num" data-salary-col>Salary</th>
+              <th scope="col">Updated</th>
             </tr>
           </thead>
           <tbody id="dash-recent-contracts">
-            <tr><td colspan="5" style="padding:16px 14px;color:var(--coal-400);">Loading…</td></tr>
+            <tr><td colspan="5" class="dash-table__state">Loading recent contracts&hellip;</td></tr>
           </tbody>
         </table>
       </div>
     </section>
 
-    <section class="card">
+    <section class="card dash-pipe" aria-labelledby="dash-pipe-h">
       <div class="card-header">
-        <div class="card-title">Contract Status Breakdown</div>
+        <h2 class="card-title" id="dash-pipe-h">Contract pipeline</h2>
+        <span class="dash-pipe__total" id="dash-pipe-total">&mdash;</span>
       </div>
-      <div class="card-body signal-list">
-        <div class="signal-item">
-          <strong id="dash-review-count">—</strong>
-          <span>in review — awaiting approval</span>
-        </div>
-        <div class="signal-item">
-          <strong id="dash-draft-count">—</strong>
-          <span>drafts in progress</span>
-        </div>
-        <div class="signal-item">
-          <strong id="dash-signed-count-2">—</strong>
-          <span>signed &amp; executed this cycle</span>
-        </div>
+      <div class="card-body">
+        <div class="dash-pipe__bar" id="dash-pipe-bar" role="img" aria-label="Contract pipeline by stage"></div>
+        <ul class="dash-pipe__legend" id="dash-pipe-legend">
+          <li class="dash-pipe__skel"><span class="skel skel-line"></span></li>
+          <li class="dash-pipe__skel"><span class="skel skel-line"></span></li>
+        </ul>
       </div>
     </section>
   </div>

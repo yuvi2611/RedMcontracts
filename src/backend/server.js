@@ -729,20 +729,45 @@ async function submitContract(req, res, id) {
   if (!result.rows[0]) throw httpError(400, 'Contract must be in Draft status to submit.');
   const contract = result.rows[0];
 
-  // Ensure at least one approval workflow step exists; if not, create one for the first director
-  const existing = await pool.query(
-    `SELECT id FROM approval_workflows WHERE contract_id = $1 LIMIT 1`, [id]
-  );
-  if (!existing.rows[0]) {
+  // Resolve the chosen approver: explicit selection (id or email) wins,
+  // otherwise fall back to the first active Director.
+  async function resolveApproverId() {
+    if (body.approver_id) {
+      const r = await pool.query(`SELECT id FROM users WHERE id = $1 AND is_active = true LIMIT 1`, [body.approver_id]);
+      if (r.rows[0]) return r.rows[0].id;
+    }
+    if (body.approver_email) {
+      const r = await pool.query(`SELECT id FROM users WHERE lower(email) = lower($1) AND is_active = true LIMIT 1`, [body.approver_email]);
+      if (r.rows[0]) return r.rows[0].id;
+    }
     const director = await pool.query(
       `SELECT u.id FROM users u JOIN roles r ON r.id = u.role_id
        WHERE r.name ILIKE '%director%' AND u.is_active = true LIMIT 1`
     );
-    if (director.rows[0]) {
+    return director.rows[0]?.id || null;
+  }
+
+  // Ensure exactly one pending approval step exists, routed to the chosen approver.
+  const existing = await pool.query(
+    `SELECT id FROM approval_workflows WHERE contract_id = $1 LIMIT 1`, [id]
+  );
+  if (!existing.rows[0]) {
+    const approverId = await resolveApproverId();
+    if (approverId) {
       await pool.query(
         `INSERT INTO approval_workflows (contract_id, approver_id, step_number, status)
          VALUES ($1, $2, 1, 'Pending')`,
-        [id, director.rows[0].id]
+        [id, approverId]
+      );
+    }
+  } else if (body.approver_id || body.approver_email) {
+    // Re-submission with a (re)selected approver — point the pending step at them.
+    const approverId = await resolveApproverId();
+    if (approverId) {
+      await pool.query(
+        `UPDATE approval_workflows SET approver_id = $2, status = 'Pending', decision_date = NULL, updated_at = NOW()
+         WHERE contract_id = $1 AND step_number = 1`,
+        [id, approverId]
       );
     }
   }
